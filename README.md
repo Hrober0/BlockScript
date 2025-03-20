@@ -7,8 +7,6 @@ Wspiera funkcje wyższego rzędu, zagnieżdżanie funkcji oraz przekazywanie ich
 
 Język wyróżnia szerokie zastosowanie **bloku**, czyli części kodu, która może być użyta jako wartość warunkowa lub parametr.
 
----
-
 ## Zasady działania języka
 
 ### Typy danych
@@ -37,8 +35,6 @@ _(Ułożone malejąco według priorytetu)_
 ### Operatory przypisania
 - `=`  – przypisanie  
 - `=?` – przypisanie warunkowe  
-
----
 
 ## Zmienne
 - Zmienna ma określony typ, ale może się on zmieniać w czasie.  
@@ -165,12 +161,12 @@ program		= statements eos;
 block		= "{" [statements [eos]] "}"
 statements	= {statement eos } statement;
 statement	= assign
-				| lambda
-				| func_call
-				| condition
-				| loop
-				| print
-				| expr;
+		| lambda
+		| func_call
+		| condition
+		| loop
+		| print
+		| expr;
 
 assign		= identifier op_asign expr;
 lambda		= "(" args ")" block;
@@ -187,17 +183,17 @@ ex_mul		= ex_urn { op_mul ex_urn };
 ex_urn		= factor | "!" factor;
 
 factor		= int
-				| string
-				| bool
-				| null
-				| identifier
-				| statement
-				| block;
+		| string
+		| bool
+		| null
+		| identifier
+		| statement
+		| block;
 ```
 #### Część leksykalna
 ```ebnf
-eos			= ";";
-int			= digit { digit };
+eos		= ";";
+int		= digit { digit };
 string		= "\"" { symbol } "\"";
 bool		= "false" | "true";
 null		= "null";
@@ -211,7 +207,7 @@ op_mul		= "*" | "/";
 op_asign	= "=" | "?=";
 
 args		= [{ expr "," } expr];
-identifier = letter { letter | digit };
+identifier	= letter { letter | digit };
 
 symbol		= digit | letter;
 digit		= #'[0-9]';
