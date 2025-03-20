@@ -1,93 +1,207 @@
 # BlockScript
 
+## Wstęp
+BlockScript jest językiem ogólnego przeznaczenia, nastawiony na obsługę funkcji w zawansowanym kontekście.
+Jest dynamicznie typowany, słabymi typami, posiada domyślnie mutowalne zmienne oraz parametry przekazywane przez kopie.
+Wspiera działanie funkcji wyższego rzędu, zagnierzdżanie ich oraz przekzywanie jako parametr.
+Język wyróżnia szerokie zastosowanie bloku czyli części kodu, mogącego być użyty jako wartości warunkowe lub parametry.
+
+## Zasady działania języka
+
+### Typy danych
+- int
+- bool
+- string
+- null
+
+### Operatory arytmetyczno logiczne
+Ułożone malejąco według priorytetu
+- ! - negacja
+- * - mnożenie
+- / - dzielenie
+- + - dodawanie
+- - - odejmowanie
+- ?? - wartość nie null
+- > - większe
+- >= - większe lub równe
+- < - mniejsze
+- <= - mniejsze lub równe
+- == - równe
+- != - nie równe
+- && - i
+- || - lub
+
+### Operatory przypisania
+- = wrzypisanie
+- =? przypisanie warunkowe
+
+### Zmienne
+- Zmienna jest określonego typu, ale typ zmiennej może się zmieniać w czasie.
+- Operacje na zmiennych różnego typu nie wymagają jawnego żutowania na ten sam typ.
+a = 4;
+a = "a"; # a zmieni typ z int na string
+
+np.
+a = 4;
+b ?= 3; # b zostanie ustawione na 3 ponieważ jest nullem
+b ?= 4; $ b pozostanie z wartością 3 
+b = a ?? 5; # b zostanie ustawione na 4
+
+### Komentarze
+/# komentarz
+
+### Blok
+Ważny do zrozumienia aspekt języka, blok stanowią kolejne linijki kodu, przypominjąc ciało funkcji.
+Cały program stanowi blok.
+Blok ma swoją własną lokalną pamięć.
+Bloki mogą być zagnieżdżane.
+Blok ma dostęp do pamięci bloku rodzica.
+Każdy blok zwraca wartość równą wartości z ostaniej instrukcji w bloku.
+Symbol ; jest użyty do odseparowania instrukcji od siebie, może ale nie musi występować na końcu bloku
+np.
+{
+a=3;
+b=4;
+}
+powyższy blok zwróci: 4
+
+{
+a=3;
+b={4};		# to samo co b=4;
+a+b;
+}
+powyższy blok zwróci: 7
+
+{
+a=3;
+b=4;
+a>b			# ostatnie instrukcja nie wymaga ;
+}
+powyższy blok zwróci: false
+
+{
+a=3;
+b=4;
+(){a>b};
+}
+powyższy blok zwróci: (){false}
+
+{
+print{"a"};
+}
+powyższy blok zwróci: "a"
+
+### Instrukcje warunkowe
+Instrulcje warunkowe przypominają ternary operator
+
+{a>3}?{print{a}};				# gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci null;
+
+{a>3}?{print{a}}:{"no"}; 		# gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci "no";
+
+{a>3||a<2}?{print{a};a+1};		# gdy a>3 lub a<2 wypisze a i zwróci a+1 w przeciwnym razie zwróci null;
+
+2 + 2 * 2 > 7 || {{3>2}?{1}} 	# => {2 + 4 > 7 || 1} => {6 > 7 || 1} => {false || true} => true
+
+### Funkcje
+f=(){print{"a"}};
+f();								# wypisze w konsoli "a"
+
+{(){print{"a"}}}();					# wypisze w konsoli "a"
+
+f=(a){print{a}};
+f("b");								# wypisze w konsoli "b"
+
+### Pętle
+Pętle również wspierają bloki jako jako warunek deyzyjny
+a = 0;
+loop a<10 {a=a+1;print a};
+
+loop a?=10; a=a-1 {print a};
+
+### Notacja EBNF
+Dla przejrzystości w notacji EBNF pomijam znak spacji.
+Powstała gramatyka została przetestowana empirycznie za pomocą narzędzia [EBNF Tester](https://mdkrajnak.github.io/ebnftest/).
+
+#### Część składniowa
+
+program		= statements eos;
+
+block		= "{" [statements [eos]] "}"
+statements	= {statement eos } statement;
+statement	= assign
+				| lambda
+				| func_call
+				| condition
+				| loop
+				| print
+				| expr;
+
+assign		= identifier op_asign expr;
+lambda		= "(" args ")" block;
+func_call	= (identifier | block) "(" args ")";
+condition	= block "?" block [":" block];
+loop		= "loop" statements block;
+print		= "print" block;
+
+expr		= ex_com { op_logical ex_com };
+ex_com		= ex_rel { op_comper ex_rel };
+ex_rel		= ex_add { op_check ex_add };
+ex_add		= ex_mul { op_add ex_mul };
+ex_mul		= ex_urn { op_mul ex_urn };
+ex_urn		= factor | "!" factor;
+
+factor		= int
+				| string
+				| bool
+				| null
+				| identifier
+				| statement
+				| block;
+
+#### Część leksykalna
+
+eos			= ";";
+int			= digit { digit };
+string		= "\"" { symbol } "\"";
+bool		= "false" | "true";
+null		= "null";
+
+op_logical	= "&&" | "||";
+op_comper	= "==" | "!=" | "<" | "<=" | ">" | "<=";
+op_check	= "??"
+op_add		= "+" | "-";
+op_mul		= "*" | "/";
+
+op_asign	= "=" | "?=";
+
+args		= [{ expr "," } expr];
+identifier = letter { letter | digit };
+
+symbol		= digit | letter;
+digit		= #'[0-9]';
+letter		= #'[A-Za-z]';
 
 
-## Getting started
+### Obsługa błędów
+Błędy przyjmują format: ERROR:line komuntikat
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+- Odwołanie się do nie zadeklarowanej wartości
+	1. b = a + 1;
+	ERRPR:1 "a" was not defined
+	
+- Próba wywołania wyrażenia niebędącego funkcjią
+	1. a = 3;
+	2. a();
+	ERROR:2 "a" is not callable
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
-
-```
-cd existing_repo
-git remote add origin https://gitlab-stud.elka.pw.edu.pl/TKOM_25L_WW/astanoch/blockscript.git
-git branch -M main
-git push -uf origin main
-```
-
-## Integrate with your tools
-
-- [ ] [Set up project integrations](https://gitlab-stud.elka.pw.edu.pl/TKOM_25L_WW/astanoch/blockscript/-/settings/integrations)
-
-## Collaborate with your team
-
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+- Nieprawidłowa ilość argumentów metody
+	1. f = (a){};
+	2. f();
+	ERROR:2 "f" expected 1 arguments, but received 0
+	
+- Błąd składni
+	1. print = 2;
+	ERROR:1 Syntax expected "{", but recived "="
+	2. a = 2
+	3. b = 3;
+	ERROR:2 Syntax expected ";", "||"..., bur recived "b"
