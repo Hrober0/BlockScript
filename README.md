@@ -47,11 +47,17 @@ _(Ułożone malejąco według priorytetu)_
 **Przykłady**:
 ```blockscript
 a = 4;
-a = "a";  # a zmieni typ z int na string
+a = "a";
+# a zmieni typ z int na string
 
-b ?= 3;   # b zostanie ustawione na 3, bo jest nullem
-b ?= 4;   # b pozostanie 3
-b = a ?? 5;  # b zostanie ustawione na 4
+b ?= 3;
+# b zostanie ustawione na 3, bo jest nullem
+
+b ?= 4;
+# b pozostanie 3
+
+b = a ?? 5;
+# b zostanie ustawione na 4
 ```
 
 ### Komentarze
@@ -105,13 +111,17 @@ Instrulcje warunkowe przypominają ternary operator
 
 **Przykłady**:
 ```blockscript
-{a>3}?{print{a}};				# gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci null;
+{a>3}?{print{a}};
+# gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci null;
 
-{a>3}?{print{a}}:{"no"}; 		# gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci "no";
+{a>3}?{print{a}}:{"no"};
+# gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci "no";
 
-{a>3||a<2}?{print{a};a+1};		# gdy a>3 lub a<2 wypisze a i zwróci a+1 w przeciwnym razie zwróci null;
+{a>3||a<2}?{print{a};a+1};
+# gdy a>3 lub a<2 wypisze a i zwróci a+1 w przeciwnym razie zwróci null;
 
-2 + 2 * 2 > 7 || {{3>2}?{1}} 	# => {2 + 4 > 7 || 1} => {6 > 7 || 1} => {false || true} => true
+2 + 2 * 2 > 7 || {{3>2}?{1}}
+# => {2 + 4 > 7 || 1} => {6 > 7 || 1} => {false || true} => true
 ```
 
 ### Funkcje
@@ -119,12 +129,15 @@ Instrulcje warunkowe przypominają ternary operator
 **Przykłady**:
 ```blockscript
 f=(){print{"a"}};
-f();								# wypisze w konsoli "a"
+f();
+# wypisze w konsoli "a"
 
-{(){print{"a"}}}();					# wypisze w konsoli "a"
+{(){print{"a"}}}();
+# wypisze w konsoli "a"
 
 f=(a){print{a}};
-f("b");								# wypisze w konsoli "b"
+f("b");
+# wypisze w konsoli "b"
 ```
 
 ### Pętle
@@ -132,10 +145,13 @@ Pętle również wspierają bloki jako jako warunek deyzyjny
 
 **Przykłady**:
 ```blockscript
-a = 0;
-loop a<10 {a=a+1;print a};			# odpowednik pętli while
 
-loop a?=10; a=a-1; a<10 {print a};	# odpowednik pętli for
+# odpowednik pętli while
+a = 0;
+loop a<10 {a=a+1;print a};
+
+# odpowednik pętli for
+loop a?=10; a=a-1; a<10 {print a};
 ```
 
 ### Notacja EBNF
