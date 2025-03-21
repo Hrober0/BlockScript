@@ -17,7 +17,7 @@ Język wyróżnia szerokie zastosowanie **bloku**, czyli części kodu, która m
 
 ### Operatory arytmetyczno-logiczne
 _(Ułożone malejąco według priorytetu)_
-- `!`  – negacja  
+- `!`  – negacja
 - `*`  – mnożenie  
 - `/`  – dzielenie  
 - `+`  – dodawanie  
@@ -30,7 +30,14 @@ _(Ułożone malejąco według priorytetu)_
 - `==` – równe  
 - `!=` – nierówne  
 - `&&` – i  
-- `||` – lub  
+- `||` – lub
+
+### Wspierane typy danych dla operatorów
+- bool: `||`, `&&`, `!`
+- int: `+`, `-`, `*`, `/`, `>`, `>=`, `<`, `<=`
+- string: `+`
+- bool, int, string, null: `??`, `==`, `!=`
+<br><br>_(Dla innych typów program zwróci błąd)_
 
 ### Operatory przypisania
 - `=`  – przypisanie  
@@ -43,17 +50,35 @@ _(Ułożone malejąco według priorytetu)_
 **Przykłady**:
 ```blockscript
 a = 4;
-a = "a";
-# a zmieni typ z int na string
+a = "a";		# a zmieni typ z int na string
 
-b ?= 3;
-# b zostanie ustawione na 3, bo jest nullem
+b ?= 3;			# b zostanie ustawione na 3, bo jest nullem
 
-b ?= 4;
-# b pozostanie 3
+b ?= 4;			# b pozostanie 3
 
-b = a ?? 5;
-# b zostanie ustawione na 4
+b = a ?? 5;		# b zostanie ustawione na 4
+```
+
+**Konwwersje typów**:
+
+```blockscript
+# int + string => str(int) + string
+3 + "a" => "3a"
+"a" + 3 => "a3"
+
+# bool || string 	=> bool || bool(string)
+false || ""		=> false
+false || "e"		=> true
+true && ""		=> false
+"" && true 		=> false
+true && "a"		=> true
+
+# bool || int		=> bool || bool(int)
+false || 0		=> false
+false || 1		=> true
+true && -1		=> false
+true && 2		=> true
+2 && true		=> true
 ```
 
 ### Komentarze
@@ -85,7 +110,7 @@ powyższy blok zwróci: 7
 {
 a=3;
 b=4;
-a>b			# ostatnie instrukcja nie wymaga ;
+a>b		# ostatnie instrukcja nie wymaga ;
 }
 powyższy blok zwróci: false
 
@@ -117,7 +142,10 @@ Instrulcje warunkowe przypominają ternary operator
 # gdy a>3 lub a<2 wypisze a i zwróci a+1 w przeciwnym razie zwróci null;
 
 2 + 2 * 2 > 7 || {{3>2}?{1}}
-# => {2 + 4 > 7 || 1} => {6 > 7 || 1} => {false || true} => true
+# {2 + 4 > 7 || 1}
+# {6 > 7 || 1}
+# {false || true}
+# true
 ```
 
 ### Funkcje
@@ -243,5 +271,13 @@ Błędy przyjmują format: ERROR:line komuntikat
 	ERROR:1 Syntax expected "{", but recived "="
 	2. a = 2
 	3. b = 3;
-	ERROR:2 Syntax expected ";", "||"..., bur recived "b"
+	ERROR:2 Syntax expected ";", "||"..., but recived "b"
+	```
+
+- Nieprawidłowy operator
+	```blockscript
+	1. "a" + (){};
+	ERROR:1 Operator '+' expected 'string', 'int', but recive callable
+	1. "a" * "b";
+	ERROR:1 Operator '*' expected 'int' but recived 'string'
 	```
