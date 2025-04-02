@@ -146,6 +146,34 @@ Instrulcje warunkowe przypominają ternary operator
 # {6 > 7 || 1}
 # {false || true}
 # true
+
+a = 1
+{2 > a} ? {print{"ok"}} : {print{"no"}}
+# wypisze ok
+
+a = 1
+print{{2 > a} ? {"ok"} : {"no"}}
+# to samo co wyżej zapisane inaczej
+
+a = 3
+print{{2 > a} ? {"ok"}}
+# wypisze null
+
+a = "a"
+print{{a} ? {"ok"} : {"no"}}
+# wypisze ok - ponieważ string sparsowany będzie na bool dając true
+
+a = ""
+print{{a} ? {"ok"} : {"no"}}
+# wypisze no - ponieważ string sparsowany będzie na bool dając false
+
+a = 3
+print{{a} ? {"ok"} : {"no"}}
+# wypisze ok - ponieważ int sparsowany będzie na bool dając true
+
+a = 0
+print{{a} ? {"ok"} : {"no"}}
+# wypisze no - ponieważ int sparsowany będzie na bool dając false
 ```
 
 ### Funkcje
@@ -172,10 +200,139 @@ Pętle również wspierają bloki jako jako warunek deyzyjny
 
 # odpowednik pętli while
 a = 0;
-loop a<10 {a=a+1;print a};
+loop {a=a+1; print{a}; a<10};
 
 # odpowednik pętli for
-loop a?=10; a=a-1; a<10 {print a};
+loop {a?=10; a=a-1; print{a}; a>10};
+# a nie istniało więc zostanie za pierwszym razem ustawione na 10
+# funckja wypisze kolejno 9 8 7 6 5 4 3 2 1 0
+# gdy a==0 warunek na końcu bloku a>0 zwróci fałsz więc pętla się zakończy
+```
+
+### Inne przykłady
+```blockscript
+# kolejnośc działań
+2 + 2 * 2		# 6
+{ 2 + 2 } * 2	# 8 - tutaj został użyty blok w któr wykonał się najpier zwracając 4
+```
+
+```blockscript
+# fibonacci
+fibonacci = (n) => {
+    {n <= 1}
+	? {n}
+    : {fibonacci(n - 1) + fibonacci(n - 2)}
+};
+n = 10;
+print{"Fibonacci(" + n + ") = " + fibonacci(n)};
+```
+
+```blockscript
+# "lists"
+
+cons = (head, tail) => {
+	(selector) => {selector} ? {head} : {tail}
+};
+
+head = (list) => { list(true) };
+tail = (list) => { list(false) };
+isEmpty = (list) => { list == null };
+
+getElement = (list, n) => {
+    { !isEmpty(list) } 						# List is not empty
+	? {
+		{n == 0}
+		? { head(list) }  					# Found element
+		: { getElement(tail(list), n - 1) }	# Recursive call for next element
+	}  
+};
+
+getLength = (list) => {
+	{isEmpty(list)}
+	? {0}
+	: {
+		count = 0;
+		loop {
+			count = count + 1;
+			lst = tail(lst);
+			!isEmpty(lst)
+		}
+		count
+	}
+};
+
+list = cons(10,				# pierwszy element
+		cons(20,			# drugi element
+		cons(30,			# trzeci element
+		null)))				# koniec listy
+
+print{head(list)}  			# wypisze 10
+print{head(tail(list))}  	# wypisze 20
+
+print{get(list, 1)}			# wypisze 20
+
+print{getLength(list)}		# wypisze 3
+
+loop {
+	i?=0;
+	print{get(list, i)}
+	i+=1;
+	i < 2;
+}
+# wypisze 10 20 30
+```
+
+
+```blockscript
+# bubble sort
+
+bubbleSort = (list) => {
+    length = getLength(list)
+
+	loop {
+		i ?= 0;
+
+		current = list
+        newList = null
+        prev = null
+
+		loop {
+
+			first = head(current)
+            second = head(tail(current))
+
+            {first > second}
+			? {
+                # Swap elements
+                newPair = cons(second, cons(first, tail(tail(current))))
+                newList = isEmpty(prev) ? {newPair} : {prev(false) = newPair}
+            } : {
+                # Keep order
+                newPair = cons(first, tail(current))
+                newList = isEmpty(prev) ? {newPair} : {prev(false) = newPair}
+            }
+
+            prev = tail(current)
+            current = tail(current)
+
+			!isEmpty(tail(current))
+		}
+        
+        list = newList
+
+		i += 1;
+		i < length;
+	}
+	list
+}
+
+list = cons(40,				# pierwszy element
+		cons(20,			# drugi element
+		cons(30,			# trzeci element
+		cons(41,			# czwarty element
+		null))))			# koniec listy
+bubbleSort(list)
+
 ```
 
 ### Notacja EBNF
@@ -189,18 +346,18 @@ program		= statements eos;
 block		= "{" [statements [eos]] "}"
 statements	= {statement eos } statement;
 statement	= assign
-		| lambda
-		| func_call
-		| condition
-		| loop
-		| print
-		| expr;
+			| lambda
+			| func_call
+			| condition
+			| loop
+			| print
+			| expr;
 
 assign		= identifier op_asign expr;
 lambda		= "(" args ")" block;
 func_call	= (identifier | block) "(" args ")";
 condition	= block "?" block [":" block];
-loop		= "loop" statements block;
+loop		= "loop" block;
 print		= "print" block;
 
 expr		= ex_com { op_logical ex_com };
@@ -211,35 +368,36 @@ ex_mul		= ex_urn { op_mul ex_urn };
 ex_urn		= factor | "!" factor;
 
 factor		= int
-		| string
-		| bool
-		| null
-		| identifier
-		| statement
-		| block;
+			| string
+			| bool
+			| null
+			| identifier
+			| statement
+			| block;
 ```
 #### Część leksykalna
 ```ebnf
-eos		= ";";
-int		= digit { digit };
-string		= "\"" { symbol } "\"";
-bool		= "false" | "true";
-null		= "null";
+eos				= ";";
+int				= (no_zero_digit { digit }) | '0';
+string			= "\"" { symbol } "\"";
+bool			= "false" | "true";
+null			= "null";
 
-op_logical	= "&&" | "||";
-op_comper	= "==" | "!=" | "<" | "<=" | ">" | "<=";
-op_check	= "??"
-op_add		= "+" | "-";
-op_mul		= "*" | "/";
+op_logical		= "&&" | "||";
+op_comper		= "==" | "!=" | "<" | "<=" | ">" | "<=";
+op_check		= "??"
+op_add			= "+" | "-";
+op_mul			= "*" | "/";
 
-op_asign	= "=" | "?=";
+op_asign		= "=" | "?=";
 
-args		= [{ expr "," } expr];
-identifier	= letter { letter | digit };
+args			= [{ expr "," } expr];
+identifier		= letter { letter | digit };
 
-symbol		= digit | letter;
-digit		= #'[0-9]';
-letter		= #'[A-Za-z]';
+symbol			= digit | letter;
+digit			= #'[0-9]';
+no_zero_digit	= #'[1-9]';
+letter			= #'[A-Za-z]';
 ```
 
 ### Obsługa błędów
