@@ -48,7 +48,7 @@ _(Ułożone malejąco według priorytetu)_
 - Operacje na zmiennych różnych typów nie wymagają jawnego rzutowania.  
 
 **Przykłady**:
-```blockscript
+```py
 a = 4;
 a = "a";		# a zmieni typ z int na string
 
@@ -61,7 +61,7 @@ b = a ?? 5;		# b zostanie ustawione na 4
 
 **Konwwersje typów**:
 
-```blockscript
+```py
 # int + string => str(int) + string
 3 + "a" => "3a"
 "a" + 3 => "a3"
@@ -86,59 +86,73 @@ true && 2		=> true
 
 ### Blok
 Ważny do zrozumienia aspekt języka, blok stanowią kolejne linijki kodu, przypominjąc ciało funkcji.
-Cały program stanowi blok.
-Blok ma swoją własną lokalną pamięć.
-Bloki mogą być zagnieżdżane.
-Blok ma dostęp do pamięci bloku rodzica.
-Każdy blok zwraca wartość równą wartości z ostaniej instrukcji w bloku.
-Symbol ; jest użyty do odseparowania instrukcji od siebie, może ale nie musi występować na końcu bloku
-**Przykłady**:
-```blockscript
+- Cały program stanowi blok.
+- Blok ma swój **kontekst** czyli własną lokalną pamięć, w któej znajdują się:
+	- wszystkie zadeklarowane zmienne (w tym funkcje)
+ 	- referęcja na **kontekst** funkcji nadrzędnej
+- Bloki mogą być zagnieżdżane.
+- Każdy blok zwraca wartość równą wartości z ostaniej instrukcji w bloku.
+- Symbol ; jest użyty do odseparowania instrukcji od siebie, może ale nie musi występować na końcu bloku
+<br>**Przykłady**:
+```py
 {
 a=3;
 b=4;
 }
-powyższy blok zwróci: 4
+# powyższy blok zwróci: 4
 
 {
 a=3;
 b={4};		# to samo co b=4;
 a+b;
 }
-powyższy blok zwróci: 7
+# powyższy blok zwróci: 7
 
 {
 a=3;
 b=4;
 a>b		# ostatnie instrukcja nie wymaga ;
 }
-powyższy blok zwróci: false
+# powyższy blok zwróci: false
 
 {
 a=3;
 b=4;
 (){a>b};
 }
-powyższy blok zwróci: (){false}
+# powyższy blok zwróci: (){false}
 
 {
-print{"a"};
+print("a");
 }
-powyższy blok zwróci: "a"
+# powyższy blok zwróci: "a"
+
+{
+	a = 4;
+	c = {
+		a = a - 1;
+		b = a - 1;
+	};
+	print(a);
+	print(c - 1);
+}
+# powyższy blok zwróci: 1
+# zmienna b nie będzie widoczna w zewnętrznym bloku
+# wypisze 3 1
 ```
 
 ### Instrukcje warunkowe
 Instrulcje warunkowe przypominają ternary operator
 
 **Przykłady**:
-```blockscript
-{a>3}?{print{a}};
+```py
+{a>3}?{print(a)};
 # gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci null;
 
-{a>3}?{print{a}}:{"no"};
+{a>3}?{print(a)}:{"no"};
 # gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci "no";
 
-{a>3||a<2}?{print{a};a+1};
+{a>3||a<2}?{print a;a+1};
 # gdy a>3 lub a<2 wypisze a i zwróci a+1 w przeciwnym razie zwróci null;
 
 2 + 2 * 2 > 7 || {{3>2}?{1}}
@@ -148,75 +162,146 @@ Instrulcje warunkowe przypominają ternary operator
 # true
 
 a = 1
-{2 > a} ? {print{"ok"}} : {print{"no"}}
+{2 > a} ? {print("ok")} : {print("no")}
 # wypisze ok
 
 a = 1
-print{{2 > a} ? {"ok"} : {"no"}}
+print({2 > a} ? {"ok"} : {"no"})
 # to samo co wyżej zapisane inaczej
 
 a = 3
-print{{2 > a} ? {"ok"}}
+print({2 > a} ? {"ok"})
 # wypisze null
 
 a = "a"
-print{{a} ? {"ok"} : {"no"}}
+print({a} ? {"ok"} : {"no"})
 # wypisze ok - ponieważ string sparsowany będzie na bool dając true
 
 a = ""
-print{{a} ? {"ok"} : {"no"}}
+print({a} ? {"ok"} : {"no"})
 # wypisze no - ponieważ string sparsowany będzie na bool dając false
 
 a = 3
-print{{a} ? {"ok"} : {"no"}}
+print({a} ? {"ok"} : {"no"})
 # wypisze ok - ponieważ int sparsowany będzie na bool dając true
 
 a = 0
-print{{a} ? {"ok"} : {"no"}}
+print({a} ? {"ok"} : {"no"})
 # wypisze no - ponieważ int sparsowany będzie na bool dając false
 ```
 
 ### Funkcje
 
 **Przykłady**:
-```blockscript
-f=(){print{"a"}};
+```py
+f=()=>{print("a")};
 f();
 # wypisze w konsoli "a"
 
-{(){print{"a"}}}();
+
+f=()=>print("a");
+print("b")
+f();
+# wypisze w konsoli "b" "a"
+
+
+{()=>print("a")}();
 # wypisze w konsoli "a"
 
-f=(a){print{a}};
+
+f=(a)=>print(a);
 f("b");
 # wypisze w konsoli "b"
+
+
+f = () => {
+	a = 2;
+	ff = () => { a };
+	print(ff());
+	a = 3;
+	print(ff());
+};
+f();
+# wypisze 2 3
+# funkcja "ff" ma dostęp do kontekstu nadrzędnej funkcji "f", dlatego skożysta z aktualnej wartości zmiennej "a"
+
+
+f = () => {
+	a = 2;
+	ff = () => { a = a + 1 };
+	a = 3;
+	ff;
+};
+print(f()());	# wypisze 4
+print(f()());	# wypisze 4
+print(f()());	# wypisze 4
+fc = f();
+print(fc());	# wypisze 4
+print(fc());	# wypisze 5
+print(fc());	# wypisze 6
+# funkcja "ff" ma dostęp do kontekstu nadrzędnej funkcji "f", mimo że funkcja zostało już wykonana
+# dlatego funkcja "ff" użyje ostatniej wartości zmiennej "a" czyli 3 i zwiększy ją o jeden
+# "print(f()())" tworzy nowy kontekst funkcji "f" dlatego ponowne wywołanie "print(f()())" zwrócić ponownie 4
+# natomiast wykonując "fc = f();" zapisujemy funkcję mającą referęcję na kontekst funkcji "f",
+# dlatego wykonując "fc()" wielokrotnie modyfikujemy ten sam kontekst co skutkuje wypisaniem kolejnych wartości
+
+
+f = (n) => {
+    {n <= 0}
+	? {n}
+    : {
+		print(n);
+		f(n - 1);
+	}
+};
+f(3);
+# wypisze 3 2 1
 ```
 
 ### Pętle
-Pętle również wspierają bloki jako jako warunek deyzyjny
+Pętle również wspierają bloki jako jako warunek deyzyjny, jeśli wyrażenie za słowem kluczowym "loop" będzie prawdziwe blok będzie się wykonywał.
 
 **Przykłady**:
-```blockscript
+```py
 
-# odpowednik pętli while
 a = 0;
-loop {a=a+1; print{a}; a<10};
+loop a<2 { a=a+1; print(a) };
+# wypisze 1 2
 
-# odpowednik pętli for
-loop {a?=10; a=a-1; print{a}; a>10};
-# a nie istniało więc zostanie za pierwszym razem ustawione na 10
-# funckja wypisze kolejno 9 8 7 6 5 4 3 2 1 0
-# gdy a==0 warunek na końcu bloku a>0 zwróci fałsz więc pętla się zakończy
+loop {a<2} { a=a+1; print(a) };
+# wypisze 1 2
+
+a = 2;
+loop {a = a - 1; a >= 0} { print(a) };
+# wypisze 1 0
+
+a = 2;
+loop {a = a - 1; print(a) a >= 0} { };
+# wypisze 1 0
+
+a = -1;
+loop {a = a - 1; a >= 0} { print(a) };
+# nic nie wypisze
+
+a = -1;
+loop {a = a - 1; print(a) a >= 0} { };
+# wypisze -2
+
+{
+	a = 0;
+	loop {a = a + 1; a <= 5} { a };
+}
+# zwróci 5 - ponieważ jest to ostatnia wartość z bloku
 ```
 
 ### Inne przykłady
-```blockscript
+```py
 # kolejnośc działań
 2 + 2 * 2		# 6
 { 2 + 2 } * 2	# 8 - tutaj został użyty blok w któr wykonał się najpier zwracając 4
 ```
 
-```blockscript
+```py
 # fibonacci
 fibonacci = (n) => {
     {n <= 1}
@@ -227,112 +312,105 @@ n = 10;
 print{"Fibonacci(" + n + ") = " + fibonacci(n)};
 ```
 
-```blockscript
+```py
 # "lists"
 
-cons = (head, tail) => {
-	(selector) => {selector} ? {head} : {tail}
+lNode = (lCurrent, lNext) => {
+	(selector) => selector ? lCurrent : lNext;
 };
 
-head = (list) => { list(true) };
-tail = (list) => { list(false) };
-isEmpty = (list) => { list == null };
+lCurrent	= (list) => list(true);
+lNext		= (list) => list(false);
+isEmpty		= (list) => list == null;
 
-getElement = (list, n) => {
-    { !isEmpty(list) } 						# List is not empty
+getElement = (list, index) => {
+    loop !isEmpty(list) {
+        index == 0
+		? lCurrent(list)		# Found element
+        : {
+			list = lNext(list);
+			index = index - 1;
+		}
+    }
+}
+
+setElement = (list, index, value) => {
+    !isEmpty(list)
 	? {
-		{n == 0}
-		? { head(list) }  					# Found element
-		: { getElement(tail(list), n - 1) }	# Recursive call for next element
-	}  
+		index == 0
+		? lNode(value, lNext(list))  									# Found element, so set its value
+		: lNode(lCurrent(list), setElement(lNext(list), index - 1)		# Recursive call for next element, and construct new node
+	}
 };
 
 getLength = (list) => {
-	{isEmpty(list)}
-	? {0}
-	: {
-		count = 0;
-		loop {
-			count = count + 1;
-			lst = tail(lst);
-			!isEmpty(lst)
-		}
-		count
+	count = 0;
+	loop !isEmpty(lst) {
+		lst = lNext(lst);
+		count = count + 1;
 	}
 };
 
-list = cons(10,				# pierwszy element
-		cons(20,			# drugi element
-		cons(30,			# trzeci element
-		null)))				# koniec listy
+list = lNode(10, null);
+list = lNode(20, list);
+list = lNode(30, list);
+# lista wygląda następująco 30 20 10
 
-print{head(list)}  			# wypisze 10
-print{head(tail(list))}  	# wypisze 20
+print(lCurrent(list))  			# wypisze 30
+print(lCurrent(lNext(list)))  	# wypisze 20
 
-print{get(list, 1)}			# wypisze 20
+print(get(list, 1))				# wypisze 20
 
-print{getLength(list)}		# wypisze 3
+print(getLength(list))			# wypisze 3
 
-loop {
-	i?=0;
-	print{get(list, i)}
-	i+=1;
-	i < 2;
+i = 0;
+loop i < 3 {
+	print(get(list, i))
+	i = i + 1;
 }
-# wypisze 10 20 30
+# wypisze 30 20 10
+
+setElement(list, 1, 69);
+i = 0;
+loop i < 3 {
+	print(get(list, i));
+	i = i + 1;
+}
+# wypisze 30 69 10
 ```
 
 
-```blockscript
+```py
 # bubble sort
 
 bubbleSort = (list) => {
-    length = getLength(list)
-
-	loop {
-		i ?= 0;
-
-		current = list
-        newList = null
-        prev = null
-
-		loop {
-
-			first = head(current)
-            second = head(tail(current))
-
-            {first > second}
-			? {
-                # Swap elements
-                newPair = cons(second, cons(first, tail(tail(current))))
-                newList = isEmpty(prev) ? {newPair} : {prev(false) = newPair}
-            } : {
-                # Keep order
-                newPair = cons(first, tail(current))
-                newList = isEmpty(prev) ? {newPair} : {prev(false) = newPair}
+    swapped = true;
+    length = getLength(list);
+    
+    loop swapped {
+        swapped = false;
+        i = 0;
+        loop i < length - 1 {
+            if getElement(list, i) > getElement(list, i + 1) {
+                temp = getElement(list, i);
+                list = setElement(list, i, getElement(list, i + 1));
+                list = setElement(list, i + 1, temp);
+                swapped = true;
             }
+            i = i + 1;
+        }
+    }
+    list;
+};
 
-            prev = tail(current)
-            current = tail(current)
-
-			!isEmpty(tail(current))
-		}
-        
-        list = newList
-
-		i += 1;
-		i < length;
-	}
-	list
-}
-
-list = cons(40,				# pierwszy element
-		cons(20,			# drugi element
-		cons(30,			# trzeci element
-		cons(41,			# czwarty element
-		null))))			# koniec listy
+list = lNode(3, null);
+list = lNode(1, list);
+list = lNode(4, list);
+list = lNode(2, list);
+list = lNode(5, list);
+# list to 5 2 4 1 3
 bubbleSort(list)
-
+# list to 1 2 3 4 5
 ```
 
 ### Notacja EBNF
@@ -354,11 +432,11 @@ statement	= assign
 			| expr;
 
 assign		= identifier op_asign expr;
-lambda		= "(" args ")" block;
+lambda		= "(" args ")" => expr;
 func_call	= (identifier | block) "(" args ")";
-condition	= block "?" block [":" block];
-loop		= "loop" block;
-print		= "print" block;
+condition	= expr "?" expr [":" expr];
+loop		= "loop" expr block;
+print		= "print" "(" expr ")";
 
 expr		= ex_com { op_logical ex_com };
 ex_com		= ex_rel { op_comper ex_rel };
@@ -404,27 +482,27 @@ letter			= #'[A-Za-z]';
 Błędy przyjmują format: ERROR:line komuntikat
 
 - Odwołanie się do nie zadeklarowanej wartości
-	```blockscript
+	```py
 	1. b = a + 1;
 	ERRPR:1 "a" was not defined
 	```
 	
 - Próba wywołania wyrażenia niebędącego funkcjią
-	```blockscript
+	```py
 	1. a = 3;
 	2. a();
 	ERROR:2 "a" is not callable
 	```
 
 - Nieprawidłowa ilość argumentów metody
-	```blockscript
+	```py
 	1. f = (a){};
 	2. f();
 	ERROR:2 "f" expected 1 arguments, but received 0
 	```
 	
 - Błąd składni
-	```blockscript
+	```py
 	1. print = 2;
 	ERROR:1 Syntax expected "{", but recived "="
 	2. a = 2
@@ -433,7 +511,7 @@ Błędy przyjmują format: ERROR:line komuntikat
 	```
 
 - Nieprawidłowy operator
-	```blockscript
+	```py
 	1. "a" + (){};
 	ERROR:1 Operator '+' expected 'string', 'int', but recive callable
 	1. "a" * "b";
