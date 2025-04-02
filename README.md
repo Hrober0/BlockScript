@@ -1,93 +1,519 @@
 # BlockScript
 
+## Wstęp
+BlockScript to język ogólnego przeznaczenia, ukierunkowany na obsługę funkcji w zaawansowanym kontekście.  
+Jest dynamicznie typowany z domyślnie mutowalnymi zmiennymi oraz parametrami przekazywanymi przez kopię.  
+Wspiera funkcje wyższego rzędu, zagnieżdżanie funkcji oraz przekazywanie ich jako parametry.  
 
+Język wyróżnia szerokie zastosowanie **bloku**, czyli części kodu, która może być użyta jako wartość warunkowa lub parametr.
 
-## Getting started
+## Zasady działania języka
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+### Typy danych
+- `int`
+- `bool`
+- `string`
+- `null`
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+### Operatory arytmetyczno-logiczne
+_(Ułożone malejąco według priorytetu)_
+- `!`  – negacja
+- `*`  – mnożenie  
+- `/`  – dzielenie  
+- `+`  – dodawanie  
+- `-`  – odejmowanie  
+- `??` – wartość nie-null  
+- `>`  – większe  
+- `>=` – większe lub równe  
+- `<`  – mniejsze  
+- `<=` – mniejsze lub równe  
+- `==` – równe  
+- `!=` – nierówne  
+- `&&` – i  
+- `||` – lub
 
-## Add your files
+### Wspierane typy danych dla operatorów
+- bool: `||`, `&&`, `!`
+- int: `+`, `-`, `*`, `/`, `>`, `>=`, `<`, `<=`
+- string: `+`
+- bool, int, string, null: `??`, `==`, `!=`
+<br><br>_(Dla innych typów program zwróci błąd)_
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+### Operatory przypisania
+- `=`  – przypisanie  
+- `=?` – przypisanie warunkowe  
 
+## Zmienne
+- Zmienna ma określony typ, ale może się on zmieniać w czasie.  
+- Operacje na zmiennych różnych typów nie wymagają jawnego rzutowania.  
+
+**Przykłady**:
+```py
+a = 4;
+a = "a";		# a zmieni typ z int na string
+
+b ?= 3;			# b zostanie ustawione na 3, bo jest nullem
+
+b ?= 4;			# b pozostanie 3
+
+b = a ?? 5;		# b zostanie ustawione na 4
 ```
-cd existing_repo
-git remote add origin https://gitlab-stud.elka.pw.edu.pl/TKOM_25L_WW/astanoch/blockscript.git
-git branch -M main
-git push -uf origin main
+
+**Konwwersje typów**:
+
+```py
+# int + string => str(int) + string
+3 + "a" => "3a"
+"a" + 3 => "a3"
+
+# bool || string 	=> bool || bool(string)
+false || ""		=> false
+false || "e"		=> true
+true && ""		=> false
+"" && true 		=> false
+true && "a"		=> true
+
+# bool || int		=> bool || bool(int)
+false || 0		=> false
+false || 1		=> true
+true && -1		=> false
+true && 2		=> true
+2 && true		=> true
 ```
 
-## Integrate with your tools
+### Komentarze
+\# komentarz
 
-- [ ] [Set up project integrations](https://gitlab-stud.elka.pw.edu.pl/TKOM_25L_WW/astanoch/blockscript/-/settings/integrations)
+### Blok
+Ważny do zrozumienia aspekt języka, blok stanowią kolejne linijki kodu, przypominjąc ciało funkcji.
+- Cały program stanowi blok.
+- Blok ma swój **kontekst** czyli własną lokalną pamięć, w któej znajdują się:
+	- wszystkie zadeklarowane zmienne (w tym funkcje)
+ 	- referęcja na **kontekst** funkcji nadrzędnej
+- Bloki mogą być zagnieżdżane.
+- Każdy blok zwraca wartość równą wartości z ostaniej instrukcji w bloku.
+- Symbol ; jest użyty do odseparowania instrukcji od siebie, może ale nie musi występować na końcu bloku
+<br>**Przykłady**:
+```py
+{
+a=3;
+b=4;
+}
+# powyższy blok zwróci: 4
 
-## Collaborate with your team
+{
+a=3;
+b={4};		# to samo co b=4;
+a+b;
+}
+# powyższy blok zwróci: 7
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+{
+a=3;
+b=4;
+a>b		# ostatnie instrukcja nie wymaga ;
+}
+# powyższy blok zwróci: false
 
-## Test and Deploy
+{
+a=3;
+b=4;
+(){a>b};
+}
+# powyższy blok zwróci: (){false}
 
-Use the built-in continuous integration in GitLab.
+{
+print("a");
+}
+# powyższy blok zwróci: "a"
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+{
+	a = 4;
+	c = {
+		a = a - 1;
+		b = a - 1;
+	};
+	print(a);
+	print(c - 1);
+}
+# powyższy blok zwróci: 1
+# zmienna b nie będzie widoczna w zewnętrznym bloku
+# wypisze 3 1
+```
 
-***
+### Instrukcje warunkowe
+Instrulcje warunkowe przypominają ternary operator
 
-# Editing this README
+**Przykłady**:
+```py
+{a>3}?{print(a)};
+# gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci null;
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+{a>3}?{print(a)}:{"no"};
+# gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci "no";
 
-## Suggestions for a good README
+{a>3||a<2}?{print a;a+1};
+# gdy a>3 lub a<2 wypisze a i zwróci a+1 w przeciwnym razie zwróci null;
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+2 + 2 * 2 > 7 || {{3>2}?{1}}
+# {2 + 4 > 7 || 1}
+# {6 > 7 || 1}
+# {false || true}
+# true
 
-## Name
-Choose a self-explaining name for your project.
+a = 1
+{2 > a} ? {print("ok")} : {print("no")}
+# wypisze ok
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+a = 1
+print({2 > a} ? {"ok"} : {"no"})
+# to samo co wyżej zapisane inaczej
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+a = 3
+print({2 > a} ? {"ok"})
+# wypisze null
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+a = "a"
+print({a} ? {"ok"} : {"no"})
+# wypisze ok - ponieważ string sparsowany będzie na bool dając true
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+a = ""
+print({a} ? {"ok"} : {"no"})
+# wypisze no - ponieważ string sparsowany będzie na bool dając false
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+a = 3
+print({a} ? {"ok"} : {"no"})
+# wypisze ok - ponieważ int sparsowany będzie na bool dając true
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+a = 0
+print({a} ? {"ok"} : {"no"})
+# wypisze no - ponieważ int sparsowany będzie na bool dając false
+```
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+### Funkcje
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+**Przykłady**:
+```py
+f=()=>{print("a")};
+f();
+# wypisze w konsoli "a"
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+f=()=>print("a");
+print("b")
+f();
+# wypisze w konsoli "b" "a"
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
 
-## License
-For open source projects, say how it is licensed.
+{()=>print("a")}();
+# wypisze w konsoli "a"
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+
+f=(a)=>print(a);
+f("b");
+# wypisze w konsoli "b"
+
+
+f = () => {
+	a = 2;
+	ff = () => { a };
+	print(ff());
+	a = 3;
+	print(ff());
+};
+f();
+# wypisze 2 3
+# funkcja "ff" ma dostęp do kontekstu nadrzędnej funkcji "f", dlatego skożysta z aktualnej wartości zmiennej "a"
+
+
+f = () => {
+	a = 2;
+	ff = () => { a = a + 1 };
+	a = 3;
+	ff;
+};
+print(f()());	# wypisze 4
+print(f()());	# wypisze 4
+print(f()());	# wypisze 4
+fc = f();
+print(fc());	# wypisze 4
+print(fc());	# wypisze 5
+print(fc());	# wypisze 6
+# funkcja "ff" ma dostęp do kontekstu nadrzędnej funkcji "f", mimo że funkcja zostało już wykonana
+# dlatego funkcja "ff" użyje ostatniej wartości zmiennej "a" czyli 3 i zwiększy ją o jeden
+# "print(f()())" tworzy nowy kontekst funkcji "f" dlatego ponowne wywołanie "print(f()())" zwrócić ponownie 4
+# natomiast wykonując "fc = f();" zapisujemy funkcję mającą referęcję na kontekst funkcji "f",
+# dlatego wykonując "fc()" wielokrotnie modyfikujemy ten sam kontekst co skutkuje wypisaniem kolejnych wartości
+
+
+f = (n) => {
+    {n <= 0}
+	? {n}
+    : {
+		print(n);
+		f(n - 1);
+	}
+};
+f(3);
+# wypisze 3 2 1
+```
+
+### Pętle
+Pętle również wspierają bloki jako jako warunek deyzyjny, jeśli wyrażenie za słowem kluczowym "loop" będzie prawdziwe blok będzie się wykonywał.
+
+**Przykłady**:
+```py
+
+a = 0;
+loop a<2 { a=a+1; print(a) };
+# wypisze 1 2
+
+loop {a<2} { a=a+1; print(a) };
+# wypisze 1 2
+
+a = 2;
+loop {a = a - 1; a >= 0} { print(a) };
+# wypisze 1 0
+
+a = 2;
+loop {a = a - 1; print(a) a >= 0} { };
+# wypisze 1 0
+
+a = -1;
+loop {a = a - 1; a >= 0} { print(a) };
+# nic nie wypisze
+
+a = -1;
+loop {a = a - 1; print(a) a >= 0} { };
+# wypisze -2
+
+{
+	a = 0;
+	loop {a = a + 1; a <= 5} { a };
+}
+# zwróci 5 - ponieważ jest to ostatnia wartość z bloku
+```
+
+### Inne przykłady
+```py
+# kolejnośc działań
+2 + 2 * 2		# 6
+{ 2 + 2 } * 2	# 8 - tutaj został użyty blok w któr wykonał się najpier zwracając 4
+```
+
+```py
+# fibonacci
+fibonacci = (n) => {
+    {n <= 1}
+	? {n}
+    : {fibonacci(n - 1) + fibonacci(n - 2)}
+};
+n = 10;
+print{"Fibonacci(" + n + ") = " + fibonacci(n)};
+```
+
+```py
+# "lists"
+
+lNode = (lCurrent, lNext) => {
+	(selector) => selector ? lCurrent : lNext;
+};
+
+lCurrent	= (list) => list(true);
+lNext		= (list) => list(false);
+isEmpty		= (list) => list == null;
+
+getElement = (list, index) => {
+    loop !isEmpty(list) {
+        index == 0
+		? lCurrent(list)		# Found element
+        : {
+			list = lNext(list);
+			index = index - 1;
+		}
+    }
+}
+
+setElement = (list, index, value) => {
+    !isEmpty(list)
+	? {
+		index == 0
+		? lNode(value, lNext(list))  									# Found element, so set its value
+		: lNode(lCurrent(list), setElement(lNext(list), index - 1)		# Recursive call for next element, and construct new node
+	}
+};
+
+getLength = (list) => {
+	count = 0;
+	loop !isEmpty(lst) {
+		lst = lNext(lst);
+		count = count + 1;
+	}
+};
+
+list = lNode(10, null);
+list = lNode(20, list);
+list = lNode(30, list);
+# lista wygląda następująco 30 20 10
+
+print(lCurrent(list))  			# wypisze 30
+print(lCurrent(lNext(list)))  	# wypisze 20
+
+print(get(list, 1))				# wypisze 20
+
+print(getLength(list))			# wypisze 3
+
+i = 0;
+loop i < 3 {
+	print(get(list, i))
+	i = i + 1;
+}
+# wypisze 30 20 10
+
+setElement(list, 1, 69);
+i = 0;
+loop i < 3 {
+	print(get(list, i));
+	i = i + 1;
+}
+# wypisze 30 69 10
+```
+
+
+```py
+# bubble sort
+
+bubbleSort = (list) => {
+    swapped = true;
+    length = getLength(list);
+    
+    loop swapped {
+        swapped = false;
+        i = 0;
+        loop i < length - 1 {
+            if getElement(list, i) > getElement(list, i + 1) {
+                temp = getElement(list, i);
+                list = setElement(list, i, getElement(list, i + 1));
+                list = setElement(list, i + 1, temp);
+                swapped = true;
+            }
+            i = i + 1;
+        }
+    }
+    list;
+};
+
+list = lNode(3, null);
+list = lNode(1, list);
+list = lNode(4, list);
+list = lNode(2, list);
+list = lNode(5, list);
+# list to 5 2 4 1 3
+bubbleSort(list)
+# list to 1 2 3 4 5
+```
+
+### Notacja EBNF
+Dla przejrzystości w notacji EBNF pomijam znak spacji.
+Powstała gramatyka została przetestowana empirycznie za pomocą narzędzia [EBNF Tester](https://mdkrajnak.github.io/ebnftest/).
+
+#### Część składniowa
+```ebnf
+program		= statements eos;
+
+block		= "{" [statements [eos]] "}"
+statements	= {statement eos } statement;
+statement	= assign
+			| lambda
+			| func_call
+			| condition
+			| loop
+			| print
+			| expr;
+
+assign		= identifier op_asign expr;
+lambda		= "(" args ")" => expr;
+func_call	= (identifier | block) "(" args ")";
+condition	= expr "?" expr [":" expr];
+loop		= "loop" expr block;
+print		= "print" "(" expr ")";
+
+expr		= ex_com { op_logical ex_com };
+ex_com		= ex_rel { op_comper ex_rel };
+ex_rel		= ex_add { op_check ex_add };
+ex_add		= ex_mul { op_add ex_mul };
+ex_mul		= ex_urn { op_mul ex_urn };
+ex_urn		= factor | "!" factor;
+
+factor		= int
+			| string
+			| bool
+			| null
+			| identifier
+			| statement
+			| block;
+```
+#### Część leksykalna
+```ebnf
+eos				= ";";
+int				= (no_zero_digit { digit }) | '0';
+string			= "\"" { symbol } "\"";
+bool			= "false" | "true";
+null			= "null";
+
+op_logical		= "&&" | "||";
+op_comper		= "==" | "!=" | "<" | "<=" | ">" | "<=";
+op_check		= "??"
+op_add			= "+" | "-";
+op_mul			= "*" | "/";
+
+op_asign		= "=" | "?=";
+
+args			= [{ expr "," } expr];
+identifier		= letter { letter | digit };
+
+symbol			= digit | letter;
+digit			= #'[0-9]';
+no_zero_digit	= #'[1-9]';
+letter			= #'[A-Za-z]';
+```
+
+### Obsługa błędów
+Błędy przyjmują format: ERROR:line komuntikat
+
+- Odwołanie się do nie zadeklarowanej wartości
+	```py
+	1. b = a + 1;
+	ERRPR:1 "a" was not defined
+	```
+	
+- Próba wywołania wyrażenia niebędącego funkcjią
+	```py
+	1. a = 3;
+	2. a();
+	ERROR:2 "a" is not callable
+	```
+
+- Nieprawidłowa ilość argumentów metody
+	```py
+	1. f = (a){};
+	2. f();
+	ERROR:2 "f" expected 1 arguments, but received 0
+	```
+	
+- Błąd składni
+	```py
+	1. print = 2;
+	ERROR:1 Syntax expected "{", but recived "="
+	2. a = 2
+	3. b = 3;
+	ERROR:2 Syntax expected ";", "||"..., but recived "b"
+	```
+
+- Nieprawidłowy operator
+	```py
+	1. "a" + (){};
+	ERROR:1 Operator '+' expected 'string', 'int', but recive callable
+	1. "a" * "b";
+	ERROR:1 Operator '*' expected 'int' but recived 'string'
+	```
