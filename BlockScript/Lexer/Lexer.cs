@@ -21,14 +21,14 @@ public class Lexer : ILexer
         new CommentTokenParser(),
         
         // key-words
-        new SequenceTokenParser(TokenType.Loop, "loop"),
+        new WordTokenParser(TokenType.Loop, "loop"),
 
         // data
         new IntTokenParser(),
         new StringTokenParser(),
-        new SequenceTokenParser(TokenType.Null, "null"),
-        new SequenceTokenParser(TokenType.Boolean, "true", _ => true),
-        new SequenceTokenParser(TokenType.Boolean, "false", _ => false),
+        new WordTokenParser(TokenType.Null, "null"),
+        new WordTokenParser(TokenType.Boolean, "true", _ => true),
+        new WordTokenParser(TokenType.Boolean, "false", _ => false),
         
         // logical
         new SequenceTokenParser(TokenType.Operator, "=="),
@@ -99,8 +99,9 @@ public class Lexer : ILexer
                 
             if (status == AcceptStatus.Completed)
             {
-                _buffer.TakeAll();
-                return parser.CreateToken(firstCharacter.Line, firstCharacter.Column);
+                var token = parser.CreateToken(firstCharacter.Line, firstCharacter.Column);
+                _buffer.Take(token.CharacterLength);
+                return token;
             }
             
             _buffer.Return();

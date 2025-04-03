@@ -2,9 +2,7 @@
 
 namespace BlockScript.Lexer.TokenParsers;
 
-public delegate object SequenceParsingMethod(string sequence);
-
-public class SequenceTokenParser(TokenType tokenType, string targetSequence, SequenceParsingMethod? parsingMethod=null) : TokenParser
+public class SequenceTokenParser(TokenType tokenType, string targetSequence) : TokenParser
 {
     private readonly StringBuilder _stringBuilder = new();
 
@@ -30,7 +28,7 @@ public class SequenceTokenParser(TokenType tokenType, string targetSequence, Seq
             Line = line,
             Column = column,
             Type = tokenType,
-            Value = parsingMethod?.Invoke(_stringBuilder.ToString()) ??  _stringBuilder.ToString(),
+            Value = _stringBuilder.ToString(),
             CharacterLength = _stringBuilder.Length,
         };
     }
