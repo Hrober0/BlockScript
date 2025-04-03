@@ -1,38 +1,31 @@
-﻿using System;
+﻿namespace BlockScript.Lexer;
 
-public class Lexer
+public class Lexer(TextReader textReader) : ILexer
 {
     private const char EOT = '\u0004';
-
-    private readonly TextReader textReader;
 
     private char currentCharacter = '\0';
     private int line = 1;
     private int column = 0;
 
-    public Lexer(TextReader textReader)
-	{
-        this.textReader = textReader;
-	}
-
-    public Token GetToken()
+    public TokenData GetToken()
     {
-        currentCharacter = ReadCharacter();
-        if (currentCharacter == EOT)
+        var character = ReadCharacter();
+        if (character == EOT)
         {
-            return new Token()
+            return new TokenData()
             {
                 Type = TokenType.EOT,
-                Value = currentCharacter.ToString(),
+                Value = character.ToString(),
                 Line = line,
                 Column = column,
             };
         }
 
-        var token = new Token()
+        var token = new TokenData()
         {
             Type = TokenType.Operator,
-            Value = currentCharacter.ToString(),
+            Value = character.ToString(),
             Line = line,
             Column = column,
         };
@@ -46,17 +39,17 @@ public class Lexer
             return EOT;
         }
 
-        char chracter = ParseChar(textReader.Read());
+        currentCharacter = ParseChar(textReader.Read());
 
         // new line
-        if (chracter is '\r' or '\n')
+        if (currentCharacter is '\r' or '\n')
         {
             line++;
             column = 0;
 
             // check windows CR LF sequence
             char nextChar = ParseChar(textReader.Peek());
-            if (chracter is '\r' && nextChar is '\n')
+            if (currentCharacter is '\r' && nextChar is '\n')
             {
                 textReader.Read();
             }
@@ -65,17 +58,17 @@ public class Lexer
         }
 
         // skip white space
-        if (char.IsWhiteSpace(chracter))
+        if (char.IsWhiteSpace(currentCharacter))
         {
             column++;
             return ReadCharacter();
         }
 
         column++;
-        return chracter;
+        return currentCharacter;
     }
 
-    private char ParseChar(int streamChar)
+    private static char ParseChar(int streamChar)
     {
         if (streamChar < 0)
         {

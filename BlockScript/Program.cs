@@ -1,16 +1,17 @@
-//using TextReader reader = new StringReader("Hello, world!");
-using TextReader reader = new StreamReader("test.txt");
+using BlockScript.Lexer;
+
+using TextReader reader = new StreamReader("CodeExamples/Test.txt");
 
 var lexer = new Lexer(reader);
 
-Console.WriteLine("WW");
+Console.WriteLine("Start");
 while(true)
 {
-    var token = lexer.GetToken();
-    if (token.Type == TokenType.EOT)
+    var tokenData = lexer.GetToken();
+    if (tokenData.Type == TokenType.EOT)
     {
         break;
     }
-    Console.WriteLine(token);
+    Console.WriteLine(tokenData);
 }
 Console.WriteLine($"EOT");
