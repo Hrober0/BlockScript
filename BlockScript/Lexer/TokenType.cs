@@ -14,4 +14,6 @@ public enum TokenType
     Null,
     
     Comment,
+    
+    Identifier,
 }

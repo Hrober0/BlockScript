@@ -53,6 +53,8 @@ public class Lexer : ILexer
         new SequenceTokenParser(TokenType.Operator, "*"),
         new SequenceTokenParser(TokenType.Operator, "/"),
         new SequenceTokenParser(TokenType.Operator, "+"),
+        
+        new IdentifierTokenParser(),
     ];
 
     public Lexer(TextReader textReader)
