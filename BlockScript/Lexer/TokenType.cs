@@ -2,6 +2,16 @@
 
 public enum TokenType
 {
-    EOT,
+    EndOfText,
+    EndOfStatement,
     Operator,
+    
+    Loop,
+    
+    Integer,
+    String,
+    Boolean,
+    Null,
+    
+    Comment,
 }

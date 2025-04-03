@@ -5,13 +5,22 @@ using TextReader reader = new StreamReader("CodeExamples/Test.txt");
 var lexer = new Lexer(reader);
 
 Console.WriteLine("Start");
-while(true)
+try
 {
-    var tokenData = lexer.GetToken();
-    if (tokenData.Type == TokenType.EOT)
+    while (true)
     {
-        break;
+        var tokenData = lexer.GetToken();
+        if (tokenData.Type == TokenType.EndOfText)
+        {
+            break;
+        }
+
+        Console.WriteLine(tokenData);
     }
-    Console.WriteLine(tokenData);
+
+    Console.WriteLine($"EOT");
 }
-Console.WriteLine($"EOT");
+catch (Exception e)
+{
+    Console.WriteLine($"Error: {e.Message}");
+}

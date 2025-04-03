@@ -1,79 +1,148 @@
-﻿namespace BlockScript.Lexer;
+﻿using BlockScript.Lexer.TokenParsers;
+using BlockScript.Reader;
+using BlockScript.Utilities;
 
-public class Lexer(TextReader textReader) : ILexer
+namespace BlockScript.Lexer;
+
+public class Lexer : ILexer
 {
-    private const char EOT = '\u0004';
+    private readonly Buffer<Character> _buffer;
+    
+    private readonly List<TokenParser> _tokenParsers =
+    [
+        new SequenceTokenParser(TokenType.EndOfText, CharacterReader.EndOfText.ToString()),
 
-    private char currentCharacter = '\0';
-    private int line = 1;
-    private int column = 0;
+        // syntax
+        new SequenceTokenParser(TokenType.EndOfStatement, ";"),
+        new SequenceTokenParser(TokenType.Operator, "("),
+        new SequenceTokenParser(TokenType.Operator, ")"),
+        new SequenceTokenParser(TokenType.Operator, "{"),
+        new SequenceTokenParser(TokenType.Operator, "}"),
+        new CommentTokenParser(),
+        
+        // key-words
+        new SequenceTokenParser(TokenType.Loop, "loop"),
+
+        // data
+        new IntTokenParser(),
+        new StringTokenParser(),
+        new SequenceTokenParser(TokenType.Null, "null"),
+        new SequenceTokenParser(TokenType.Boolean, "true", _ => true),
+        new SequenceTokenParser(TokenType.Boolean, "false", _ => false),
+        
+        // logical
+        new SequenceTokenParser(TokenType.Operator, "=="),
+        new SequenceTokenParser(TokenType.Operator, "=>"),
+        new SequenceTokenParser(TokenType.Operator, "="),
+        new SequenceTokenParser(TokenType.Operator, "<="),
+        new SequenceTokenParser(TokenType.Operator, "<"),
+        new SequenceTokenParser(TokenType.Operator, ">="),
+        new SequenceTokenParser(TokenType.Operator, ">"),
+        new SequenceTokenParser(TokenType.Operator, "!="),
+        new SequenceTokenParser(TokenType.Operator, "!"),
+        new SequenceTokenParser(TokenType.Operator, "||"),
+        new SequenceTokenParser(TokenType.Operator, "&&"),
+        new SequenceTokenParser(TokenType.Operator, "??"),
+        new SequenceTokenParser(TokenType.Operator, "?="),
+        new SequenceTokenParser(TokenType.Operator, "?"),
+        new SequenceTokenParser(TokenType.Operator, ":"),
+
+        // arithmetical
+        new SequenceTokenParser(TokenType.Operator, "+"),
+        new SequenceTokenParser(TokenType.Operator, "-"),
+        new SequenceTokenParser(TokenType.Operator, "*"),
+        new SequenceTokenParser(TokenType.Operator, "/"),
+        new SequenceTokenParser(TokenType.Operator, "+"),
+    ];
+
+    public Lexer(TextReader textReader)
+    {
+        var reader = new CharacterReader(textReader);
+         _buffer = new(reader.GetCharacter);
+    }
 
     public TokenData GetToken()
     {
-        var character = ReadCharacter();
-        if (character == EOT)
+        _buffer.Return();
+        var firstCharacter = _buffer.PeekNext();
+        if (firstCharacter.Char is CharacterReader.WhiteSpace or CharacterReader.NewLine)
         {
-            return new TokenData()
-            {
-                Type = TokenType.EOT,
-                Value = character.ToString(),
-                Line = line,
-                Column = column,
-            };
+            _buffer.Take(1);
+            return GetToken();
         }
-
-        var token = new TokenData()
+        
+        foreach (var parser in _tokenParsers)
         {
-            Type = TokenType.Operator,
-            Value = character.ToString(),
-            Line = line,
-            Column = column,
-        };
-        return token;
-    }
-
-    private char ReadCharacter()
-    {
-        if (currentCharacter == EOT)
-        {
-            return EOT;
+            parser.Reset();
         }
-
-        currentCharacter = ParseChar(textReader.Read());
-
-        // new line
-        if (currentCharacter is '\r' or '\n')
+        
+        var possibleParsers = new HashSet<TokenParser>();
+        foreach (var parser in _tokenParsers)
         {
-            line++;
-            column = 0;
-
-            // check windows CR LF sequence
-            char nextChar = ParseChar(textReader.Peek());
-            if (currentCharacter is '\r' && nextChar is '\n')
+            var status = parser.AcceptChar(firstCharacter.Char);
+            if (status == AcceptStatus.Deny)
             {
-                textReader.Read();
+                continue;
             }
-
-            return ReadCharacter();
+            
+            while (status is AcceptStatus.Possible)
+            {
+                var currentChar = _buffer.PeekNext().Char;
+                if (currentChar is CharacterReader.NewLine or CharacterReader.EndOfText)
+                {
+                    break;
+                }
+                status = parser.AcceptChar(currentChar);
+            }
+                
+            if (status == AcceptStatus.Completed)
+            {
+                _buffer.TakeAll();
+                return parser.CreateToken(firstCharacter.Line, firstCharacter.Column);
+            }
+            
+            _buffer.Return();
+            _buffer.PeekNext(); // to fix pointer
+            possibleParsers.Add(parser);
         }
 
-        // skip white space
-        if (char.IsWhiteSpace(currentCharacter))
+        foreach (var parser in possibleParsers)
         {
-            column++;
-            return ReadCharacter();
+            if (parser.IsValid())
+            {
+                var token = parser.CreateToken(firstCharacter.Line, firstCharacter.Column);
+                _buffer.Take(token.CharacterLength);
+                return token;
+            }
         }
 
-        column++;
-        return currentCharacter;
+        throw PrepareException(firstCharacter, possibleParsers);
     }
 
-    private static char ParseChar(int streamChar)
+    private Exception PrepareException(Character invalidTokenFirstCharacter, IEnumerable<TokenParser> possibleParsers)
     {
-        if (streamChar < 0)
+        // error position
+        var errorPosition = $"[{invalidTokenFirstCharacter.Line,2}, {invalidTokenFirstCharacter.Column,2}]";
+        
+        // error line
+        var errorLine = invalidTokenFirstCharacter.Char.ToString();
+        while (true)
         {
-            return EOT;
+            var c = _buffer.PeekNext().Char;
+            if (c is CharacterReader.EndOfText or CharacterReader.NewLine or CharacterReader.WhiteSpace)
+            {
+                break;
+            }
+            errorLine += c;
         }
-        return (char)streamChar;
+        
+        // hints
+        var hints = possibleParsers
+                    .Select(parser => parser.GetErrorHint())
+                    .OfType<string>()
+                    .Aggregate("", (current, hint) => current + "\n" + hint);
+
+        var errorMessage = $"{errorPosition}: Invalid token \'{errorLine}\'. {hints}";
+        return new Exception(errorMessage);
     }
 }
