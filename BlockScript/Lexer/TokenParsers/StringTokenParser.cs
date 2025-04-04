@@ -4,6 +4,8 @@ namespace BlockScript.Lexer.TokenParsers;
 
 public class StringTokenParser() : TokenParser
 {
+    private const int MAX_STRING_LENGTH = 255;
+    
     private readonly StringBuilder _stringBuilder = new();
     private bool _wasOpen = false;
     private bool _wasClose = false;
@@ -25,6 +27,11 @@ public class StringTokenParser() : TokenParser
         if (!_wasOpen)
         {
             return AcceptStatus.Deny;
+        }
+        
+        if (_stringBuilder.Length >= MAX_STRING_LENGTH)
+        {
+            throw new OverflowException($"String exceeds {MAX_STRING_LENGTH} characters.");
         }
         
         _stringBuilder.Append(c);

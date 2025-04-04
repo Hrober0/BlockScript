@@ -1,4 +1,6 @@
-﻿using BlockScript.Lexer.TokenParsers;
+﻿using System.ComponentModel;
+using System.Text;
+using BlockScript.Lexer.TokenParsers;
 using BlockScript.Reader;
 using BlockScript.Utilities;
 
@@ -72,43 +74,52 @@ public class Lexer : ILexer
             _buffer.Take(1);
             return GetToken();
         }
-        
+
         foreach (var parser in _tokenParsers)
         {
             parser.Reset();
         }
         
-        var possibleParsers = new HashSet<TokenParser>();
-        foreach (var parser in _tokenParsers)
+        var possibleParsers = new List<TokenParser>();
+        
+        try
         {
-            var status = parser.AcceptChar(firstCharacter.Char);
-            if (status == AcceptStatus.Deny)
+            foreach (var parser in _tokenParsers)
             {
-                continue;
-            }
-            
-            while (status is AcceptStatus.Possible)
-            {
-                var currentChar = _buffer.PeekNext().Char;
-                if (currentChar is UnifiedCharacters.NewLine or UnifiedCharacters.EndOfText)
+                var status = parser.AcceptChar(firstCharacter.Char);
+                if (status == AcceptStatus.Deny)
                 {
-                    break;
+                    continue;
                 }
-                status = parser.AcceptChar(currentChar);
-            }
-                
-            if (status == AcceptStatus.Completed)
-            {
-                var token = parser.CreateToken(firstCharacter.Line, firstCharacter.Column);
-                _buffer.Take(token.CharacterLength);
-                return token;
-            }
             
-            _buffer.Return();
-            _buffer.PeekNext(); // to fix pointer
-            possibleParsers.Add(parser);
+                while (status is AcceptStatus.Possible)
+                {
+                    var currentChar = _buffer.PeekNext().Char;
+                    if (currentChar is UnifiedCharacters.NewLine or UnifiedCharacters.EndOfText)
+                    {
+                        break;
+                    }
+                    status = parser.AcceptChar(currentChar);
+                }
+                
+                if (status == AcceptStatus.Completed)
+                {
+                    var token = parser.CreateToken(firstCharacter.Line, firstCharacter.Column);
+                    _buffer.Take(token.CharacterLength);
+                    return token;
+                }
+            
+                _buffer.Return();
+                _buffer.PeekNext(); // to fix pointer
+                possibleParsers.Add(parser);
+            }
         }
-
+        catch (Exception e)
+        {
+            throw new TokenException(firstCharacter.Line, firstCharacter.Column,
+                $"Invalid token \'{GetLine(_buffer)}\'. {e.Message}");
+        }
+        
         foreach (var parser in possibleParsers)
         {
             if (parser.IsValid())
@@ -118,34 +129,40 @@ public class Lexer : ILexer
                 return token;
             }
         }
-
-        throw PrepareException(firstCharacter, possibleParsers);
+        
+        throw new TokenException(firstCharacter.Line, firstCharacter.Column,
+            $"Invalid token \'{GetLine(_buffer)}\'. {GetHints(possibleParsers)}");
     }
 
-    private Exception PrepareException(Character invalidTokenFirstCharacter, IEnumerable<TokenParser> possibleParsers)
+    private static string GetLine(Buffer<Character> buffer)
     {
-        // error position
-        var errorPosition = $"[{invalidTokenFirstCharacter.Line,2}, {invalidTokenFirstCharacter.Column,2}]";
+        const int PEEK_LIMIT = 20;
         
-        // error line
-        var errorLine = invalidTokenFirstCharacter.Char.ToString();
+        buffer.Return();
+        var line = new StringBuilder();
         while (true)
         {
-            var c = _buffer.PeekNext().Char;
+            var c = buffer.PeekNext().Char;
             if (c is UnifiedCharacters.EndOfText or UnifiedCharacters.NewLine or UnifiedCharacters.WhiteSpace)
             {
                 break;
             }
-            errorLine += c;
+            line.Append(c);
+            if (line.Length >= PEEK_LIMIT)
+            {
+                line.Append("...");
+                break;
+            }
         }
-        
-        // hints
-        var hints = possibleParsers
-                    .Select(parser => parser.GetErrorHint())
-                    .OfType<string>()
-                    .Aggregate("", (current, hint) => current + "\n" + hint);
 
-        var errorMessage = $"{errorPosition}: Invalid token \'{errorLine}\'. {hints}";
-        return new Exception(errorMessage);
+        return line.ToString();
+    }
+
+    private static string GetHints(IEnumerable<TokenParser> possibleParsers)
+    {
+        return possibleParsers
+               .Select(parser => parser.GetErrorHint())
+               .OfType<string>()
+               .Aggregate("", (current, hint) => current + "\n" + hint);
     }
 }

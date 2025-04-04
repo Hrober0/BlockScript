@@ -1,10 +1,11 @@
 ﻿using System.Text;
-using BlockScript.Reader;
 
 namespace BlockScript.Lexer.TokenParsers;
 
 public class CommentTokenParser() : TokenParser
 {
+    private const int MAX_COMMENT_LENGTH = 255;
+    
     private readonly StringBuilder _stringBuilder = new();
     private bool _wasOpen = false;
     
@@ -20,6 +21,11 @@ public class CommentTokenParser() : TokenParser
             _wasOpen = true;
             return AcceptStatus.Possible;
 
+        }
+
+        if (_stringBuilder.Length >= MAX_COMMENT_LENGTH)
+        {
+            throw new OverflowException($"Comment exceeds {MAX_COMMENT_LENGTH} characters.");
         }
         
         _stringBuilder.Append(c);

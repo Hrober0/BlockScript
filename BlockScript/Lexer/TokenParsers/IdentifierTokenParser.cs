@@ -4,12 +4,19 @@ namespace BlockScript.Lexer.TokenParsers;
 
 public class IdentifierTokenParser() : TokenParser
 {
+    private const int MAX_IDENTIFIER_LENGTH = 255;
+    
     private readonly StringBuilder _stringBuilder = new();
     
     public override AcceptStatus AcceptChar(char c)
     {
         if (char.IsLetter(c) || char.IsDigit(c) && _stringBuilder.Length > 0)
         {
+            if (_stringBuilder.Length == MAX_IDENTIFIER_LENGTH)
+            {
+                throw new OverflowException($"Identifier exceeds {MAX_IDENTIFIER_LENGTH} characters.");
+            }
+            
             _stringBuilder.Append(c);
             return AcceptStatus.Possible;
         }

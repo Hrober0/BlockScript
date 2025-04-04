@@ -136,6 +136,27 @@ public class LexerTests
         token.Value.Should().Be("loop");
     }
     
+    [Fact]
+    public void GetToken_ShouldThrowTokenException_WhenParserThrowException()
+    {
+        // Arrange
+        var text = "";
+        for (int i = 0; i < 256; i++)
+        {
+            text += "i";
+        }
+        var reader = new StringReader(text); // to long identifier
+        var lexer = new Lexer.Lexer(reader);
+
+        // Act
+        Action act = () => lexer.GetToken();
+
+        // Assert
+        act.Should().Throw<TokenException>()
+           .WithMessage("*Invalid token*")
+           .Where(e => e.Message.Contains("exceeds")); // assuming error message includes a hint
+    }
+    
     #region TokenClosing
     
     [Fact]
@@ -150,7 +171,7 @@ public class LexerTests
         Action act = () => lexer.GetToken();
 
         // Assert
-        act.Should().Throw<Exception>();
+        act.Should().Throw<TokenException>();
     }
 
     [Fact]
@@ -165,8 +186,7 @@ public class LexerTests
         Action act = () => lexer.GetToken();
 
         // Assert
-        act.Should().Throw<Exception>()
-            .WithMessage("*Expected '\"' at the end of string*");
+        act.Should().Throw<TokenException>();
     }
 
     [Fact]

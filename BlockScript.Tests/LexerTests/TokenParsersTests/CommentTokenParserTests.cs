@@ -46,6 +46,27 @@ public class CommentTokenParserTests
         // Assert
         result.Should().Be(AcceptStatus.Possible);
     }
+    
+    [Fact]
+    public void AcceptChar_ShouldThrowException_WhenEnterTooManyCharacters()
+    {
+        // Arrange
+        var parser = new CommentTokenParser();
+        parser.AcceptChar('#'); // First # symbol
+
+        // Act
+        var act = () =>
+        {
+            for (int i = 0; i < 256; i++)
+            {
+                parser.AcceptChar('a');
+            }
+        };
+
+        // Assert
+        act.Should().Throw<OverflowException>();
+    }
+
 
     [Fact]
     public void IsValid_ShouldReturnTrue_WhenValidCommentIsParsed()

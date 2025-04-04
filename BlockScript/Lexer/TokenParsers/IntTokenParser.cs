@@ -18,6 +18,16 @@ public class IntTokenParser() : TokenParser
         {
             return AcceptStatus.Deny;
         }
+
+        try
+        {
+            var newNumber = checked(_number * 10 + digit);
+        }
+        catch (OverflowException)
+        {
+            throw new OverflowException($"Int value {_number}{c} exceeds {int.MaxValue}");
+        }
+        
         _number = _number * 10 + digit;
 
         _characters++;

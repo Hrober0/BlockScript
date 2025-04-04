@@ -44,6 +44,25 @@ public class IdentifierTokenParserTests
         // Assert
         result.Should().Be(AcceptStatus.Deny);
     }
+    
+    [Fact]
+    public void AcceptChar_ShouldThrowException_WhenEnterTooManyCharacters()
+    {
+        // Arrange
+        var parser = new IdentifierTokenParser();
+
+        // Act
+        var act = () =>
+        {
+            for (int i = 0; i < 256; i++)
+            {
+                parser.AcceptChar('a');
+            }
+        };
+
+        // Assert
+        act.Should().Throw<OverflowException>();
+    }
 
     [Fact]
     public void IsValid_ShouldReturnTrue_WhenIdentifierHasCharacters()

@@ -50,6 +50,26 @@ public class StringTokenParserTests
         // Assert
         result.Should().Be(AcceptStatus.Completed);
     }
+    
+    [Fact]
+    public void AcceptChar_ShouldThrowException_WhenEnterTooManyCharacters()
+    {
+        // Arrange
+        var parser = new StringTokenParser();
+        parser.AcceptChar('\"');
+        
+        // Act
+        var act = () =>
+        {
+            for (int i = 0; i < 256; i++)
+            {
+                parser.AcceptChar('a');
+            }
+        };
+
+        // Assert
+        act.Should().Throw<OverflowException>();
+    }
 
     [Fact]
     public void IsValid_ShouldReturnTrue_WhenStringIsCompleteWithQuotes()

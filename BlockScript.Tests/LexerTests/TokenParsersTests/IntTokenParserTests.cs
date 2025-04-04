@@ -60,6 +60,40 @@ public class IntTokenParserTests
         // Assert
         result.Should().Be(AcceptStatus.Possible);
     }
+    
+    [Fact]
+    public void AcceptChar_ShouldReturnPossible_WhenValidSequenceOfDigitNotExceededIntCapacity()
+    {
+        // Arrange
+        var parser = new IntTokenParser();
+
+        // Act
+        foreach (var c in "214748364")
+        {
+            parser.AcceptChar(c);
+        }
+        var result = parser.AcceptChar('7');
+
+        // Assert
+        result.Should().Be(AcceptStatus.Possible);
+    }
+    
+    [Fact]
+    public void AcceptChar_ShouldThrowException_WhenEnterTooManyCharacters()
+    {
+        // Arrange
+        var parser = new IntTokenParser();
+
+        // Act
+        foreach (var c in "214748364")
+        {
+            parser.AcceptChar(c);
+        }
+        var act = () => parser.AcceptChar('8');
+
+        // Assert
+        act.Should().Throw<OverflowException>();
+    }
 
     [Fact]
     public void IsValid_ShouldReturnTrue_WhenValidIntegerIsParsed()
