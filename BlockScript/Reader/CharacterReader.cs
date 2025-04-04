@@ -1,11 +1,9 @@
-﻿namespace BlockScript.Reader;
+﻿using BlockScript.Utilities;
+
+namespace BlockScript.Reader;
 
 public class CharacterReader(TextReader textReader)
 {
-    public const char EndOfText = '\u0004';
-    public const char NewLine = '\n';
-    public const char WhiteSpace = ' ';
-    
     private int _line = 1;
     private int _column = 0;
     
@@ -13,12 +11,12 @@ public class CharacterReader(TextReader textReader)
     
     public Character GetCharacter()
     {
-        if (_currentCharacter == EndOfText)
+        if (_currentCharacter == UnifiedCharacters.EndOfText)
         {
-            return new(EndOfText, _line, _column);
+            return new(UnifiedCharacters.EndOfText, _line, _column);
         }
         
-        if (_currentCharacter == NewLine)
+        if (_currentCharacter == UnifiedCharacters.NewLine)
         {
             _column = 0;
             _line++;   
@@ -36,13 +34,13 @@ public class CharacterReader(TextReader textReader)
                 textReader.Read();
             }
 
-            _currentCharacter = NewLine;
+            _currentCharacter = UnifiedCharacters.NewLine;
         }
 
         // unify white space
         else if (char.IsWhiteSpace(_currentCharacter))
         {
-            _currentCharacter = WhiteSpace;
+            _currentCharacter = UnifiedCharacters.WhiteSpace;
         }
 
         _column++;
@@ -53,7 +51,7 @@ public class CharacterReader(TextReader textReader)
     {
         if (streamChar < 0)
         {
-            return EndOfText;
+            return UnifiedCharacters.EndOfText;
         }
         return (char)streamChar;
     }

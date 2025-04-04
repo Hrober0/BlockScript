@@ -1,4 +1,5 @@
 ﻿using BlockScript.Reader;
+using BlockScript.Utilities;
 using FluentAssertions;
 using Xunit;
 
@@ -17,7 +18,7 @@ public class CharacterReaderTests
             var character = characterReader.GetCharacter();
             
             // Assert
-            character.Char.Should().Be(CharacterReader.EndOfText);
+            character.Char.Should().Be(UnifiedCharacters.EndOfText);
             character.Line.Should().Be(1);
             character.Column.Should().Be(1);
         }
@@ -34,11 +35,11 @@ public class CharacterReaderTests
             var character2 = characterReader.GetCharacter();
             
             // Assert
-            character1.Char.Should().Be(CharacterReader.EndOfText);
+            character1.Char.Should().Be(UnifiedCharacters.EndOfText);
             character1.Line.Should().Be(1);
             character1.Column.Should().Be(1);
             
-            character2.Char.Should().Be(CharacterReader.EndOfText);
+            character2.Char.Should().Be(UnifiedCharacters.EndOfText);
             character2.Line.Should().Be(1);
             character2.Column.Should().Be(1);
         }
@@ -59,7 +60,7 @@ public class CharacterReaderTests
             character1.Line.Should().Be(1);
             character1.Column.Should().Be(1);
             
-            character2.Char.Should().Be(CharacterReader.EndOfText);
+            character2.Char.Should().Be(UnifiedCharacters.EndOfText);
             character2.Line.Should().Be(1);
             character2.Column.Should().Be(2);
         }
@@ -77,7 +78,7 @@ public class CharacterReaderTests
             var character = characterReader.GetCharacter();
             
             // Assert
-            character.Char.Should().Be(CharacterReader.WhiteSpace);
+            character.Char.Should().Be(UnifiedCharacters.WhiteSpace);
             character.Line.Should().Be(1);
             character.Column.Should().Be(1);
         }
@@ -102,7 +103,7 @@ public class CharacterReaderTests
             character1.Line.Should().Be(1);
             character1.Column.Should().Be(1);
 
-            character2.Char.Should().Be(CharacterReader.NewLine);
+            character2.Char.Should().Be(UnifiedCharacters.NewLine);
             character2.Line.Should().Be(1);
             character2.Column.Should().Be(2);
             

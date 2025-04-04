@@ -10,7 +10,7 @@ public class Lexer : ILexer
     
     private readonly List<TokenParser> _tokenParsers =
     [
-        new SequenceTokenParser(TokenType.EndOfText, CharacterReader.EndOfText.ToString()),
+        new SequenceTokenParser(TokenType.EndOfText, UnifiedCharacters.EndOfText.ToString()),
 
         // syntax
         new SequenceTokenParser(TokenType.EndOfStatement, ";"),
@@ -67,7 +67,7 @@ public class Lexer : ILexer
     {
         _buffer.Return();
         var firstCharacter = _buffer.PeekNext();
-        if (firstCharacter.Char is CharacterReader.WhiteSpace or CharacterReader.NewLine)
+        if (firstCharacter.Char is UnifiedCharacters.WhiteSpace or UnifiedCharacters.NewLine)
         {
             _buffer.Take(1);
             return GetToken();
@@ -90,7 +90,7 @@ public class Lexer : ILexer
             while (status is AcceptStatus.Possible)
             {
                 var currentChar = _buffer.PeekNext().Char;
-                if (currentChar is CharacterReader.NewLine or CharacterReader.EndOfText)
+                if (currentChar is UnifiedCharacters.NewLine or UnifiedCharacters.EndOfText)
                 {
                     break;
                 }
@@ -132,7 +132,7 @@ public class Lexer : ILexer
         while (true)
         {
             var c = _buffer.PeekNext().Char;
-            if (c is CharacterReader.EndOfText or CharacterReader.NewLine or CharacterReader.WhiteSpace)
+            if (c is UnifiedCharacters.EndOfText or UnifiedCharacters.NewLine or UnifiedCharacters.WhiteSpace)
             {
                 break;
             }
