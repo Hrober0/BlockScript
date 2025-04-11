@@ -1,4 +1,5 @@
-﻿using BlockScript.Lexer;
+﻿using System.Text;
+using BlockScript.Lexer;
 using FluentAssertions;
 using Xunit;
 
@@ -20,7 +21,24 @@ public class LexerTests
         // Assert
         token.Type.Should().Be(TokenType.EndOfText);
     }
+    
+    [Fact]
+    public void GetToken_ShouldSkipWhitespaceAndReturnNextToken()
+    {
+        // Arrange
+        var text = "  loop ";
+        var reader = new StringReader(text);
+        var lexer = new Lexer.Lexer(reader);
 
+        // Act
+        var token = lexer.GetToken();
+
+        // Assert
+        token.Type.Should().Be(TokenType.Loop);
+        token.Value.Should().Be("loop");
+    }
+    
+    #region comment
     [Fact]
     public void GetToken_ShouldReturnCommentToken_WhenCommentIsEncountered()
     {
@@ -30,29 +48,101 @@ public class LexerTests
         var lexer = new Lexer.Lexer(reader);
 
         // Act
-        var token = lexer.GetToken();
+        var token1 = lexer.GetToken();
+        var token2 = lexer.GetToken();
 
         // Assert
-        token.Type.Should().Be(TokenType.Comment);
-        token.Value.Should().Be("This is a comment");
+        token1.Type.Should().Be(TokenType.Comment);
+        token1.Value.Should().Be("This is a comment");
+        token2.Type.Should().Be(TokenType.EndOfText);
+    }
+    
+    [Fact]
+    public void GetToken_ShouldThrow_WhenCommentIsTooLong()
+    {
+        // Arrange
+        var text = new StringBuilder("#");
+        for (int i = 0; i < 256; i++)
+        {
+            text.Append('a');
+        }
+        var reader = new StringReader(text.ToString());
+        var lexer = new Lexer.Lexer(reader);
+        
+        // Act
+        var act = () => lexer.GetToken();
+
+        // Assert
+        act.Should().Throw<TokenException>()
+            .Where(e => e.Message.Contains("exceeds"));
     }
 
+    #endregion
+    
+    #region number
+    
     [Fact]
     public void GetToken_ShouldReturnIntegerToken_WhenIntegerIsEncountered()
     {
         // Arrange
-        var text = "1234";
+        var text = "2147483647";
         var reader = new StringReader(text);
         var lexer = new Lexer.Lexer(reader);
 
         // Act
-        var token = lexer.GetToken();
+        var token1 = lexer.GetToken();
+        var token2 = lexer.GetToken();
 
         // Assert
-        token.Type.Should().Be(TokenType.Integer);
-        token.Value.Should().Be(1234);
+        token1.Type.Should().Be(TokenType.Integer);
+        token1.Value.Should().Be(2147483647);
+        token2.Type.Should().Be(TokenType.EndOfText);
+    }
+    
+    [Fact]
+    public void GetToken_ShouldReturnTwoIntegerToken_WhenTwoZerosEncountered()
+    {
+        // Arrange
+        var text = "0010";
+        var reader = new StringReader(text);
+        var lexer = new Lexer.Lexer(reader);
+
+        // Act
+        var token1 = lexer.GetToken();
+        var token2 = lexer.GetToken();
+        var token3 = lexer.GetToken();
+        var token4 = lexer.GetToken();
+
+        // Assert
+        token1.Type.Should().Be(TokenType.Integer);
+        token1.Value.Should().Be(0);
+        token2.Type.Should().Be(TokenType.Integer);
+        token2.Value.Should().Be(0);
+        token3.Type.Should().Be(TokenType.Integer);
+        token3.Value.Should().Be(10);
+        token4.Type.Should().Be(TokenType.EndOfText);
     }
 
+    [Fact]
+    public void GetToken_ShouldThrow_WhenIntegerIsExedsLimit()
+    {
+        // Arrange
+        var text = "2147483648";
+        var reader = new StringReader(text);
+        var lexer = new Lexer.Lexer(reader);
+
+        // Act
+        var act = () => lexer.GetToken();
+
+        // Assert
+        act.Should().Throw<TokenException>()
+            .Where(e => e.Message.Contains("exceeds"));
+    }
+    
+    #endregion
+    
+    #region string
+    
     [Fact]
     public void GetToken_ShouldReturnStringToken_WhenStringIsEncountered()
     {
@@ -62,18 +152,20 @@ public class LexerTests
         var lexer = new Lexer.Lexer(reader);
 
         // Act
-        var token = lexer.GetToken();
+        var token1 = lexer.GetToken();
+        var token2 = lexer.GetToken();
 
         // Assert
-        token.Type.Should().Be(TokenType.String);
-        token.Value.Should().Be("Hello, World!");
+        token1.Type.Should().Be(TokenType.String);
+        token1.Value.Should().Be("Hello, World!");
+        token2.Type.Should().Be(TokenType.EndOfText);
     }
-
+    
     [Fact]
-    public void GetToken_ShouldReturnNullToken_WhenNullIsEncountered()
+    public void GetToken_ShouldReturnEmptyStringToken_WhenEmptyStringIsEncountered()
     {
         // Arrange
-        var text = "null";
+        var text = "\"\"";
         var reader = new StringReader(text);
         var lexer = new Lexer.Lexer(reader);
 
@@ -81,24 +173,128 @@ public class LexerTests
         var token = lexer.GetToken();
 
         // Assert
-        token.Type.Should().Be(TokenType.Null);
-        token.Value.Should().Be("null");
+        token.Type.Should().Be(TokenType.String);
+        token.Value.Should().Be("");
+    }
+    
+    [Fact]
+    public void GetToken_ShouldReturnStringToken_WhenStringAfterStringIsEncountered()
+    {
+        // Arrange
+        var text = "\"Hello, World!\"\"a\"";
+        var reader = new StringReader(text);
+        var lexer = new Lexer.Lexer(reader);
+
+        // Act
+        var token1 = lexer.GetToken();
+        var token2 = lexer.GetToken();
+        var token3 = lexer.GetToken();
+
+        // Assert
+        token1.Type.Should().Be(TokenType.String);
+        token1.Value.Should().Be("Hello, World!");
+        token2.Type.Should().Be(TokenType.String);
+        token2.Value.Should().Be("a");
+        token3.Type.Should().Be(TokenType.EndOfText);
+    }
+    
+    [Fact]
+    public void GetToken_ShouldReturnStringToken_WhenStringContainSpecialCharacters()
+    {
+        // Arrange
+        var text = "\"[\\\"]\"";
+        var reader = new StringReader(text);
+        var lexer = new Lexer.Lexer(reader);
+
+        // Act
+        var token = lexer.GetToken();
+
+        // Assert
+        token.Type.Should().Be(TokenType.String);
+        token.Value.Should().Be("[\\\"]");
+    }
+
+    [Fact]
+    public void GetToken_ShouldThrow_WhenStringIsTooLong()
+    {
+        // Arrange
+        var text = new StringBuilder("\"");
+        for (int i = 0; i < 257; i++)
+        {
+            text.Append('a');
+        }
+        var reader = new StringReader(text.ToString());
+        var lexer = new Lexer.Lexer(reader);
+        
+        // Act
+        var act = () => lexer.GetToken();
+
+        // Assert
+        act.Should().Throw<TokenException>()
+            .Where(e => e.Message.Contains("exceeds"));
+    }
+    
+    [Fact]
+    public void GetToken_ShouldThrow_WhenStringIsNotClosed()
+    {
+        // Arrange
+        var text = new StringBuilder("\"aaa\ndd");
+        for (int i = 0; i < 256; i++)
+        {
+            text.Append('a');
+        }
+        var reader = new StringReader(text.ToString());
+        var lexer = new Lexer.Lexer(reader);
+        
+        // Act
+        var act = () => lexer.GetToken();
+
+        // Assert
+        act.Should().Throw<TokenException>()
+            .Where(e => e.Message.Contains("expected '\"'"));
+    }
+    
+    #endregion
+    
+    #region keywords and operators
+    
+    [Fact]
+    public void GetToken_ShouldReturnNullToken_WhenNullIsEncountered()
+    {
+        // Arrange
+        var text = "null;";
+        var reader = new StringReader(text);
+        var lexer = new Lexer.Lexer(reader);
+
+        // Act
+        var token1 = lexer.GetToken();
+        var token2 = lexer.GetToken();
+        var token3 = lexer.GetToken();
+
+        // Assert
+        token1.Type.Should().Be(TokenType.Null);
+        token1.Value.Should().Be("null");
+        
+        token2.Type.Should().Be(TokenType.EndOfStatement);
+        token2.Value.Should().Be(";");
+        
+        token3.Type.Should().Be(TokenType.EndOfText);
     }
 
     [Fact]
     public void GetToken_ShouldReturnValidOperatorTokens()
     {
         // Arrange
-        var text = "== <= >= != + ===";
+        var text = "==<=>=!=+===";
         var reader = new StringReader(text);
         var lexer = new Lexer.Lexer(reader);
 
         // Act & Assert
-        lexer.GetToken().Type.Should().Be(TokenType.Operator);
-        lexer.GetToken().Type.Should().Be(TokenType.Operator);
-        lexer.GetToken().Type.Should().Be(TokenType.Operator);
-        lexer.GetToken().Type.Should().Be(TokenType.Operator);
-        lexer.GetToken().Type.Should().Be(TokenType.Operator);
+        lexer.GetToken().Type.Should().Be(TokenType.OperatorEqual);
+        lexer.GetToken().Type.Should().Be(TokenType.OperatorLessEqual);
+        lexer.GetToken().Type.Should().Be(TokenType.OperatorGreaterEqual);
+        lexer.GetToken().Type.Should().Be(TokenType.OperatorNotEqual);
+        lexer.GetToken().Type.Should().Be(TokenType.OperatorAdd);
         lexer.GetToken().Value.Should().Be("==");
         lexer.GetToken().Value.Should().Be("=");
         lexer.GetToken().Type.Should().Be(TokenType.EndOfText);
@@ -116,46 +312,11 @@ public class LexerTests
         var token = lexer.GetToken();
 
         // Assert
-        token.Type.Should().Be(TokenType.Loop);
         token.Value.Should().Be("loop");
-    }
-
-    [Fact]
-    public void GetToken_ShouldSkipWhitespaceAndReturnNextToken()
-    {
-        // Arrange
-        var text = "  loop ";
-        var reader = new StringReader(text);
-        var lexer = new Lexer.Lexer(reader);
-
-        // Act
-        var token = lexer.GetToken();
-
-        // Assert
         token.Type.Should().Be(TokenType.Loop);
-        token.Value.Should().Be("loop");
     }
-    
-    [Fact]
-    public void GetToken_ShouldThrowTokenException_WhenParserThrowException()
-    {
-        // Arrange
-        var text = "";
-        for (int i = 0; i < 256; i++)
-        {
-            text += "i";
-        }
-        var reader = new StringReader(text); // to long identifier
-        var lexer = new Lexer.Lexer(reader);
 
-        // Act
-        Action act = () => lexer.GetToken();
-
-        // Assert
-        act.Should().Throw<TokenException>()
-           .WithMessage("*Invalid token*")
-           .Where(e => e.Message.Contains("exceeds")); // assuming error message includes a hint
-    }
+    #endregion
     
     #region TokenClosing
     
@@ -427,60 +588,55 @@ public class LexerTests
         var token7 = lexer.GetToken(); // 10
         var token8 = lexer.GetToken(); // ;
         var token9 = lexer.GetToken(); // comment
+        var token10 = lexer.GetToken(); // End
 
         // Assert for token1 (variableName)
-        token1.Should().NotBeNull();
         token1.Type.Should().Be(TokenType.Identifier);
         token1.Line.Should().Be(1);
         token1.Column.Should().Be(1);
 
         // Assert for token2 (;)
-        token2.Should().NotBeNull();
         token2.Type.Should().Be(TokenType.EndOfStatement);
         token2.Line.Should().Be(1);
         token2.Column.Should().Be(13);
 
         // Assert for token3 (loop)
-        token3.Should().NotBeNull();
         token3.Type.Should().Be(TokenType.Loop);
         token3.Line.Should().Be(2);
         token3.Column.Should().Be(1);
 
         // Assert for token4 (;)
-        token4.Should().NotBeNull();
         token4.Type.Should().Be(TokenType.EndOfStatement);
         token4.Line.Should().Be(3);
         token4.Column.Should().Be(1);
 
         // Assert for token5 (x)
-        token5.Should().NotBeNull();
         token5.Type.Should().Be(TokenType.Identifier);
         token5.Line.Should().Be(3);
         token5.Column.Should().Be(2);
 
         // Assert for token6 (=)
-        token6.Should().NotBeNull();
-        token6.Type.Should().Be(TokenType.Operator);
+        token6.Type.Should().Be(TokenType.OperatorAssign);
         token6.Line.Should().Be(3);
         token6.Column.Should().Be(4);
 
         // Assert for token7 (10)
-        token7.Should().NotBeNull();
         token7.Type.Should().Be(TokenType.Integer);
         token7.Line.Should().Be(3);
         token7.Column.Should().Be(6);
 
         // Assert for token8 (;)
-        token8.Should().NotBeNull();
         token8.Type.Should().Be(TokenType.EndOfStatement);
         token8.Line.Should().Be(3);
         token8.Column.Should().Be(8);
 
         // Assert for token9 (comment)
-        token9.Should().NotBeNull();
         token9.Type.Should().Be(TokenType.Comment);
         token9.Line.Should().Be(4);
         token9.Column.Should().Be(1);
+        
+        // Assert for token10 (end)
+        token10.Type.Should().Be(TokenType.EndOfText);
     }
     
 #endregion

@@ -1,6 +1,4 @@
-﻿using System.ComponentModel;
-using System.Text;
-using BlockScript.Lexer.TokenParsers;
+﻿using System.Text;
 using BlockScript.Reader;
 using BlockScript.Utilities;
 
@@ -8,161 +6,286 @@ namespace BlockScript.Lexer;
 
 public class Lexer : ILexer
 {
-    private readonly Buffer<Character> _buffer;
+    private const int MAX_BUFFER_LENGTH = 255;
     
-    private readonly List<TokenParser> _tokenParsers =
+    private delegate bool TryBuildMethod(out TokenData token);
+    
+    private readonly CharacterReader _reader;
+    private readonly TryBuildMethod[] _tryBuildMethods;
+
+    private readonly List<(string token, TokenType tokenType)> _symbols =
     [
-        new SequenceTokenParser(TokenType.EndOfText, UnifiedCharacters.EndOfText.ToString()),
+        // Syntax
+        (UnifiedCharacters.EndOfText.ToString(), TokenType.EndOfText),
+        (";", TokenType.EndOfStatement),
+        ("(", TokenType.ParenhticesOpen),
+        (")", TokenType.ParenhticesClose),
+        ("{", TokenType.BraceOpen),
+        ("}", TokenType.BraceClose),
 
-        // syntax
-        new SequenceTokenParser(TokenType.EndOfStatement, ";"),
-        new SequenceTokenParser(TokenType.Operator, "("),
-        new SequenceTokenParser(TokenType.Operator, ")"),
-        new SequenceTokenParser(TokenType.Operator, "{"),
-        new SequenceTokenParser(TokenType.Operator, "}"),
-        new CommentTokenParser(),
-        
-        // key-words
-        new WordTokenParser(TokenType.Loop, "loop"),
+        // Logical operators
+        ("==", TokenType.OperatorEqual),
+        ("=>", TokenType.OperatorArrow),
+        ("=", TokenType.OperatorAssign),
+        ("<=", TokenType.OperatorLessEqual),
+        ("<", TokenType.OperatorLess),
+        (">=", TokenType.OperatorGreaterEqual),
+        (">", TokenType.OperatorGreater),
+        ("!=", TokenType.OperatorNotEqual),
+        ("!", TokenType.OperatorNot),
+        ("||", TokenType.OperatorOr),
+        ("&&", TokenType.OperatorAnd),
+        ("??", TokenType.OperatorNullCoalescing),
+        ("?=", TokenType.OperatorNullAssign),
+        ("?", TokenType.OperatorTernaryIf),
+        (":", TokenType.OperatorTernaryElse),
 
-        // data
-        new IntTokenParser(),
-        new StringTokenParser(),
-        new WordTokenParser(TokenType.Null, "null"),
-        new WordTokenParser(TokenType.Boolean, "true", _ => true),
-        new WordTokenParser(TokenType.Boolean, "false", _ => false),
-        
-        // logical
-        new SequenceTokenParser(TokenType.Operator, "=="),
-        new SequenceTokenParser(TokenType.Operator, "=>"),
-        new SequenceTokenParser(TokenType.Operator, "="),
-        new SequenceTokenParser(TokenType.Operator, "<="),
-        new SequenceTokenParser(TokenType.Operator, "<"),
-        new SequenceTokenParser(TokenType.Operator, ">="),
-        new SequenceTokenParser(TokenType.Operator, ">"),
-        new SequenceTokenParser(TokenType.Operator, "!="),
-        new SequenceTokenParser(TokenType.Operator, "!"),
-        new SequenceTokenParser(TokenType.Operator, "||"),
-        new SequenceTokenParser(TokenType.Operator, "&&"),
-        new SequenceTokenParser(TokenType.Operator, "??"),
-        new SequenceTokenParser(TokenType.Operator, "?="),
-        new SequenceTokenParser(TokenType.Operator, "?"),
-        new SequenceTokenParser(TokenType.Operator, ":"),
-
-        // arithmetical
-        new SequenceTokenParser(TokenType.Operator, "+"),
-        new SequenceTokenParser(TokenType.Operator, "-"),
-        new SequenceTokenParser(TokenType.Operator, "*"),
-        new SequenceTokenParser(TokenType.Operator, "/"),
-        new SequenceTokenParser(TokenType.Operator, "+"),
-        
-        new IdentifierTokenParser(),
+        // Arithmetical operators
+        ("+", TokenType.OperatorAdd),
+        ("-", TokenType.OperatorSubtract),
+        ("*", TokenType.OperatorMultiply),
+        ("/", TokenType.OperatorDivide),
     ];
+
+    private readonly Dictionary<string, TokenType> _keyWords = new()
+    {
+        { "true", TokenType.Boolean },
+        { "false", TokenType.Boolean },
+        { "null", TokenType.Null },
+        { "loop", TokenType.Loop },
+    };
+    
+    private Character _currentCharacter;
+    private Character _nextCharacter;
 
     public Lexer(TextReader textReader)
     {
-        var reader = new CharacterReader(textReader);
-         _buffer = new(reader.GetCharacter);
+        _reader = new CharacterReader(textReader);
+        _nextCharacter = _reader.GetCharacter();
+        _tryBuildMethods =
+        [
+            TryBuildNumber,
+            TryBuildingIdentifierOrKeyword,
+            TryBuildComment,
+            TryBuildSymbol,
+            TryBuildString,
+        ];
     }
 
     public TokenData GetToken()
     {
-        _buffer.Return();
-        var firstCharacter = _buffer.PeekNext();
-        if (firstCharacter.Char is UnifiedCharacters.WhiteSpace or UnifiedCharacters.NewLine)
+        TakeCharacter();
+        
+        // skip white spaces
+        while (_currentCharacter.Char is UnifiedCharacters.WhiteSpace or UnifiedCharacters.NewLine)
         {
-            _buffer.Take(1);
-            return GetToken();
-        }
-
-        foreach (var parser in _tokenParsers)
-        {
-            parser.Reset();
+            TakeCharacter();
         }
         
-        var possibleParsers = new List<TokenParser>();
-        
-        try
+        var startCharacter = _currentCharacter;
+        foreach (var tryBuildMethod in _tryBuildMethods)
         {
-            foreach (var parser in _tokenParsers)
+            if (tryBuildMethod(out var token))
             {
-                var status = parser.AcceptChar(firstCharacter.Char);
-                if (status == AcceptStatus.Deny)
-                {
-                    continue;
-                }
-            
-                while (status is AcceptStatus.Possible)
-                {
-                    var currentChar = _buffer.PeekNext().Char;
-                    if (currentChar is UnifiedCharacters.NewLine or UnifiedCharacters.EndOfText)
-                    {
-                        break;
-                    }
-                    status = parser.AcceptChar(currentChar);
-                }
-                
-                if (status == AcceptStatus.Completed)
-                {
-                    var token = parser.CreateToken(firstCharacter.Line, firstCharacter.Column);
-                    _buffer.Take(token.CharacterLength);
-                    return token;
-                }
-            
-                _buffer.Return();
-                _buffer.PeekNext(); // to fix pointer
-                possibleParsers.Add(parser);
-            }
-        }
-        catch (Exception e)
-        {
-            throw new TokenException(firstCharacter.Line, firstCharacter.Column,
-                $"Invalid token \'{GetLine(_buffer)}\'. {e.Message}");
-        }
-        
-        foreach (var parser in possibleParsers)
-        {
-            if (parser.IsValid())
-            {
-                var token = parser.CreateToken(firstCharacter.Line, firstCharacter.Column);
-                _buffer.Take(token.CharacterLength);
                 return token;
             }
         }
         
-        throw new TokenException(firstCharacter.Line, firstCharacter.Column,
-            $"Invalid token \'{GetLine(_buffer)}\'. {GetHints(possibleParsers)}");
+        throw new TokenException(startCharacter.Line, startCharacter.Column, $"Invalid token \'{startCharacter.Char}\'");
     }
 
-    private static string GetLine(Buffer<Character> buffer)
+    private void TakeCharacter()
     {
-        const int PEEK_LIMIT = 20;
-        
-        buffer.Return();
-        var line = new StringBuilder();
-        while (true)
+        _currentCharacter = _nextCharacter;
+        _nextCharacter = _reader.GetCharacter();
+    }
+    
+    private bool TryBuildNumber(out TokenData token)
+    {
+        if (!int.TryParse(_currentCharacter.Char.ToString(), out int value))
         {
-            var c = buffer.PeekNext().Char;
-            if (c is UnifiedCharacters.EndOfText or UnifiedCharacters.NewLine or UnifiedCharacters.WhiteSpace)
-            {
-                break;
-            }
-            line.Append(c);
-            if (line.Length >= PEEK_LIMIT)
-            {
-                line.Append("...");
-                break;
-            }
+            token = default;
+            return false;
         }
 
-        return line.ToString();
+        var startCharacter = _currentCharacter;
+        while (int.TryParse(_nextCharacter.Char.ToString(), out int nextDigit) && value != 0)
+        {
+            var newValue = value * 10 + nextDigit;
+            if (newValue < value)
+            {
+                throw new TokenException(startCharacter.Line, startCharacter.Column,
+                    $"Int value {value}{nextDigit} exceeds {int.MaxValue}.");
+            }
+            value = newValue;
+            TakeCharacter();
+        }
+            
+        token = new TokenData
+        {
+            Line = startCharacter.Line,
+            Column = startCharacter.Column,
+            Type = TokenType.Integer,
+            Value = value,
+        };
+        return true;
+    }
+    
+    private bool TryBuildingIdentifierOrKeyword(out TokenData token)
+    {
+        if (!char.IsLetter(_currentCharacter.Char))
+        {
+            token = default;
+            return false;
+        }
+        
+        var startCharacter = _currentCharacter;
+        var stringBuilder = new StringBuilder();
+        while (char.IsLetterOrDigit(_nextCharacter.Char))
+        {
+            if (stringBuilder.Length >= MAX_BUFFER_LENGTH)
+            {
+                throw new TokenException(_nextCharacter.Line, _nextCharacter.Column,
+                    $"Identifier exceeds {MAX_BUFFER_LENGTH} characters.");
+            }
+
+            stringBuilder.Append(_currentCharacter.Char);
+            TakeCharacter();
+        }
+        
+        stringBuilder.Append(_currentCharacter.Char);
+        
+        var stringValue = stringBuilder.ToString();
+        if (_keyWords.TryGetValue(stringValue, out var tokenType))
+        {
+            object value = tokenType switch
+            {
+                TokenType.Boolean => stringValue == "true",
+                _ => stringValue,
+            };
+            
+            token = new TokenData
+            {
+                Line = startCharacter.Line,
+                Column = startCharacter.Column,
+                Type = tokenType,
+                Value = value,
+            };
+            return true;
+        }
+            
+        token = new TokenData
+        {
+            Line = startCharacter.Line,
+            Column = startCharacter.Column,
+            Type = TokenType.Identifier,
+            Value = stringValue,
+        };
+        return true;
+    }
+    
+    private bool TryBuildComment(out TokenData token)
+    {
+        const char COMMENT_IDENTIFIER = '#';
+        if (_currentCharacter.Char != COMMENT_IDENTIFIER)
+        {
+            token = default;
+            return false;
+        }
+
+        var startCharacter = _currentCharacter;
+        TakeCharacter();
+        var stringBuilder = new StringBuilder();
+        while (_currentCharacter.Char is not (UnifiedCharacters.EndOfText or UnifiedCharacters.NewLine))
+        {
+            if (stringBuilder.Length >= MAX_BUFFER_LENGTH)
+            {
+                throw new TokenException(_currentCharacter.Line, _currentCharacter.Column,
+                    $"Comment exceeds {MAX_BUFFER_LENGTH} characters.");
+            }
+                
+            stringBuilder.Append(_currentCharacter.Char);
+            TakeCharacter();
+        }
+            
+        token = new TokenData
+        {
+            Line = startCharacter.Line,
+            Column = startCharacter.Column,
+            Type = TokenType.Comment,
+            Value = stringBuilder.ToString(),
+        };
+        return true;
     }
 
-    private static string GetHints(IEnumerable<TokenParser> possibleParsers)
+    private bool TryBuildSymbol(out TokenData token)
     {
-        return possibleParsers
-               .Select(parser => parser.GetErrorHint())
-               .OfType<string>()
-               .Aggregate("", (current, hint) => current + "\n" + hint);
+        var foundSymbols = _symbols.FindAll(symbol =>
+                symbol.token[0] == _currentCharacter.Char &&
+                (symbol.token.Length == 1 || symbol.token[1] == _nextCharacter.Char))
+            .OrderByDescending(symbol => symbol.token.Length).ToArray();
+        if (foundSymbols.Length == 0)
+        {
+            token = default;
+            return false;
+        }
+        
+        var symbol = foundSymbols[0];
+        token = new TokenData
+        {
+            Line = _currentCharacter.Line,
+            Column = _currentCharacter.Column,
+            Type = symbol.tokenType,
+            Value = symbol.token,
+        };
+        for (var i = 0; i < symbol.token.Length - 1; i++)
+        {
+            TakeCharacter();
+        }
+        return true;
+    }
+    
+    private bool TryBuildString(out TokenData token)
+    {
+        const char STRING_IDENTIFIER = '\"';
+        const char SPECIAL_CHARACTER = '\\';
+        if (_currentCharacter.Char != STRING_IDENTIFIER)
+        {
+            token = default;
+            return false;
+        }
+
+        var startCharacter = _currentCharacter;
+        TakeCharacter();
+        var stringBuilder = new StringBuilder();
+        var isSpecialCharacter = false;
+        do
+        {
+            if (_currentCharacter.Char == STRING_IDENTIFIER && !isSpecialCharacter)
+            {
+                token = new TokenData
+                {
+                    Line = startCharacter.Line,
+                    Column = startCharacter.Column,
+                    Type = TokenType.String,
+                    Value = stringBuilder.ToString(),
+                };
+                return true;
+            }
+
+            if (stringBuilder.Length >= MAX_BUFFER_LENGTH)
+            {
+                throw new TokenException(_nextCharacter.Line, _nextCharacter.Column,
+                    $"String exceeds {MAX_BUFFER_LENGTH} characters.");
+            }
+
+            isSpecialCharacter = _currentCharacter.Char == SPECIAL_CHARACTER && !isSpecialCharacter;
+
+            stringBuilder.Append(_currentCharacter.Char);
+            TakeCharacter();
+        } while (_currentCharacter.Char is not (UnifiedCharacters.EndOfText or UnifiedCharacters.NewLine));
+
+        throw new TokenException(_currentCharacter.Line, _currentCharacter.Column,
+            $"Invalid token \'{_currentCharacter.Char}\', expected \'{STRING_IDENTIFIER}\'");
     }
 }
