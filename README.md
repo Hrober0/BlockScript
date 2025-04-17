@@ -118,9 +118,9 @@ a>b		# ostatnie instrukcja nie wymaga ;
 {
 a=3;
 b=4;
-(){a>b};
+()=>{a>b};
 }
-# powyższy blok zwróci: (){false}
+# powyższy blok zwróci: lambdę ()=>{a>b}
 
 {
 print("a");
@@ -146,48 +146,65 @@ Instrulcje warunkowe przypominają ternary operator
 
 **Przykłady**:
 ```py
-{a>3}?{print(a)};
+if {a>3} {print(a)};
 # gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci null;
 
-{a>3}?{print(a)}:{"no"};
+if a>3 {print(a)};
+# po if może znaleźć się pojedyńcze wyrażenie, gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci null;
+
+if a>3 {print(a)} else {"no"};
 # gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci "no";
 
-{a>3||a<2}?{print a;a+1};
+if a>3||a<2 {print a; a+1};
 # gdy a>3 lub a<2 wypisze a i zwróci a+1 w przeciwnym razie zwróci null;
 
-2 + 2 * 2 > 7 || {{3>2}?{1}}
+2 + 2 * 2 > 7 || {if 3>2 {1}}
 # {2 + 4 > 7 || 1}
 # {6 > 7 || 1}
 # {false || true}
 # true
 
+# true || false && true
+# zwróci false, operator && ma pierwszeństwo
+
 a = 1
-{2 > a} ? {print("ok")} : {print("no")}
+if 2 > a {print("ok")} else {print("no")}
 # wypisze ok
 
 a = 1
-print({2 > a} ? {"ok"} : {"no"})
+print(if 2 > a {"ok"} else {"no"})
 # to samo co wyżej zapisane inaczej
 
 a = 3
-print({2 > a} ? {"ok"})
+print(if 2 > a {"ok"})
 # wypisze null
 
 a = "a"
-print({a} ? {"ok"} : {"no"})
+print(if a {"ok"} else {"no"})
 # wypisze ok - ponieważ string sparsowany będzie na bool dając true
 
 a = ""
-print({a} ? {"ok"} : {"no"})
+print(if a {"ok"} else {"no"})
 # wypisze no - ponieważ string sparsowany będzie na bool dając false
 
 a = 3
-print({a} ? {"ok"} : {"no"})
+print(if a {"ok"} else {"no"})
 # wypisze ok - ponieważ int sparsowany będzie na bool dając true
 
 a = 0
-print({a} ? {"ok"} : {"no"})
+print(if a {"ok"} else {"no"})
 # wypisze no - ponieważ int sparsowany będzie na bool dając false
+
+if a==1 {
+	1
+}
+else if a==2 {
+	2
+}
+else {
+	"no"
+}
+# gdy a==1 zwróci 1, gdy a==2 zwróci 2, w przeciwnym wypadku zwróci "no"
 ```
 
 ### Funkcje
@@ -203,10 +220,6 @@ f=()=>print("a");
 print("b")
 f();
 # wypisze w konsoli "b" "a"
-
-
-{()=>print("a")}();
-# wypisze w konsoli "a"
 
 
 f=(a)=>print(a);
@@ -247,9 +260,10 @@ print(fc());	# wypisze 6
 
 
 f = (n) => {
-    {n <= 0}
-	? {n}
-    : {
+	if n <= 0 {
+		n
+	}
+    else {
 		print(n);
 		f(n - 1);
 	}
@@ -304,9 +318,12 @@ loop {a = a - 1; print(a) a >= 0} { };
 ```py
 # fibonacci
 fibonacci = (n) => {
-    {n <= 1}
-	? {n}
-    : {fibonacci(n - 1) + fibonacci(n - 2)}
+    if n <= 1 {
+		n
+	}
+	else {
+		fibonacci(n - 1) + fibonacci(n - 2)
+	}
 };
 n = 10;
 print{"Fibonacci(" + n + ") = " + fibonacci(n)};
@@ -316,7 +333,7 @@ print{"Fibonacci(" + n + ") = " + fibonacci(n)};
 # "lists"
 
 lNode = (lCurrent, lNext) => {
-	(selector) => selector ? lCurrent : lNext;
+	(selector) => if selector {lCurrent} else {lNext};
 };
 
 lCurrent	= (list) => list(true);
@@ -325,9 +342,10 @@ isEmpty		= (list) => list == null;
 
 getElement = (list, index) => {
     loop !isEmpty(list) {
-        index == 0
-		? lCurrent(list)		# Found element
-        : {
+        if index == 0 {
+			lCurrent(list)		# Found element
+		}
+		else {
 			list = lNext(list);
 			index = index - 1;
 		}
@@ -337,9 +355,12 @@ getElement = (list, index) => {
 setElement = (list, index, value) => {
     !isEmpty(list)
 	? {
-		index == 0
-		? lNode(value, lNext(list))  									# Found element, so set its value
-		: lNode(lCurrent(list), setElement(lNext(list), index - 1)		# Recursive call for next element, and construct new node
+		if index == 0 {
+			lNode(value, lNext(list))  									# Found element, so set its value
+		}
+		else {
+			lNode(lCurrent(list), setElement(lNext(list), index - 1))	# Recursive call for next element, and construct new node
+		}
 	}
 };
 
@@ -433,8 +454,8 @@ statement	= assign
 
 assign		= identifier op_asign expr;
 lambda		= "(" args ")" "=>" expr;
-func_call	= (identifier | block) "(" args ")";
-condition	= expr "?" expr [":" expr];
+func_call	= identifier "(" args ")";
+condition	= "if" expr block { "if" "else" block } ["else" block];
 loop		= "loop" expr block;
 print		= "print" "(" expr ")";
 
@@ -488,36 +509,36 @@ Błędy przyjmują format: ERROR:line komuntikat
 - Odwołanie się do nie zadeklarowanej wartości
 	```py
 	1. b = a + 1;
-	ERRPR:1 "a" was not defined
+	ERROR[1, 5]: "a" was not defined
 	```
 	
 - Próba wywołania wyrażenia niebędącego funkcjią
 	```py
 	1. a = 3;
 	2. a();
-	ERROR:2 "a" is not callable
+	ERROR[1, 1]: "a" is not callable
 	```
 
 - Nieprawidłowa ilość argumentów metody
 	```py
 	1. f = (a){};
 	2. f();
-	ERROR:2 "f" expected 1 arguments, but received 0
+	ERROR[2,1]: "f" expected 1 arguments, but received 0
 	```
 	
 - Błąd składni
 	```py
 	1. print = 2;
-	ERROR:1 Syntax expected "{", but recived "="
+	ERROR[1,3]: Syntax expected "(", but recived "="
 	2. a = 2
 	3. b = 3;
-	ERROR:2 Syntax expected ";", "||"..., but recived "b"
+	ERROR[3,1]: Syntax expected ";", "||"..., but recived "b"
 	```
 
 - Nieprawidłowy operator
 	```py
 	1. "a" + (){};
-	ERROR:1 Operator '+' expected 'string', 'int', but recive callable
+	ERROR[1,5]: Operator '+' expected 'string', 'int', but recive callable
 	1. "a" * "b";
-	ERROR:1 Operator '*' expected 'int' but recived 'string'
+	ERROR[1, 3]: Operator '*' expected 'int' but recived 'string'
 	```
