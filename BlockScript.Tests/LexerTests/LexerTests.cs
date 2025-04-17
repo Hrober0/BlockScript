@@ -374,6 +374,8 @@ public class LexerTests
     [Theory]
     [InlineData("null", TokenType.Null)]
     [InlineData("loop", TokenType.Loop)]
+    [InlineData("if",   TokenType.If)]
+    [InlineData("else", TokenType.Else)]
     public void GetToken_ShouldReturnValidKeyWordToken(string keyword, TokenType tokenType)
     {
         // Arrange
@@ -392,6 +394,8 @@ public class LexerTests
     [Theory]
     [InlineData("null", TokenType.Null)]
     [InlineData("loop", TokenType.Loop)]
+    [InlineData("if",   TokenType.If)]
+    [InlineData("else", TokenType.Else)]
     public void GetToken_ShouldNotReturnValidKeyWordToken_WhenEncounterCharacterAfter(string keyword, TokenType tokenType)
     {
         // Arrange
@@ -426,8 +430,6 @@ public class LexerTests
     [InlineData("&&", TokenType.OperatorAnd)]
     [InlineData("??", TokenType.OperatorNullCoalescing)]
     [InlineData("?=", TokenType.OperatorNullAssign)]
-    [InlineData("?", TokenType.OperatorTernaryIf)]
-    [InlineData(":", TokenType.OperatorTernaryElse)]
     [InlineData("+", TokenType.OperatorAdd)]
     [InlineData("-", TokenType.OperatorSubtract)]
     [InlineData("*", TokenType.OperatorMultiply)]

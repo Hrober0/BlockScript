@@ -26,19 +26,17 @@ public class Lexer : ILexer
         // Logical operators
         ("==", TokenType.OperatorEqual),
         ("=>", TokenType.OperatorArrow),
-        ("=", TokenType.OperatorAssign),
+        ("=",  TokenType.OperatorAssign),
         ("<=", TokenType.OperatorLessEqual),
-        ("<", TokenType.OperatorLess),
+        ("<",  TokenType.OperatorLess),
         (">=", TokenType.OperatorGreaterEqual),
-        (">", TokenType.OperatorGreater),
+        (">",  TokenType.OperatorGreater),
         ("!=", TokenType.OperatorNotEqual),
-        ("!", TokenType.OperatorNot),
+        ("!",  TokenType.OperatorNot),
         ("||", TokenType.OperatorOr),
         ("&&", TokenType.OperatorAnd),
         ("??", TokenType.OperatorNullCoalescing),
         ("?=", TokenType.OperatorNullAssign),
-        ("?", TokenType.OperatorTernaryIf),
-        (":", TokenType.OperatorTernaryElse),
 
         // Arithmetical operators
         ("+", TokenType.OperatorAdd),
@@ -49,10 +47,12 @@ public class Lexer : ILexer
 
     private readonly Dictionary<string, TokenType> _keyWords = new()
     {
-        { "true", TokenType.Boolean },
+        { "true",  TokenType.Boolean },
         { "false", TokenType.Boolean },
-        { "null", TokenType.Null },
-        { "loop", TokenType.Loop },
+        { "null",  TokenType.Null },
+        { "loop",  TokenType.Loop },
+        { "if",    TokenType.If },
+        { "else",  TokenType.Else },
     };
     
     private Character _currentCharacter;

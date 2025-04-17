@@ -10,8 +10,10 @@ public enum TokenType
     BraceOpen,
     BraceClose,
     
-    // Key words
+    // Keywords
     Loop,
+    If,
+    Else,
     
     // Data
     Integer,
@@ -36,8 +38,6 @@ public enum TokenType
     OperatorAnd,
     OperatorNullCoalescing,
     OperatorNullAssign,
-    OperatorTernaryIf,
-    OperatorTernaryElse,
 
     // Arithmetical Operators
     OperatorAdd,
