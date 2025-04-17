@@ -1,0 +1,64 @@
+# "lists"
+
+lNode = (lCurrent, lNext) => {
+	(selector) => selector ? lCurrent : lNext;
+};
+
+lCurrent	= (list) => list(true);
+lNext		= (list) => list(false);
+isEmpty		= (list) => list == null;
+
+getElement = (list, index) => {
+    loop !isEmpty(list) {
+        index == 0
+		? lCurrent(list)		# Found element
+        : {
+			list = lNext(list);
+			index = index - 1;
+		}
+    }
+}
+
+setElement = (list, index, value) => {
+    !isEmpty(list)
+	? {
+		index == 0
+		? lNode(value, lNext(list))  									# Found element, so set its value
+		: lNode(lCurrent(list), setElement(lNext(list), index - 1)		# Recursive call for next element, and construct new node
+	}
+};
+
+getLength = (list) => {
+	count = 0;
+	loop !isEmpty(lst) {
+		lst = lNext(lst);
+		count = count + 1;
+	}
+};
+
+list = lNode(10, null);
+list = lNode(20, list);
+list = lNode(30, list);
+# lista wygl¹da nastêpuj¹co 30 20 10
+
+print(lCurrent(list))  			# wypisze 30
+print(lCurrent(lNext(list)))  	# wypisze 20
+
+print(get(list, 1))				# wypisze 20
+
+print(getLength(list))			# wypisze 3
+
+i = 0;
+loop i < 3 {
+	print(get(list, i))
+	i = i + 1;
+}
+# wypisze 30 20 10
+
+setElement(list, 1, 69);
+i = 0;
+loop i < 3 {
+	print(get(list, i));
+	i = i + 1;
+}
+# wypisze 30 69 10
