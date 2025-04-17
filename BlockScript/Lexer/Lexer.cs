@@ -109,7 +109,7 @@ public class Lexer : ILexer
         }
 
         var startCharacter = _currentCharacter;
-        while (int.TryParse(_nextCharacter.Char.ToString(), out int nextDigit) && value != 0)
+        while (int.TryParse(_nextCharacter.Char.ToString(), out int nextDigit))
         {
             var newValue = value * 10 + nextDigit;
             if (newValue < value)
@@ -285,7 +285,13 @@ public class Lexer : ILexer
             TakeCharacter();
         } while (_currentCharacter.Char is not (UnifiedCharacters.EndOfText or UnifiedCharacters.NewLine));
 
+        if (isSpecialCharacter)
+        {
+            throw new TokenException(_currentCharacter.Line, _currentCharacter.Column,
+                $"Unexpected end of string, expected character after \'{SPECIAL_CHARACTER}\' and string close \'{STRING_IDENTIFIER}\'.");    
+        }
+        
         throw new TokenException(_currentCharacter.Line, _currentCharacter.Column,
-            $"Invalid token \'{_currentCharacter.Char}\', expected \'{STRING_IDENTIFIER}\'");
+            $"Unexpected end of string, expected \'{STRING_IDENTIFIER}\'");
     }
 }
