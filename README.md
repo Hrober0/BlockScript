@@ -432,17 +432,20 @@ statement	= assign
 			| expr;
 
 assign		= identifier op_asign expr;
-lambda		= "(" args ")" => expr;
+lambda		= "(" args ")" "=>" expr;
 func_call	= (identifier | block) "(" args ")";
 condition	= expr "?" expr [":" expr];
 loop		= "loop" expr block;
 print		= "print" "(" expr ")";
 
-expr		= ex_com { op_logical ex_com };
-ex_com		= ex_rel { op_comper ex_rel };
-ex_rel		= ex_add { op_check ex_add };
-ex_add		= ex_mul { op_add ex_mul };
-ex_mul		= ex_urn { op_mul ex_urn };
+args		= [{ expr "," } expr];
+
+expr		= ex_and [ op_or ex_and ];
+ex_and		= ex_com [ op_and ex_com ];
+ex_com		= ex_rel [ op_comper ex_rel ];
+ex_rel		= ex_add [ op_check ex_add ];
+ex_add		= ex_mul [ op_add ex_mul ];
+ex_mul		= ex_urn [ op_mul ex_urn ];
 ex_urn		= factor | "!" factor;
 
 factor		= int
@@ -450,8 +453,9 @@ factor		= int
 			| bool
 			| null
 			| identifier
-			| statement
+			| statement	
 			| block;
+
 ```
 #### Część leksykalna
 ```ebnf
@@ -461,7 +465,8 @@ string			= "\"" { symbol } "\"";
 bool			= "false" | "true";
 null			= "null";
 
-op_logical		= "&&" | "||";
+op_or			= "||";
+op_and			= "&&"
 op_comper		= "==" | "!=" | "<" | "<=" | ">" | "<=";
 op_check		= "??"
 op_add			= "+" | "-";
@@ -469,7 +474,6 @@ op_mul			= "*" | "/";
 
 op_asign		= "=" | "?=";
 
-args			= [{ expr "," } expr];
 identifier		= letter { letter | digit };
 
 symbol			= digit | letter;
