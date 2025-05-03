@@ -5,6 +5,7 @@ public enum TokenType
     // Syntax
     EndOfText,
     EndOfStatement,
+    Comma,
     ParenhticesOpen,
     ParenhticesClose,
     BraceOpen,

@@ -1,4 +1,6 @@
 using BlockScript.Lexer;
+using BlockScript.Parser;
+using BlockScript.Utilities;
 
 using TextReader reader = new StreamReader("CodeExamples/Test.txt");
 
@@ -7,7 +9,7 @@ var lexer = new Lexer(reader);
 Console.WriteLine("Start");
 try
 {
-    while (true)
+    /*while (true)
     {
         var tokenData = lexer.GetToken();
         if (tokenData.Type == TokenType.EndOfText)
@@ -18,7 +20,10 @@ try
         Console.WriteLine(tokenData);
     }
 
-    Console.WriteLine($"EOT");
+    Console.WriteLine($"EOT");*/
+
+    var tokenBuffer = new StreamBuffer<TokenData>(lexer.GetToken);
+    new LanguageParser(tokenBuffer).ParserProgram();
 }
 catch (Exception e)
 {

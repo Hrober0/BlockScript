@@ -1,4 +1,6 @@
-﻿namespace BlockScript.Lexer;
+﻿using BlockScript.Lexer;
+
+namespace BlockScript.Exceptions;
 
 public class TokenException(int line, int column, string message) : Exception($"[{line,2}, {column,2}]: {message}")
 {

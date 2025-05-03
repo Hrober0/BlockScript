@@ -1,16 +1,17 @@
 ﻿using System.Text;
+using BlockScript.Exceptions;
 using BlockScript.Reader;
 using BlockScript.Utilities;
 
 namespace BlockScript.Lexer;
 
-public class Lexer : ILexer
+public class Lexer
 {
     private const int MAX_BUFFER_LENGTH = 255;
     
     private delegate bool TryBuildMethod(out TokenData token);
     
-    private readonly CharacterReader _reader;
+    private readonly StreamBuffer<Character> _buffer;
     private readonly TryBuildMethod[] _tryBuildMethods;
 
     private readonly List<(string token, TokenType tokenType)> _symbols =
@@ -18,6 +19,7 @@ public class Lexer : ILexer
         // Syntax
         (UnifiedCharacters.EndOfText.ToString(), TokenType.EndOfText),
         (";", TokenType.EndOfStatement),
+        (",", TokenType.Comma),
         ("(", TokenType.ParenhticesOpen),
         (")", TokenType.ParenhticesClose),
         ("{", TokenType.BraceOpen),
@@ -54,14 +56,10 @@ public class Lexer : ILexer
         { "if",    TokenType.If },
         { "else",  TokenType.Else },
     };
-    
-    private Character _currentCharacter;
-    private Character _nextCharacter;
 
     public Lexer(TextReader textReader)
     {
-        _reader = new CharacterReader(textReader);
-        _nextCharacter = _reader.GetCharacter();
+        _buffer = new StreamBuffer<Character>(new CharacterReader(textReader).GetCharacter);
         _tryBuildMethods =
         [
             TryBuildNumber,
@@ -74,15 +72,15 @@ public class Lexer : ILexer
 
     public TokenData GetToken()
     {
-        TakeCharacter();
+        _buffer.Take();
         
         // skip white spaces
-        while (_currentCharacter.Char is UnifiedCharacters.WhiteSpace or UnifiedCharacters.NewLine)
+        while (_buffer.Current.Char is UnifiedCharacters.WhiteSpace or UnifiedCharacters.NewLine)
         {
-            TakeCharacter();
+            _buffer.Take();
         }
         
-        var startCharacter = _currentCharacter;
+        var startCharacter = _buffer.Current;
         foreach (var tryBuildMethod in _tryBuildMethods)
         {
             if (tryBuildMethod(out var token))
@@ -93,23 +91,17 @@ public class Lexer : ILexer
         
         throw new TokenException(startCharacter.Line, startCharacter.Column, $"Invalid token \'{startCharacter.Char}\'");
     }
-
-    private void TakeCharacter()
-    {
-        _currentCharacter = _nextCharacter;
-        _nextCharacter = _reader.GetCharacter();
-    }
     
     private bool TryBuildNumber(out TokenData token)
     {
-        if (!int.TryParse(_currentCharacter.Char.ToString(), out int value))
+        if (!int.TryParse(_buffer.Current.Char.ToString(), out int value))
         {
             token = default;
             return false;
         }
 
-        var startCharacter = _currentCharacter;
-        while (int.TryParse(_nextCharacter.Char.ToString(), out int nextDigit))
+        var startCharacter = _buffer.Current;
+        while (int.TryParse(_buffer.Next.Char.ToString(), out int nextDigit))
         {
             var newValue = value * 10 + nextDigit;
             if (newValue < value)
@@ -118,7 +110,7 @@ public class Lexer : ILexer
                     $"Int value {value}{nextDigit} exceeds {int.MaxValue}.");
             }
             value = newValue;
-            TakeCharacter();
+            _buffer.Take();
         }
             
         token = new TokenData
@@ -133,27 +125,27 @@ public class Lexer : ILexer
     
     private bool TryBuildingIdentifierOrKeyword(out TokenData token)
     {
-        if (!char.IsLetter(_currentCharacter.Char))
+        if (!char.IsLetter(_buffer.Current.Char))
         {
             token = default;
             return false;
         }
         
-        var startCharacter = _currentCharacter;
+        var startCharacter = _buffer.Current;
         var stringBuilder = new StringBuilder();
-        while (char.IsLetterOrDigit(_nextCharacter.Char))
+        while (char.IsLetterOrDigit(_buffer.Next.Char))
         {
             if (stringBuilder.Length >= MAX_BUFFER_LENGTH)
             {
-                throw new TokenException(_nextCharacter.Line, _nextCharacter.Column,
+                throw new TokenException(_buffer.Next.Line, _buffer.Next.Column,
                     $"Identifier exceeds {MAX_BUFFER_LENGTH} characters.");
             }
 
-            stringBuilder.Append(_currentCharacter.Char);
-            TakeCharacter();
+            stringBuilder.Append(_buffer.Current.Char);
+            _buffer.Take();
         }
         
-        stringBuilder.Append(_currentCharacter.Char);
+        stringBuilder.Append(_buffer.Current.Char);
         
         var stringValue = stringBuilder.ToString();
         if (_keyWords.TryGetValue(stringValue, out var tokenType))
@@ -187,25 +179,25 @@ public class Lexer : ILexer
     private bool TryBuildComment(out TokenData token)
     {
         const char COMMENT_IDENTIFIER = '#';
-        if (_currentCharacter.Char != COMMENT_IDENTIFIER)
+        if (_buffer.Current.Char != COMMENT_IDENTIFIER)
         {
             token = default;
             return false;
         }
 
-        var startCharacter = _currentCharacter;
-        TakeCharacter();
+        var startCharacter = _buffer.Current;
+        _buffer.Take();
         var stringBuilder = new StringBuilder();
-        while (_currentCharacter.Char is not (UnifiedCharacters.EndOfText or UnifiedCharacters.NewLine))
+        while (_buffer.Current.Char is not (UnifiedCharacters.EndOfText or UnifiedCharacters.NewLine))
         {
             if (stringBuilder.Length >= MAX_BUFFER_LENGTH)
             {
-                throw new TokenException(_currentCharacter.Line, _currentCharacter.Column,
+                throw new TokenException(_buffer.Current.Line, _buffer.Current.Column,
                     $"Comment exceeds {MAX_BUFFER_LENGTH} characters.");
             }
                 
-            stringBuilder.Append(_currentCharacter.Char);
-            TakeCharacter();
+            stringBuilder.Append(_buffer.Current.Char);
+            _buffer.Take();
         }
             
         token = new TokenData
@@ -221,8 +213,8 @@ public class Lexer : ILexer
     private bool TryBuildSymbol(out TokenData token)
     {
         var foundSymbols = _symbols.FindAll(symbol =>
-                symbol.token[0] == _currentCharacter.Char &&
-                (symbol.token.Length == 1 || symbol.token[1] == _nextCharacter.Char))
+                symbol.token[0] == _buffer.Current.Char &&
+                (symbol.token.Length == 1 || symbol.token[1] == _buffer.Next.Char))
             .OrderByDescending(symbol => symbol.token.Length).ToArray();
         if (foundSymbols.Length == 0)
         {
@@ -233,14 +225,14 @@ public class Lexer : ILexer
         var symbol = foundSymbols[0];
         token = new TokenData
         {
-            Line = _currentCharacter.Line,
-            Column = _currentCharacter.Column,
+            Line = _buffer.Current.Line,
+            Column = _buffer.Current.Column,
             Type = symbol.tokenType,
             Value = symbol.token,
         };
         for (var i = 0; i < symbol.token.Length - 1; i++)
         {
-            TakeCharacter();
+            _buffer.Take();
         }
         return true;
     }
@@ -249,19 +241,19 @@ public class Lexer : ILexer
     {
         const char STRING_IDENTIFIER = '\"';
         const char SPECIAL_CHARACTER = '\\';
-        if (_currentCharacter.Char != STRING_IDENTIFIER)
+        if (_buffer.Current.Char != STRING_IDENTIFIER)
         {
             token = default;
             return false;
         }
 
-        var startCharacter = _currentCharacter;
-        TakeCharacter();
+        var startCharacter = _buffer.Current;
+        _buffer.Take();
         var stringBuilder = new StringBuilder();
         var isSpecialCharacter = false;
         do
         {
-            if (_currentCharacter.Char == STRING_IDENTIFIER && !isSpecialCharacter)
+            if (_buffer.Current.Char == STRING_IDENTIFIER && !isSpecialCharacter)
             {
                 token = new TokenData
                 {
@@ -275,23 +267,23 @@ public class Lexer : ILexer
 
             if (stringBuilder.Length >= MAX_BUFFER_LENGTH)
             {
-                throw new TokenException(_nextCharacter.Line, _nextCharacter.Column,
+                throw new TokenException(_buffer.Next.Line, _buffer.Next.Column,
                     $"String exceeds {MAX_BUFFER_LENGTH} characters.");
             }
 
-            isSpecialCharacter = _currentCharacter.Char == SPECIAL_CHARACTER && !isSpecialCharacter;
+            isSpecialCharacter = _buffer.Current.Char == SPECIAL_CHARACTER && !isSpecialCharacter;
 
-            stringBuilder.Append(_currentCharacter.Char);
-            TakeCharacter();
-        } while (_currentCharacter.Char is not (UnifiedCharacters.EndOfText or UnifiedCharacters.NewLine));
+            stringBuilder.Append(_buffer.Current.Char);
+            _buffer.Take();
+        } while (_buffer.Current.Char is not (UnifiedCharacters.EndOfText or UnifiedCharacters.NewLine));
 
         if (isSpecialCharacter)
         {
-            throw new TokenException(_currentCharacter.Line, _currentCharacter.Column,
+            throw new TokenException(_buffer.Current.Line, _buffer.Current.Column,
                 $"Unexpected end of string, expected character after \'{SPECIAL_CHARACTER}\' and string close \'{STRING_IDENTIFIER}\'.");    
         }
         
-        throw new TokenException(_currentCharacter.Line, _currentCharacter.Column,
+        throw new TokenException(_buffer.Current.Line, _buffer.Current.Column,
             $"Unexpected end of string, expected \'{STRING_IDENTIFIER}\'");
     }
 }

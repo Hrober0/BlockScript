@@ -461,12 +461,12 @@ print		= "print" "(" expr ")";
 
 args		= [{ expr "," } expr];
 
-expr		= ex_and [ op_or ex_and ];
-ex_and		= ex_com [ op_and ex_com ];
+expr		= ex_and { op_or ex_and };
+ex_and		= ex_com { op_and ex_com };
 ex_com		= ex_rel [ op_comper ex_rel ];
-ex_rel		= ex_add [ op_check ex_add ];
-ex_add		= ex_mul [ op_add ex_mul ];
-ex_mul		= ex_urn [ op_mul ex_urn ];
+ex_rel		= ex_add { op_check ex_add };
+ex_add		= ex_mul { op_add ex_mul };
+ex_mul		= ex_urn { op_mul ex_urn };
 ex_urn		= factor | "!" factor;
 
 factor		= int
@@ -474,7 +474,6 @@ factor		= int
 			| bool
 			| null
 			| identifier
-			| statement	
 			| block;
 
 ```

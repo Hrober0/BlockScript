@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using BlockScript.Exceptions;
 using BlockScript.Lexer;
 using FluentAssertions;
 using Xunit;
