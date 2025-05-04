@@ -49,18 +49,19 @@ public class LanguageParser
 
     private IStatement? TryParseAssign()
     {
-        if (_tokenBuffer.Current.Type != TokenType.Identifier || _tokenBuffer.Next.Type != TokenType.OperatorAssign)
+        if (_tokenBuffer.Current.Type is not TokenType.Identifier || _tokenBuffer.Next.Type is not (TokenType.OperatorAssign or TokenType.OperatorNullAssign))
         {
             return null;
         }
         var identifierToken = TakeTokenOrThrow(TokenType.Identifier);
-        TakeTokenOrThrow(TokenType.OperatorAssign);
+        var nullAssign = _tokenBuffer.Current.Type is TokenType.OperatorNullAssign;
+        _tokenBuffer.Take();
         var expression = TryParseExpression();
         if (expression == null)
         {
             throw new TokenException(_tokenBuffer.Current.Line, _tokenBuffer.Current.Column, $"Unexpected token '{_tokenBuffer.Current.Value}', expected expression.");
         }
-        return new Assign((string)identifierToken.Value, expression);
+        return new Assign((string)identifierToken.Value, expression, nullAssign);
     }
     
     private IStatement? TryParseLambda()

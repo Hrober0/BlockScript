@@ -41,7 +41,7 @@ _(Ułożone malejąco według priorytetu)_
 
 ### Operatory przypisania
 - `=`  – przypisanie  
-- `=?` – przypisanie warunkowe  
+- `?=` – przypisanie warunkowe  
 
 ## Zmienne
 - Zmienna ma określony typ, ale może się on zmieniać w czasie.  
