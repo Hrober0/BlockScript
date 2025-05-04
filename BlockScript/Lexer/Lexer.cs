@@ -72,8 +72,6 @@ public class Lexer
 
     public TokenData GetToken()
     {
-        _buffer.Take();
-        
         // skip white spaces
         while (_buffer.Current.Char is UnifiedCharacters.WhiteSpace or UnifiedCharacters.NewLine)
         {
@@ -100,8 +98,8 @@ public class Lexer
             return false;
         }
 
-        var startCharacter = _buffer.Current;
-        while (int.TryParse(_buffer.Next.Char.ToString(), out int nextDigit))
+        var startCharacter = _buffer.Take();
+        while (int.TryParse(_buffer.Current.Char.ToString(), out int nextDigit))
         {
             var newValue = value * 10 + nextDigit;
             if (newValue < value)
@@ -131,9 +129,9 @@ public class Lexer
             return false;
         }
         
-        var startCharacter = _buffer.Current;
-        var stringBuilder = new StringBuilder();
-        while (char.IsLetterOrDigit(_buffer.Next.Char))
+        var startCharacter = _buffer.Take();
+        var stringBuilder = new StringBuilder(startCharacter.Char.ToString());
+        while (char.IsLetterOrDigit(_buffer.Current.Char))
         {
             if (stringBuilder.Length >= MAX_BUFFER_LENGTH)
             {
@@ -144,8 +142,6 @@ public class Lexer
             stringBuilder.Append(_buffer.Current.Char);
             _buffer.Take();
         }
-        
-        stringBuilder.Append(_buffer.Current.Char);
         
         var stringValue = stringBuilder.ToString();
         if (_keyWords.TryGetValue(stringValue, out var tokenType))
@@ -185,8 +181,7 @@ public class Lexer
             return false;
         }
 
-        var startCharacter = _buffer.Current;
-        _buffer.Take();
+        var startCharacter = _buffer.Take();
         var stringBuilder = new StringBuilder();
         while (_buffer.Current.Char is not (UnifiedCharacters.EndOfText or UnifiedCharacters.NewLine))
         {
@@ -230,7 +225,7 @@ public class Lexer
             Type = symbol.tokenType,
             Value = symbol.token,
         };
-        for (var i = 0; i < symbol.token.Length - 1; i++)
+        for (var i = 0; i < symbol.token.Length; i++)
         {
             _buffer.Take();
         }
@@ -247,14 +242,14 @@ public class Lexer
             return false;
         }
 
-        var startCharacter = _buffer.Current;
-        _buffer.Take();
+        var startCharacter = _buffer.Take();
         var stringBuilder = new StringBuilder();
         var isSpecialCharacter = false;
-        do
+        while (_buffer.Current.Char is not (UnifiedCharacters.EndOfText or UnifiedCharacters.NewLine))
         {
             if (_buffer.Current.Char == STRING_IDENTIFIER && !isSpecialCharacter)
             {
+                _buffer.Take();
                 token = new TokenData
                 {
                     Line = startCharacter.Line,
@@ -275,7 +270,7 @@ public class Lexer
 
             stringBuilder.Append(_buffer.Current.Char);
             _buffer.Take();
-        } while (_buffer.Current.Char is not (UnifiedCharacters.EndOfText or UnifiedCharacters.NewLine));
+        }
 
         if (isSpecialCharacter)
         {

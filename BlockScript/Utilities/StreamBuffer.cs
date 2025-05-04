@@ -7,8 +7,9 @@ public class StreamBuffer<T>(Func<T> getNew)
 
     public T Take()
     {
+        var ret = Current;
         Current = Next;
         Next = getNew();
-        return Current;
+        return ret;
     }
 }
