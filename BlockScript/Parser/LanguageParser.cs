@@ -7,8 +7,23 @@ using BlockScript.Utilities;
 
 namespace BlockScript.Parser;
 
-public class LanguageParser(StreamBuffer<TokenData> tokenBuffer)
+public class LanguageParser
 {
+    private readonly StreamBuffer<TokenData> _tokenBuffer;
+    
+    public LanguageParser(Func<TokenData> getTokenData)
+    {
+        _tokenBuffer = new (FilterToken);
+        return;
+
+        TokenData FilterToken()
+        {
+            var token = getTokenData();
+            Console.WriteLine(token);
+            return token.Type is TokenType.Comment ? FilterToken() : token;
+        }
+    }
+    
     public Block ParserProgram()
     {
         var statements = new List<IStatement>();
@@ -17,6 +32,8 @@ public class LanguageParser(StreamBuffer<TokenData> tokenBuffer)
         while (newStatement != null)
         {
             statements.Add(newStatement);
+            TakeTokenOrThrow(TokenType.EndOfStatement);
+            
             newStatement = TryParseStatement();
         }
         
@@ -27,26 +44,189 @@ public class LanguageParser(StreamBuffer<TokenData> tokenBuffer)
     
     private IStatement? TryParseStatement()
     {
-        return TryParseLambda() ?? TryParseExpression();
+        return TryParseAssign() ?? TryParseLambda() ?? TryParseExpression();
     }
 
-    private IStatement? TryParseLambda()
+    private IStatement? TryParseAssign()
     {
-        if (tokenBuffer.Current.Type != TokenType.Identifier)
+        if (_tokenBuffer.Current.Type != TokenType.Identifier || _tokenBuffer.Next.Type != TokenType.OperatorAssign)
         {
             return null;
         }
-        var identifierToken = tokenBuffer.Take();
+        var identifierToken = TakeTokenOrThrow(TokenType.Identifier);
+        TakeTokenOrThrow(TokenType.OperatorAssign);
+        var expression = TryParseExpression();
+        if (expression == null)
+        {
+            throw new TokenException(_tokenBuffer.Current.Line, _tokenBuffer.Current.Column, $"Unexpected token '{_tokenBuffer.Current.Value}', expected expression.");
+        }
+        return new Assign((string)identifierToken.Value, expression);
+    }
+    
+    private IStatement? TryParseLambda()
+    {
+        if (!TryTakeToken(TokenType.ParenhticesOpen, out _))
+        {
+            return null;
+        }
 
-        TakeTokenOrThrow(TokenType.BraceOpen);
-        
-        
-        
-        TakeTokenOrThrow(TokenType.BraceClose);
+        var arguments = ParseArguments();
 
-        return new Lambda();
+        TakeTokenOrThrow(TokenType.ParenhticesClose);
+        TakeTokenOrThrow(TokenType.OperatorArrow);
+
+        var body = TryParseExpression();
+        if (body == null)
+        {
+            throw new TokenException(_tokenBuffer.Current.Line, _tokenBuffer.Current.Column, $"Unexpected token '{_tokenBuffer.Current.Value}', expected expression.");
+        }
+        
+        return new Lambda(arguments, body);
+    }
+    
+    #endregion
+
+    #region Expressions
+
+    private IExpression? TryParseExpression() => TryParseOrExpression();
+    
+    private IExpression? TryParseOrExpression() => TryParseExpression([TokenType.OperatorOr],
+        (expressions, _) => new LogicExpression(expressions, TokenType.OperatorOr),
+        TryParseAndExpression);
+
+    private IExpression? TryParseAndExpression() => TryParseExpression([TokenType.OperatorAnd],
+        (expressions, _) => new LogicExpression(expressions, TokenType.OperatorAnd),
+        TryParseCompereExpression);
+
+    private IExpression? TryParseCompereExpression() => TryParseExpression([TokenType.OperatorEqual, TokenType.OperatorNotEqual, TokenType.OperatorLess,  TokenType.OperatorLessEqual, TokenType.OperatorGreater, TokenType.OperatorGreaterEqual],
+        (expressions, operators) => new CompereExpression(expressions, operators),
+        TryParseNullColExpression, 2);
+    
+    private IExpression? TryParseNullColExpression() => TryParseExpression([TokenType.OperatorNullCoalescing],
+        (expressions, _) => new NullCoalescingExpression(expressions),
+        TryParseAddExpression);
+    
+    private IExpression? TryParseAddExpression() => TryParseExpression([TokenType.OperatorAdd, TokenType.OperatorSubtract],
+        (expressions, operators) => new ArithmeticalExpression(expressions, operators),
+        TryParseMultiplicationExpression);
+    
+    private IExpression? TryParseMultiplicationExpression() => TryParseExpression([TokenType.OperatorMultiply, TokenType.OperatorDivide],
+        (expressions, operators) => new ArithmeticalExpression(expressions, operators),
+        TryParseNotExpression);
+    
+    private NotExpression? TryParseNotExpression()
+    {
+        var negate = false;
+        if (_tokenBuffer.Current.Type == TokenType.OperatorNot)
+        {
+            _tokenBuffer.Take();
+            negate = true;
+        }
+        var factor = TryParseFactor();
+        return factor != null ? new NotExpression(factor, negate) : null;
     }
 
+    private delegate IExpression CreateExpression(List<IExpression> expressions, List<TokenType> operators);
+    private IExpression? TryParseExpression(TokenType[] acceptableOperators, CreateExpression expressionConstructor, Func<IExpression?> childExpressionParser, int limit=255)
+    {
+        var expression = childExpressionParser();
+        if (expression == null)
+        {
+            return null;
+        }
+        var expressions = new List<IExpression>();
+        var operators = new List<TokenType>();
+        expressions.Add(expression);
+        while (acceptableOperators.Contains(_tokenBuffer.Current.Type) && limit > 1)
+        {
+            operators.Add(_tokenBuffer.Take().Type);
+            expression = childExpressionParser();
+            if (expression == null)
+            {
+                throw new TokenException(_tokenBuffer.Current.Line, _tokenBuffer.Current.Column, $"Expected factor, but received, {_tokenBuffer.Current.Value}");
+            }
+            expressions.Add(expression);
+            limit--;
+        }
+        
+        return expressionConstructor(expressions, operators);
+    }
+    
+    #endregion
+
+    #region Factors
+
+    private IFactor? TryParseFactor()
+    {
+        return TryParseConstFactor() ?? TryParseBlock() ?? TryParseFunctionCall() ?? TryParseVariableFactor();
+    }
+
+    private IFactor? TryParseConstFactor()
+    {
+        if (_tokenBuffer.Current.Type is not (TokenType.String or TokenType.Boolean or TokenType.Null or TokenType.Integer))
+        {
+            return null;
+        }
+
+        var token = _tokenBuffer.Take();
+        return new ConstFactor(token.Value);
+    }
+    
+    private IFactor? TryParseBlock()
+    {
+        if (!TryTakeToken(TokenType.BraceOpen, out _))
+        {
+            return null;
+        }
+        
+        var statements = new List<IStatement>();
+
+        var newStatement = TryParseStatement();
+        while (newStatement != null)
+        {
+            statements.Add(newStatement);
+
+            if (_tokenBuffer.Current.Type == TokenType.BraceClose)
+            {
+                break;
+            }
+            
+            TakeTokenOrThrow(TokenType.EndOfStatement);
+            newStatement = TryParseStatement();
+        }
+
+        TakeTokenOrThrow(TokenType.BraceClose);
+        
+        return new Block(statements);
+    }
+
+    private IFactor? TryParseFunctionCall()
+    {
+        if (_tokenBuffer.Current.Type != TokenType.Identifier || _tokenBuffer.Next.Type != TokenType.ParenhticesOpen)
+        {
+            return null;
+        }
+        var identifierToken = TakeTokenOrThrow(TokenType.Identifier);
+        TakeTokenOrThrow(TokenType.ParenhticesOpen);
+
+        var arguments = ParseArguments();
+        
+        TakeTokenOrThrow(TokenType.ParenhticesClose);
+
+        return new FunctionCall((string)identifierToken.Value, arguments);
+    }
+
+    private IFactor? TryParseVariableFactor()
+    {
+        if (!TryTakeToken(TokenType.Identifier, out var token))
+        {
+            return null;
+        }
+        return new VariableFactor((string)token.Value);
+    }
+    
+    #endregion
+    
     private List<IExpression> ParseArguments()
     {
         var expressions = new List<IExpression>();
@@ -61,121 +241,23 @@ public class LanguageParser(StreamBuffer<TokenData> tokenBuffer)
         return expressions;
     }
     
-    #endregion
-
-    #region Expressions
-
-    private IExpression ParseExpression()
-    {
-        return ParseMultipleExpressionFrom([TokenType.OperatorOr], 
-            () => ParseMultipleExpressionFrom([TokenType.OperatorAnd],
-                () => ParseSingleExpressionFrom([TokenType.OperatorEqual, TokenType.OperatorNotEqual, TokenType.OperatorLess,  TokenType.OperatorLessEqual, TokenType.OperatorGreater, TokenType.OperatorGreaterEqual],
-                    () => ParseMultipleExpressionFrom([TokenType.OperatorNullCoalescing],
-                        () => ParseMultipleExpressionFrom([TokenType.OperatorAdd, TokenType.OperatorSubtract],
-                ));
-    }
-
-    private IExpression ParseMultipleExpressionFrom(TokenType[] operators, Func<IExpression> nextExpression)
-    {
-        
-    }
-
-    private IExpression ParseSingleExpressionFrom(TokenType[] operators, Func<IExpression> nextExpression)
-    {
-       
-    }
-    
-    private AddExpression ParseMultiplicativeExpressionFrom()
-    {
-        var expressions = new List<IExpression>();
-        var mul = new List<bool>();
-        expressions.Add(ParseNotExpression());
-        while (tokenBuffer.Current.Type is TokenType.OperatorMultiply or TokenType.OperatorDivide)
-        {
-            mul.Add(tokenBuffer.Current.Type is TokenType.OperatorMultiply);
-            tokenBuffer.Take();
-            expressions.Add(ParseNotExpression());
-        }
-        
-        return new ArithmeticalExpression(expressions, mul);
-    }
-
-    private ArithmeticalExpression ParseArithmeticalExpression(TokenType[] acceptableOperators)
-    {
-        var expressions = new List<IExpression>();
-        var operators = new List<TokenType>();
-        expressions.Add(ParseNotExpression());
-        while (operators.Contains(tokenBuffer.Current.Type))
-        {
-            operators.Add(tokenBuffer.Take().Type);
-            expressions.Add(ParseNotExpression());
-        }
-        
-        return new ArithmeticalExpression(expressions, operators);
-    }
-
-    private NotExpression ParseNotExpression()
-    {
-        var negate = false;
-        if (tokenBuffer.Current.Type == TokenType.OperatorNot)
-        {
-            tokenBuffer.Take();
-            negate = true;
-        }
-        var factor = TryParseFactor();
-        if (factor != null)
-        {
-            return new NotExpression(factor, negate);
-        }
-        
-        throw new TokenException(tokenBuffer.Current.Line, tokenBuffer.Current.Column, $"Expected factor, but received, {tokenBuffer.Current.Value}");
-    }
-    
-    #endregion
-
-    #region Factors
-
-    private IFactor? TryParseFactor()
-    {
-        if (tokenBuffer.Current.Type is TokenType.String or TokenType.Boolean or TokenType.Null or TokenType.Integer)
-        {
-            var token = tokenBuffer.Take();
-            return new ConstFactor(token.Value);
-        }
-
-        return TryParseBlock();
-    }
-    
-    private IFactor? TryParseBlock()
-    {
-        if (tokenBuffer.Current.Type != TokenType.ParenhticesOpen)
-        {
-            return null;
-        }
-        tokenBuffer.Take();
-        
-        var statements = new List<IStatement>();
-
-        var newStatement = TryParseStatement();
-        while (newStatement != null)
-        {
-            statements.Add(newStatement);
-            newStatement = TryParseStatement();
-        }
-
-        TakeTokenOrThrow(TokenType.ParenhticesClose);
-        
-        return new Block(statements);
-    }
-
-    #endregion
-    
     private TokenData TakeTokenOrThrow(TokenType tokenType)
     {
-        if (tokenBuffer.Current.Type != tokenType)
+        if (_tokenBuffer.Current.Type != tokenType)
         {
-            throw new UnexpectedTokenException(tokenBuffer.Current, tokenType);
+            throw new UnexpectedTokenException(_tokenBuffer.Current, tokenType);
         }
-        return tokenBuffer.Take();
+        return _tokenBuffer.Take();
+    }
+    private bool TryTakeToken(TokenType tokenType, out TokenData token)
+    {
+        if (_tokenBuffer.Current.Type != tokenType)
+        {
+            token = default;
+            return false;
+        }
+
+        token = _tokenBuffer.Take();
+        return true;
     }
 }

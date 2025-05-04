@@ -446,7 +446,6 @@ block		= "{" [statements [eos]] "}"
 statements	= {statement eos } statement;
 statement	= assign
 			| lambda
-			| func_call
 			| condition
 			| loop
 			| print
@@ -474,6 +473,7 @@ factor		= int
 			| bool
 			| null
 			| identifier
+			| func_call
 			| block;
 
 ```
