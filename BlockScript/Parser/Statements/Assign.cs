@@ -2,8 +2,8 @@
 
 namespace BlockScript.Parser.Statements
 {
-    public class Assign(string identifier, IExpression expression, bool nullAssign) : IStatement
+    public class Assign(string identifier, IStatement statement, bool nullAssign) : IStatement
     {
-        public override string ToString() => $"${identifier} {(nullAssign ? "?=" : "=")} {expression}";
+        public override string ToString() => $"${identifier} {(nullAssign ? "?=" : "=")} {statement}";
     }
 }

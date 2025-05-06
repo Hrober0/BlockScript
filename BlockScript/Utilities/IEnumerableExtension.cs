@@ -35,5 +35,18 @@ namespace BlockScript.Utilities
 
             return sb.ToString();
         }
+
+        public static T? FindOrNull<T>(this IEnumerable<T> source, Predicate<T> predicate) where T : struct
+        {
+            foreach (var item in source)
+            {
+                if (predicate(item))
+                {
+                    return item;
+                }
+            }
+
+            return null;
+        }
     }
 }

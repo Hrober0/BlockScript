@@ -5,5 +5,5 @@ namespace BlockScript.Parser.Expressions;
 
 public class NullCoalescingExpression(List<IExpression> expressions) : IExpression
 {
-    public override string ToString() => $"({expressions.Stringify(" ?? ")})";
+    public override string ToString() => $"{expressions.Stringify(" ?? ")}";
 }

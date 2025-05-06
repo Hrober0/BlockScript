@@ -17,11 +17,10 @@ Język wyróżnia szerokie zastosowanie **bloku**, czyli części kodu, która m
 
 ### Operatory arytmetyczno-logiczne
 _(Ułożone malejąco według priorytetu)_
-- `!`  – negacja
 - `*`  – mnożenie  
 - `/`  – dzielenie  
 - `+`  – dodawanie  
-- `-`  – odejmowanie  
+- `-`  – odejmowanie lub negacja 
 - `??` – wartość nie-null  
 - `>`  – większe  
 - `>=` – większe lub równe  
@@ -33,7 +32,7 @@ _(Ułożone malejąco według priorytetu)_
 - `||` – lub
 
 ### Wspierane typy danych dla operatorów
-- bool: `||`, `&&`, `!`
+- bool: `||`, `&&`, `-`
 - int: `+`, `-`, `*`, `/`, `>`, `>=`, `<`, `<=`
 - string: `+`
 - bool, int, string, null: `??`, `==`, `!=`
@@ -152,13 +151,17 @@ if {a>3} {print(a)};
 if a>3 {print(a)};
 # po if może znaleźć się pojedyńcze wyrażenie, gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci null;
 
+if a>3 print(a);
+# po warunku może znaleźć się pojedyńcze wyrażenie;
+
+
 if a>3 {print(a)} else {"no"};
 # gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci "no";
 
-if a>3||a<2 {print a; a+1};
+if a>3||a<2 {print(a); a+1};
 # gdy a>3 lub a<2 wypisze a i zwróci a+1 w przeciwnym razie zwróci null;
 
-2 + 2 * 2 > 7 || {if 3>2 {1}}
+2 + 2 * 2 > 7 || {if 3>2 {1}};
 # {2 + 4 > 7 || 1}
 # {6 > 7 || 1}
 # {false || true}
@@ -167,32 +170,32 @@ if a>3||a<2 {print a; a+1};
 # true || false && true
 # zwróci false, operator && ma pierwszeństwo
 
-a = 1
-if 2 > a {print("ok")} else {print("no")}
+a = 1;
+if 2 > a print("ok") else print("no");
 # wypisze ok
 
-a = 1
-print(if 2 > a {"ok"} else {"no"})
+a = 1;
+print(if 2 > a "ok" else "no");
 # to samo co wyżej zapisane inaczej
 
-a = 3
-print(if 2 > a {"ok"})
+a = 3;
+print(if 2 > a "ok");
 # wypisze null
 
-a = "a"
-print(if a {"ok"} else {"no"})
+a = "a";
+print(if a "ok" else "no");
 # wypisze ok - ponieważ string sparsowany będzie na bool dając true
 
-a = ""
-print(if a {"ok"} else {"no"})
+a = "";
+print(if a "ok" else "no");
 # wypisze no - ponieważ string sparsowany będzie na bool dając false
 
-a = 3
-print(if a {"ok"} else {"no"})
+a = 3;
+print(if a "ok" else "no");
 # wypisze ok - ponieważ int sparsowany będzie na bool dając true
 
-a = 0
-print(if a {"ok"} else {"no"})
+a = 0;
+print(if a "ok" else "no");
 # wypisze no - ponieważ int sparsowany będzie na bool dając false
 
 if a==1 {
@@ -203,7 +206,7 @@ else if a==2 {
 }
 else {
 	"no"
-}
+};
 # gdy a==1 zwróci 1, gdy a==2 zwróci 2, w przeciwnym wypadku zwróci "no"
 ```
 
@@ -217,7 +220,7 @@ f();
 
 
 f=()=>print("a");
-print("b")
+print("b");
 f();
 # wypisze w konsoli "b" "a"
 
@@ -245,9 +248,8 @@ f = () => {
 	a = 3;
 	ff;
 };
-print(f()());	# wypisze 4
-print(f()());	# wypisze 4
-print(f()());	# wypisze 4
+fc = f();
+print(fc());	# wypisze 4
 fc = f();
 print(fc());	# wypisze 4
 print(fc());	# wypisze 5
@@ -290,7 +292,7 @@ loop {a = a - 1; a >= 0} { print(a) };
 # wypisze 1 0
 
 a = 2;
-loop {a = a - 1; print(a) a >= 0} { };
+loop {a = a - 1; print(a); a >= 0} { };
 # wypisze 1 0
 
 a = -1;
@@ -298,7 +300,7 @@ loop {a = a - 1; a >= 0} { print(a) };
 # nic nie wypisze
 
 a = -1;
-loop {a = a - 1; print(a) a >= 0} { };
+loop {a = a - 1; print(a); a >= 0} { };
 # wypisze -2
 
 {
@@ -326,7 +328,7 @@ fibonacci = (n) => {
 	}
 };
 n = 10;
-print{"Fibonacci(" + n + ") = " + fibonacci(n)};
+print("Fibonacci(" + n + ") = " + fibonacci(n));
 ```
 
 ```py
@@ -341,7 +343,7 @@ lNext		= (list) => list(false);
 isEmpty		= (list) => list == null;
 
 getElement = (list, index) => {
-    loop !isEmpty(list) {
+    loop -isEmpty(list) {
         if index == 0 {
 			lCurrent(list)		# Found element
 		}
@@ -350,11 +352,10 @@ getElement = (list, index) => {
 			index = index - 1;
 		}
     }
-}
+};
 
 setElement = (list, index, value) => {
-    !isEmpty(list)
-	? {
+    if -isEmpty(list) {
 		if index == 0 {
 			lNode(value, lNext(list))  									# Found element, so set its value
 		}
@@ -366,7 +367,7 @@ setElement = (list, index, value) => {
 
 getLength = (list) => {
 	count = 0;
-	loop !isEmpty(lst) {
+	loop -isEmpty(lst) {
 		lst = lNext(lst);
 		count = count + 1;
 	}
@@ -377,18 +378,18 @@ list = lNode(20, list);
 list = lNode(30, list);
 # lista wygląda następująco 30 20 10
 
-print(lCurrent(list))  			# wypisze 30
-print(lCurrent(lNext(list)))  	# wypisze 20
+print(lCurrent(list))  ;		# wypisze 30
+print(lCurrent(lNext(list)));  	# wypisze 20
 
-print(get(list, 1))				# wypisze 20
+print(get(list, 1));			# wypisze 20
 
-print(getLength(list))			# wypisze 3
+print(getLength(list));			# wypisze 3
 
 i = 0;
 loop i < 3 {
-	print(get(list, i))
+	print(get(list, i));
 	i = i + 1;
-}
+};
 # wypisze 30 20 10
 
 setElement(list, 1, 69);
@@ -396,7 +397,7 @@ i = 0;
 loop i < 3 {
 	print(get(list, i));
 	i = i + 1;
-}
+};
 # wypisze 30 69 10
 ```
 
@@ -417,10 +418,10 @@ bubbleSort = (list) => {
                 list = setElement(list, i, getElement(list, i + 1));
                 list = setElement(list, i + 1, temp);
                 swapped = true;
-            }
+            };
             i = i + 1;
         }
-    }
+    };
     list;
 };
 
@@ -430,7 +431,7 @@ list = lNode(4, list);
 list = lNode(2, list);
 list = lNode(5, list);
 # list to 5 2 4 1 3
-bubbleSort(list)
+bubbleSort(list);
 # list to 1 2 3 4 5
 ```
 
@@ -451,12 +452,12 @@ statement	= assign
 			| print
 			| expr;
 
-assign		= identifier op_asign expr;
-lambda		= "(" args ")" "=>" expr;
+assign		= identifier op_asign statement;
+lambda		= "(" args ")" "=>" statement;
 func_call	= identifier "(" args ")";
-condition	= "if" expr block { "if" "else" block } ["else" block];
-loop		= "loop" expr block;
-print		= "print" "(" expr ")";
+condition	= "if" expr statement { "else" "if" expr statement } ["else" statement];
+loop		= "loop" expr statement;
+print		= "print" "(" statement ")";
 
 args		= [{ expr "," } expr];
 
@@ -466,7 +467,7 @@ ex_com		= ex_rel [ op_comper ex_rel ];
 ex_rel		= ex_add { op_check ex_add };
 ex_add		= ex_mul { op_add ex_mul };
 ex_mul		= ex_urn { op_mul ex_urn };
-ex_urn		= factor | "!" factor;
+ex_urn		= factor | "-" factor;
 
 factor		= int
 			| string

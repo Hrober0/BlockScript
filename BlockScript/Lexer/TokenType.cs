@@ -15,6 +15,7 @@ public enum TokenType
     Loop,
     If,
     Else,
+    Print,
     
     // Data
     Integer,
@@ -34,7 +35,6 @@ public enum TokenType
     OperatorGreaterEqual,
     OperatorGreater,
     OperatorNotEqual,
-    OperatorNot,
     OperatorOr,
     OperatorAnd,
     OperatorNullCoalescing,

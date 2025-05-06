@@ -7,7 +7,7 @@ public class UnexpectedTokenException : TokenException
     public UnexpectedTokenException(TokenData providedToken, TokenType expectedToken, string? message = null) : base(
         providedToken.Line,
         providedToken.Column,
-        $"Expected '{expectedToken}' but received '{providedToken.Value}'. {message}" )
+        $"Expected {expectedToken.TextValue()} but received '{providedToken.Value}'. {message}" )
     {
     }
 }

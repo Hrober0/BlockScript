@@ -19,7 +19,6 @@ public class LanguageParser
         TokenData FilterToken()
         {
             var token = getTokenData();
-            Console.WriteLine(token);
             return token.Type is TokenType.Comment ? FilterToken() : token;
         }
     }
@@ -32,7 +31,7 @@ public class LanguageParser
         while (newStatement != null)
         {
             statements.Add(newStatement);
-            TakeTokenOrThrow(TokenType.EndOfStatement);
+            TakeTokenOrThrow(TokenType.EndOfStatement, $"Statements should be separated by {TokenType.EndOfStatement.TextValue()}");
             
             newStatement = TryParseStatement();
         }
@@ -41,11 +40,25 @@ public class LanguageParser
     }
 
     #region Statements
-    
-    private IStatement? TryParseStatement()
+
+    private IStatement ParseStatement(string message)
     {
-        return TryParseAssign() ?? TryParseLambda() ?? TryParseExpression();
+        var statement = TryParseStatement();
+        if (statement == null)
+        {
+            throw new TokenException(_tokenBuffer.Current.Line, _tokenBuffer.Current.Column, $"Unexpected token '{_tokenBuffer.Current.Value}', expected statement. {message}");
+        }
+
+        return statement;
     }
+    
+    private IStatement? TryParseStatement() =>
+        TryParseAssign()
+        ?? TryParseLambda()
+        ?? TryParseExpression()
+        ?? TryParseCondition()
+        ?? TryParseLoop()
+        ?? TryParsePrint();
 
     private IStatement? TryParseAssign()
     {
@@ -53,15 +66,11 @@ public class LanguageParser
         {
             return null;
         }
-        var identifierToken = TakeTokenOrThrow(TokenType.Identifier);
+        var identifierToken = TakeTokenOrThrow(TokenType.Identifier, "Assigment require name.");
         var nullAssign = _tokenBuffer.Current.Type is TokenType.OperatorNullAssign;
         _tokenBuffer.Take();
-        var expression = TryParseExpression();
-        if (expression == null)
-        {
-            throw new TokenException(_tokenBuffer.Current.Line, _tokenBuffer.Current.Column, $"Unexpected token '{_tokenBuffer.Current.Value}', expected expression.");
-        }
-        return new Assign((string)identifierToken.Value, expression, nullAssign);
+        var statement = ParseStatement("Assigment require value");
+        return new Assign((string)identifierToken.Value, statement, nullAssign);
     }
     
     private IStatement? TryParseLambda()
@@ -73,22 +82,97 @@ public class LanguageParser
 
         var arguments = ParseArguments();
 
-        TakeTokenOrThrow(TokenType.ParenhticesClose);
-        TakeTokenOrThrow(TokenType.OperatorArrow);
+        var errorMessage = "Lambda should have \"(args) => expression\" syntax";
+        
+        TakeTokenOrThrow(TokenType.ParenhticesClose, errorMessage);
+        TakeTokenOrThrow(TokenType.OperatorArrow, errorMessage);
 
-        var body = TryParseExpression();
-        if (body == null)
-        {
-            throw new TokenException(_tokenBuffer.Current.Line, _tokenBuffer.Current.Column, $"Unexpected token '{_tokenBuffer.Current.Value}', expected expression.");
-        }
+        var body = ParseStatement(errorMessage);
         
         return new Lambda(arguments, body);
+    }
+
+    private IStatement? TryParseCondition()
+    {
+        if (!TryTakeToken(TokenType.If, out _))
+        {
+            return null;
+        }
+        
+        var errorMessage = $"Condition should have \"{TokenType.If.TextValue()} expression expression\" or \"{TokenType.If.TextValue()} expression expression {TokenType.Else.TextValue()} expression\" or \"{TokenType.If.TextValue()} expression expression {TokenType.Else.TextValue()} {TokenType.If.TextValue()} expression expression\" syntax";
+
+        var conditionaryItems = new List<(IExpression condition, IStatement body)>();
+
+        while (true)
+        {
+            var condition = ParseExpression(errorMessage);
+            var body = ParseStatement(errorMessage);
+            conditionaryItems.Add((condition, body));
+
+            if (_tokenBuffer.Current.Type is not TokenType.Else || _tokenBuffer.Next.Type is not TokenType.If)
+            {
+                break;
+            }
+            
+            _tokenBuffer.Take();
+            _tokenBuffer.Take();
+        }
+
+        if (TryTakeToken(TokenType.Else, out _))
+        {
+            var elseBody = ParseStatement(errorMessage);
+            return new Condition(conditionaryItems, elseBody);            
+        }
+        
+        return new Condition(conditionaryItems, null);
+    }
+    
+    private IStatement? TryParseLoop()
+    {
+        if (!TryTakeToken(TokenType.Loop, out _))
+        {
+            return null;
+        }
+
+        var errorMessage = $"Loop should have \"{TokenType.Loop.TextValue()} expression expression\" syntax";
+        
+        var condition = ParseExpression(errorMessage);
+        var body = ParseStatement(errorMessage);
+        
+        return new Loop(condition, body);
+    }
+    
+    private IStatement? TryParsePrint()
+    {
+        if (!TryTakeToken(TokenType.Print, out _))
+        {
+            return null;
+        }
+        
+        var errorMessage = $"Print should have \"{TokenType.Print.TextValue()}(expression)\" syntax";
+
+        TakeTokenOrThrow(TokenType.ParenhticesOpen, errorMessage);
+        var body = ParseStatement(errorMessage);
+        TakeTokenOrThrow(TokenType.ParenhticesClose, errorMessage);
+        
+        return new Print(body);
     }
     
     #endregion
 
     #region Expressions
 
+    private IExpression ParseExpression(string message)
+    {
+        var expression = TryParseExpression();
+        if (expression == null)
+        {
+            throw new TokenException(_tokenBuffer.Current.Line, _tokenBuffer.Current.Column, $"Unexpected token '{_tokenBuffer.Current.Value}'. {message}");
+        }
+
+        return expression;
+    }
+    
     private IExpression? TryParseExpression() => TryParseOrExpression();
     
     private IExpression? TryParseOrExpression() => TryParseExpression([TokenType.OperatorOr],
@@ -118,7 +202,7 @@ public class LanguageParser
     private NotExpression? TryParseNotExpression()
     {
         var negate = false;
-        if (_tokenBuffer.Current.Type == TokenType.OperatorNot)
+        if (_tokenBuffer.Current.Type is TokenType.OperatorSubtract)
         {
             _tokenBuffer.Take();
             negate = true;
@@ -157,10 +241,11 @@ public class LanguageParser
 
     #region Factors
 
-    private IFactor? TryParseFactor()
-    {
-        return TryParseConstFactor() ?? TryParseBlock() ?? TryParseFunctionCall() ?? TryParseVariableFactor();
-    }
+    private IFactor? TryParseFactor() => 
+        TryParseConstFactor() 
+        ?? TryParseBlock()
+        ?? TryParseFunctionCall()
+        ?? TryParseVariableFactor();
 
     private IFactor? TryParseConstFactor()
     {
@@ -192,11 +277,11 @@ public class LanguageParser
                 break;
             }
             
-            TakeTokenOrThrow(TokenType.EndOfStatement);
+            TakeTokenOrThrow(TokenType.EndOfStatement, $"Statements should be separated by {TokenType.EndOfStatement.TextValue()}");
             newStatement = TryParseStatement();
         }
 
-        TakeTokenOrThrow(TokenType.BraceClose);
+        TakeTokenOrThrow(TokenType.BraceClose, "Block should be closed.");
         
         return new Block(statements);
     }
@@ -207,13 +292,16 @@ public class LanguageParser
         {
             return null;
         }
-        var identifierToken = TakeTokenOrThrow(TokenType.Identifier);
-        TakeTokenOrThrow(TokenType.ParenhticesOpen);
-
+        
+        var errorMessage = "Function call should have \"name(args)\" syntax";
+        var identifierToken = TakeTokenOrThrow(TokenType.Identifier, errorMessage);
+        
+        TakeTokenOrThrow(TokenType.ParenhticesOpen, errorMessage);
+        
         var arguments = ParseArguments();
         
-        TakeTokenOrThrow(TokenType.ParenhticesClose);
-
+        TakeTokenOrThrow(TokenType.ParenhticesClose, errorMessage);
+        
         return new FunctionCall((string)identifierToken.Value, arguments);
     }
 
@@ -235,18 +323,22 @@ public class LanguageParser
         while (expression != null)
         {
             expressions.Add(expression);
-            TakeTokenOrThrow(TokenType.Comma);
+            
+            if (!TryTakeToken(TokenType.Comma, out _))
+            {
+                break;
+            }
             expression = TryParseExpression();
         }
 
         return expressions;
     }
     
-    private TokenData TakeTokenOrThrow(TokenType tokenType)
+    private TokenData TakeTokenOrThrow(TokenType tokenType, string message)
     {
         if (_tokenBuffer.Current.Type != tokenType)
         {
-            throw new UnexpectedTokenException(_tokenBuffer.Current, tokenType);
+            throw new UnexpectedTokenException(_tokenBuffer.Current, tokenType, message);
         }
         return _tokenBuffer.Take();
     }

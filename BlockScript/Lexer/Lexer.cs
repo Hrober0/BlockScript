@@ -14,39 +14,6 @@ public class Lexer
     private readonly StreamBuffer<Character> _buffer;
     private readonly TryBuildMethod[] _tryBuildMethods;
 
-    private readonly List<(string token, TokenType tokenType)> _symbols =
-    [
-        // Syntax
-        (UnifiedCharacters.EndOfText.ToString(), TokenType.EndOfText),
-        (";", TokenType.EndOfStatement),
-        (",", TokenType.Comma),
-        ("(", TokenType.ParenhticesOpen),
-        (")", TokenType.ParenhticesClose),
-        ("{", TokenType.BraceOpen),
-        ("}", TokenType.BraceClose),
-
-        // Logical operators
-        ("==", TokenType.OperatorEqual),
-        ("=>", TokenType.OperatorArrow),
-        ("=",  TokenType.OperatorAssign),
-        ("<=", TokenType.OperatorLessEqual),
-        ("<",  TokenType.OperatorLess),
-        (">=", TokenType.OperatorGreaterEqual),
-        (">",  TokenType.OperatorGreater),
-        ("!=", TokenType.OperatorNotEqual),
-        ("!",  TokenType.OperatorNot),
-        ("||", TokenType.OperatorOr),
-        ("&&", TokenType.OperatorAnd),
-        ("??", TokenType.OperatorNullCoalescing),
-        ("?=", TokenType.OperatorNullAssign),
-
-        // Arithmetical operators
-        ("+", TokenType.OperatorAdd),
-        ("-", TokenType.OperatorSubtract),
-        ("*", TokenType.OperatorMultiply),
-        ("/", TokenType.OperatorDivide),
-    ];
-
     private readonly Dictionary<string, TokenType> _keyWords = new()
     {
         { "true",  TokenType.Boolean },
@@ -55,6 +22,7 @@ public class Lexer
         { "loop",  TokenType.Loop },
         { "if",    TokenType.If },
         { "else",  TokenType.Else },
+        { "print",  TokenType.Print },
     };
 
     public Lexer(TextReader textReader)
@@ -207,7 +175,7 @@ public class Lexer
 
     private bool TryBuildSymbol(out TokenData token)
     {
-        var foundSymbols = _symbols.FindAll(symbol =>
+        var foundSymbols = TokenValues.Symbols.FindAll(symbol =>
                 symbol.token[0] == _buffer.Current.Char &&
                 (symbol.token.Length == 1 || symbol.token[1] == _buffer.Next.Char))
             .OrderByDescending(symbol => symbol.token.Length).ToArray();
