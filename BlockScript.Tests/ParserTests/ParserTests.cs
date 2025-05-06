@@ -132,33 +132,6 @@ public class ParserTests
     
     #endregion
 
-    #region Expresions
-
-    [Theory]
-    [InlineData(TokenType.Integer, 42)]
-    [InlineData(TokenType.Boolean, true)]
-    [InlineData(TokenType.Boolean, false)]
-    [InlineData(TokenType.String, "aa")]
-    [InlineData(TokenType.Null, null)]
-    public void Parser_ShouldParseConstFactor(TokenType tokenType, object value)
-    {
-        // Arrange
-        var parser = CreateParserFromTokens(
-            new TokenData { Type = tokenType, Value = value },
-            new TokenData { Type = TokenType.EndOfStatement }
-        );
-
-        // Act
-        var result = parser.ParserProgram();
-
-        // Assert
-        result.Statements.Should().ContainSingle()
-        .Which.Should().BeOfType<ConstFactor>()
-        .Which.Value.Should().Be(value);
-    }
-
-    #endregion
-
     #region Statements
 
     [Fact]
@@ -225,7 +198,115 @@ public class ParserTests
 
     #endregion
     
+    #region Expressions
+
+    [Theory]
+    [InlineData(TokenType.OperatorMultiply)]
+    [InlineData(TokenType.OperatorDivide)]
+    [InlineData(TokenType.OperatorAdd)]
+    [InlineData(TokenType.OperatorSubtract)]
+    public void Parser_ShouldParseArithmeticalExpression(TokenType tokenType)
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = tokenType },
+            new TokenData { Type = TokenType.Integer, Value = 2 },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        var expression = result.Statements.Should().ContainSingle()
+              .Which.Should().BeOfType<ArithmeticalExpression>().Subject;
+        expression.Expressions.Should().HaveCount(2);
+        expression.Expressions[0].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
+        expression.Expressions[1].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
+        expression.Operators.Should().HaveCount(1);
+        expression.Operators[0].Should().Be(tokenType);
+    }
     
+    [Fact]
+    public void Parser_ShouldParseArithmeticalExpression_FromManyAddEntries()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.OperatorAdd },
+            new TokenData { Type = TokenType.String, Value = "2" },
+            new TokenData { Type = TokenType.OperatorSubtract },
+            new TokenData { Type = TokenType.Boolean, Value = false },
+            new TokenData { Type = TokenType.OperatorAdd },
+            new TokenData { Type = TokenType.Null },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        var expression = result.Statements.Should().ContainSingle()
+                               .Which.Should().BeOfType<ArithmeticalExpression>().Subject;
+        expression.Expressions.Should().HaveCount(4);
+        expression.Expressions[0].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
+        expression.Expressions[1].Should().BeOfType<ConstFactor>().Which.Value.Should().Be("2");
+        expression.Expressions[2].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(false);
+        expression.Expressions[3].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(null);
+        expression.Operators.Should().Equal(
+            TokenType.OperatorAdd,
+            TokenType.OperatorSubtract,
+            TokenType.OperatorAdd
+        );
+    }
+
+    #endregion
+
+    #region Factors
+
+    [Theory]
+    [InlineData(TokenType.Integer, 42)]
+    [InlineData(TokenType.Boolean, true)]
+    [InlineData(TokenType.Boolean, false)]
+    [InlineData(TokenType.String, "aa")]
+    [InlineData(TokenType.Null, null)]
+    public void Parser_ShouldParseConstFactor(TokenType tokenType, object value)
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = tokenType, Value = value },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        result.Statements.Should().ContainSingle()
+              .Which.Should().BeOfType<ConstFactor>()
+              .Which.Value.Should().Be(value);
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseVariableFactor()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Identifier, Value = "variable" },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        result.Statements.Should().ContainSingle()
+              .Which.Should().BeOfType<VariableFactor>()
+              .Which.Identifier.Should().Be("variable");
+    }
+
+    #endregion
     
     private static LanguageParser CreateParserFromTokens(params TokenData[] tokens)
     {
