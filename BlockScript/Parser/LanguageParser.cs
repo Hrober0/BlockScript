@@ -201,20 +201,19 @@ public class LanguageParser
         (expressions, operators) => new ArithmeticalExpression(expressions, operators),
         TryParseNotExpression);
     
-    private NotExpression? TryParseNotExpression()
+    private IExpression? TryParseNotExpression()
     {
-        var negate = false;
-        if (_tokenBuffer.Current.Type is TokenType.OperatorSubtract)
+        if (!TryTakeToken(TokenType.OperatorSubtract, out _))
         {
-            _tokenBuffer.Take();
-            negate = true;
+            return TryParseFactor();
         }
+
         var factor = TryParseFactor();
-        if (factor == null && negate)
+        if (factor == null)
         {
             throw new TokenException(_tokenBuffer.Current.Line, _tokenBuffer.Current.Column, $"Unexpected token '{_tokenBuffer.Current.Value}', after {TokenType.OperatorSubtract.TextValue()} should be factor.");
         }
-        return factor != null ? new NotExpression(factor, negate) : null;
+        return new NotExpression(factor);
     }
 
     private delegate IExpression CreateExpression(List<IExpression> expressions, List<TokenType> operators);
@@ -238,6 +237,11 @@ public class LanguageParser
             }
             expressions.Add(expression);
             limit--;
+        }
+
+        if (expressions.Count == 1)
+        {
+            return expressions[0];
         }
         
         return expressionConstructor(expressions, operators);

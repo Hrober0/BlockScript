@@ -11,148 +11,8 @@ namespace BlockScript.Tests.ParserTests;
 
 public class ParserTests
 {
-    [Fact]
-    public void Parser_ShouldReturnEmptyBlock_WhenNoTokens()
-    {
-        // Arrange
-        var parser = CreateParserFromTokens();
+    #region General
 
-        // Act
-        var result = parser.ParserProgram();
-
-        // Assert
-        result.Statements.Should().BeEmpty();
-    }
-    
-    [Fact]
-    public void Parser_ShouldParseEmptyBock()
-    {
-        // Arrange
-        var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.BraceOpen },
-            new TokenData { Type = TokenType.BraceClose },
-            new TokenData { Type = TokenType.EndOfStatement }
-        );
-
-        // Act
-        var result = parser.ParserProgram();
-
-        // Assert
-        var factor = result.Statements.Should().ContainSingle()
-                           .Which.Should().BeOfType<LogicExpression>()
-                           .Which.Expressions.Should().ContainSingle()
-                           .Which.Should().BeOfType<LogicExpression>()
-                           .Which.Expressions.Should().ContainSingle()
-                           .Which.Should().BeOfType<CompereExpression>()
-                           .Which.Expressions.Should().ContainSingle()
-                           .Which.Should().BeOfType<NullCoalescingExpression>()
-                           .Which.Expressions.Should().ContainSingle()
-                           .Which.Should().BeOfType<ArithmeticalExpression>()
-                           .Which.Expressions.Should().ContainSingle()
-                           .Which.Should().BeOfType<ArithmeticalExpression>()
-                           .Which.Expressions.Should().ContainSingle()
-                           .Which.Should().BeOfType<NotExpression>()
-                           .Which.Factor;
-        
-        factor.Should().BeOfType<Block>()
-              .Which.Statements.Should().BeEmpty();
-    }
-    
-    [Fact]
-    public void Parser_ShouldParseNestedBlock()
-    {
-        // Arrange
-        var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.BraceOpen },
-            new TokenData { Type = TokenType.Identifier, Value = "a" },
-            new TokenData { Type = TokenType.OperatorAssign },
-            new TokenData { Type = TokenType.Integer, Value = 5 },
-            new TokenData { Type = TokenType.EndOfStatement },
-            new TokenData { Type = TokenType.BraceClose },
-            new TokenData { Type = TokenType.EndOfStatement }
-        );
-
-        // Act
-        var result = parser.ParserProgram();
-
-        // Assert
-        var firstBlock = result.Statements.Should().ContainSingle()
-              .Which.Should().BeOfType<LogicExpression>()
-              .Which.Expressions.Should().ContainSingle()
-              .Which.Should().BeOfType<LogicExpression>()
-              .Which.Expressions.Should().ContainSingle()
-              .Which.Should().BeOfType<CompereExpression>()
-              .Which.Expressions.Should().ContainSingle()
-              .Which.Should().BeOfType<NullCoalescingExpression>()
-              .Which.Expressions.Should().ContainSingle()
-              .Which.Should().BeOfType<ArithmeticalExpression>()
-              .Which.Expressions.Should().ContainSingle()
-              .Which.Should().BeOfType<ArithmeticalExpression>()
-              .Which.Expressions.Should().ContainSingle()
-              .Which.Should().BeOfType<NotExpression>()
-              .Which.Factor.Should().BeOfType<Block>().Subject;
-
-        var assignment = firstBlock.Statements.Should().ContainSingle()
-                                   .Which.Should().BeOfType<Assign>().Subject;
-        assignment.Identifier.Should().Be("a");
-        
-        var factor = assignment.Value.Should().BeOfType<LogicExpression>()
-                  .Which.Expressions.Should().ContainSingle()
-                  .Which.Should().BeOfType<LogicExpression>()
-                  .Which.Expressions.Should().ContainSingle()
-                  .Which.Should().BeOfType<CompereExpression>()
-                  .Which.Expressions.Should().ContainSingle()
-                  .Which.Should().BeOfType<NullCoalescingExpression>()
-                  .Which.Expressions.Should().ContainSingle()
-                  .Which.Should().BeOfType<ArithmeticalExpression>()
-                  .Which.Expressions.Should().ContainSingle()
-                  .Which.Should().BeOfType<ArithmeticalExpression>()
-                  .Which.Expressions.Should().ContainSingle()
-                  .Which.Should().BeOfType<NotExpression>()
-                  .Which.Factor;
-        
-            factor.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(5);
-    }
-    
-    [Theory]
-    [InlineData(TokenType.Integer, 42)]
-    [InlineData(TokenType.Boolean, true)]
-    [InlineData(TokenType.Boolean, false)]
-    [InlineData(TokenType.String, "aa")]
-    [InlineData(TokenType.Null, null)]
-    public void Parser_ShouldParseSingleAssignment_WithConstFactor(TokenType tokenType, object value)
-    {
-        // Arrange
-        var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier },
-            new TokenData { Type = TokenType.OperatorAssign },
-            new TokenData { Type = tokenType, Value = value },
-            new TokenData { Type = TokenType.EndOfStatement }
-        );
-
-        // Act
-        var result = parser.ParserProgram();
-
-        // Assert
-        result.Statements.Should().ContainSingle()
-              .Which.Should().BeOfType<Assign>()
-              .Which.Value.Should().BeOfType<LogicExpression>()
-              .Which.Expressions.Should().ContainSingle()
-              .Which.Should().BeOfType<LogicExpression>()
-              .Which.Expressions.Should().ContainSingle()
-              .Which.Should().BeOfType<CompereExpression>()
-              .Which.Expressions.Should().ContainSingle()
-              .Which.Should().BeOfType<NullCoalescingExpression>()
-              .Which.Expressions.Should().ContainSingle()
-              .Which.Should().BeOfType<ArithmeticalExpression>()
-              .Which.Expressions.Should().ContainSingle()
-              .Which.Should().BeOfType<ArithmeticalExpression>()
-              .Which.Expressions.Should().ContainSingle()
-              .Which.Should().BeOfType<NotExpression>()
-              .Which.Factor.Should().BeOfType<ConstFactor>()
-              .Which.Value.Should().Be(value);
-    }
-    
     [Fact]
     public void Parser_ShouldThrow_WhenMissingEndOfStatement()
     {
@@ -206,7 +66,101 @@ public class ParserTests
         // Assert
         result.Statements.Should().ContainSingle().Which.Should().BeOfType<Assign>();
     }
+
+    #endregion
     
+    #region Blocks
+
+    [Fact]
+    public void Parser_ShouldReturnEmptyBlock_WhenNoTokens()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens();
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        result.Statements.Should().BeEmpty();
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseEmptyBock()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.BraceOpen },
+            new TokenData { Type = TokenType.BraceClose },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        result.Statements.Should().ContainSingle()
+              .Which.Should().BeOfType<Block>()
+              .Which.Statements.Should().BeEmpty();
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseNestedBlock()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.BraceOpen },
+            new TokenData { Type = TokenType.Identifier, Value = "a" },
+            new TokenData { Type = TokenType.OperatorAssign },
+            new TokenData { Type = TokenType.Integer, Value = 5 },
+            new TokenData { Type = TokenType.EndOfStatement },
+            new TokenData { Type = TokenType.BraceClose },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        var firstBlock = result.Statements.Should().ContainSingle()
+              .Which.Should().BeOfType<Block>().Subject;
+
+        var assignment = firstBlock.Statements.Should().ContainSingle()
+                                   .Which.Should().BeOfType<Assign>().Subject;
+        assignment.Identifier.Should().Be("a");
+        assignment.Value.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(5);
+    }
+    
+    #endregion
+
+    #region Expresions
+
+    [Theory]
+    [InlineData(TokenType.Integer, 42)]
+    [InlineData(TokenType.Boolean, true)]
+    [InlineData(TokenType.Boolean, false)]
+    [InlineData(TokenType.String, "aa")]
+    [InlineData(TokenType.Null, null)]
+    public void Parser_ShouldParseConstFactor(TokenType tokenType, object value)
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = tokenType, Value = value },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        result.Statements.Should().ContainSingle()
+        .Which.Should().BeOfType<ConstFactor>()
+        .Which.Value.Should().Be(value);
+    }
+
+    #endregion
+
+    #region Statements
+
     [Fact]
     public void Parser_ShouldParseIfElseCondition()
     {
@@ -268,6 +222,10 @@ public class ParserTests
         result.Statements.Should().ContainSingle()
             .Which.Should().BeOfType<Loop>();
     }
+
+    #endregion
+    
+    
     
     private static LanguageParser CreateParserFromTokens(params TokenData[] tokens)
     {
