@@ -1,6 +1,13 @@
 ﻿namespace BlockScript.Parser.Factors;
 
-public class VariableFactor(string identifier) : IFactor
+public class VariableFactor : IFactor
 {
-    public override string ToString() => $"${identifier}";
+    public string Identifier { get; }
+
+    public VariableFactor(string identifier)
+    {
+        Identifier = identifier;
+    }
+
+    public override string ToString() => $"${Identifier}";
 }

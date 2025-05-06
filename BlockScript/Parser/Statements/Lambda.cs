@@ -3,7 +3,16 @@ using BlockScript.Utilities;
 
 namespace BlockScript.Parser.Statements;
 
-public class Lambda(List<IExpression> arguments, IStatement body) : IStatement
+public class Lambda : IStatement
 {
-    public override string ToString() => $"Lambda ({arguments.Stringify()}) => {body}";
+    public List<IExpression> Arguments { get; }
+    public IStatement Body { get; }
+
+    public Lambda(List<IExpression> arguments, IStatement body)
+    {
+        Arguments = arguments;
+        Body = body;
+    }
+
+    public override string ToString() => $"Lambda ({Arguments.Stringify()}) => {Body}";
 }

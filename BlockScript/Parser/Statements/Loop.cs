@@ -2,8 +2,17 @@
 
 namespace BlockScript.Parser.Statements
 {
-    public class Loop(IExpression condition, IStatement body) : IStatement
+    public class Loop : IStatement
     {
-        public override string ToString() => $"Loop {condition} {body}";
+        public IExpression Condition { get; }
+        public IStatement Body { get; }
+
+        public Loop(IExpression condition, IStatement body)
+        {
+            Condition = condition;
+            Body = body;
+        }
+
+        public override string ToString() => $"Loop {Condition} {Body}";
     }
 }

@@ -36,6 +36,8 @@ public class LanguageParser
             newStatement = TryParseStatement();
         }
         
+        TakeTokenOrThrow(TokenType.EndOfText, $"Expected end of program");
+        
         return new Block(statements);
     }
 
@@ -55,10 +57,10 @@ public class LanguageParser
     private IStatement? TryParseStatement() =>
         TryParseAssign()
         ?? TryParseLambda()
-        ?? TryParseExpression()
         ?? TryParseCondition()
         ?? TryParseLoop()
-        ?? TryParsePrint();
+        ?? TryParsePrint()
+        ??  TryParseExpression();
 
     private IStatement? TryParseAssign()
     {
@@ -208,6 +210,10 @@ public class LanguageParser
             negate = true;
         }
         var factor = TryParseFactor();
+        if (factor == null && negate)
+        {
+            throw new TokenException(_tokenBuffer.Current.Line, _tokenBuffer.Current.Column, $"Unexpected token '{_tokenBuffer.Current.Value}', after {TokenType.OperatorSubtract.TextValue()} should be factor.");
+        }
         return factor != null ? new NotExpression(factor, negate) : null;
     }
 

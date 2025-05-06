@@ -2,8 +2,15 @@
 
 namespace BlockScript.Parser.Statements
 {
-    public class Print(IStatement body) : IStatement
+    public class Print : IStatement
     {
-        public override string ToString() => $"Print({body})";
+        public IStatement Body { get; }
+
+        public Print(IStatement body)
+        {
+            Body = body;
+        }
+
+        public override string ToString() => $"Print({Body})";
     }
 }

@@ -3,7 +3,16 @@ using BlockScript.Utilities;
 
 namespace BlockScript.Parser.Factors;
 
-public class FunctionCall(string identifier, List<IExpression> arguments) : IFactor
+public class FunctionCall : IFactor
 {
-    public override string ToString() => $"{identifier}({arguments.Stringify()})";
+    private string Identifier { get; }
+    private List<IExpression> Arguments { get; }
+    
+    public FunctionCall(string identifier, List<IExpression> arguments)
+    {
+        Identifier = identifier;
+        Arguments = arguments;
+    }
+    
+    public override string ToString() => $"{Identifier}({Arguments.Stringify()})";
 }

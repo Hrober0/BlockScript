@@ -3,7 +3,16 @@ using BlockScript.Utilities;
 
 namespace BlockScript.Parser.Expressions;
 
-public class LogicExpression(List<IExpression> expressions, TokenType type) : IExpression
+public class LogicExpression : IExpression
 {
-    public override string ToString() => $"{expressions.Stringify($" {type.TextValue()} ")}";
+    public List<IExpression> Expressions { get; }
+    public TokenType Type { get; }
+
+    public LogicExpression(List<IExpression> expressions, TokenType type)
+    {
+        Expressions = expressions;
+        Type = type;
+    }
+
+    public override string ToString() => $"{Expressions.Stringify($" {Type.TextValue()} ")}";
 }

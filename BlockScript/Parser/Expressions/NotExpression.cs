@@ -2,7 +2,16 @@
 
 namespace BlockScript.Parser.Expressions;
 
-public class NotExpression(IFactor factor, bool nagate) : IExpression
+public class NotExpression : IExpression
 {
-    public override string ToString() => $"{(nagate ? "-" : "")}{factor}";
+    public IFactor Factor { get; }
+    public bool Nagate { get; }
+
+    public NotExpression(IFactor factor, bool nagate)
+    {
+        Factor = factor;
+        Nagate = nagate;
+    }
+
+    public override string ToString() => $"{(Nagate ? "-" : "")}{Factor}";
 }

@@ -3,7 +3,14 @@ using BlockScript.Utilities;
 
 namespace BlockScript.Parser.Expressions;
 
-public class NullCoalescingExpression(List<IExpression> expressions) : IExpression
+public class NullCoalescingExpression : IExpression
 {
-    public override string ToString() => $"{expressions.Stringify(" ?? ")}";
+    public List<IExpression> Expressions { get; }
+
+    public NullCoalescingExpression(List<IExpression> expressions)
+    {
+        Expressions = expressions;
+    }
+
+    public override string ToString() => $"{Expressions.Stringify(" ?? ")}";
 }
