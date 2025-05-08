@@ -5,8 +5,8 @@ namespace BlockScript.Parser.Factors;
 
 public class FunctionCall : IFactor
 {
-    private string Identifier { get; }
-    private List<IExpression> Arguments { get; }
+    public string Identifier { get; }
+    public List<IExpression> Arguments { get; }
     
     public FunctionCall(string identifier, List<IExpression> arguments)
     {
