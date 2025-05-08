@@ -5,14 +5,16 @@ namespace BlockScript.Parser.Expressions;
 
 public class CompereExpression : IExpression
 {
-    public List<IExpression> Expressions { get; }
-    public List<TokenType> Operators { get; }
+    public IExpression LeftExpression { get; }
+    public IExpression RightExpression { get; }
+    public TokenType Operator { get; }
 
-    public CompereExpression(List<IExpression> expressions, List<TokenType> operators)
+    public CompereExpression(IExpression leftExpression, IExpression rightExpression, TokenType operatorType)
     {
-        Expressions = expressions;
-        Operators = operators;
+        RightExpression = rightExpression;
+        LeftExpression = leftExpression;
+        Operator = operatorType;
     }
 
-    public override string ToString() => $"{Expressions.Stringify(index => $" {Operators[index - 1].TextValue()} ")}";
+    public override string ToString() => $"{LeftExpression} {Operator} {RightExpression}";
 }

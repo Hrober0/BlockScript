@@ -186,8 +186,8 @@ public class LanguageParser
         TryParseCompereExpression);
 
     private IExpression? TryParseCompereExpression() => TryParseExpression([TokenType.OperatorEqual, TokenType.OperatorNotEqual, TokenType.OperatorLess,  TokenType.OperatorLessEqual, TokenType.OperatorGreater, TokenType.OperatorGreaterEqual],
-        (expressions, operators) => new CompereExpression(expressions, operators),
-        TryParseNullColExpression, 2);
+        (leftExpression, rightExpression, operatorType) => new CompereExpression(leftExpression, rightExpression, operatorType),
+        TryParseNullColExpression);
     
     private IExpression? TryParseNullColExpression() => TryParseExpression([TokenType.OperatorNullCoalescing],
         (expressions, _) => new NullCoalescingExpression(expressions),
@@ -216,8 +216,8 @@ public class LanguageParser
         return new NotExpression(factor);
     }
 
-    private delegate IExpression CreateExpression(List<IExpression> expressions, List<TokenType> operators);
-    private IExpression? TryParseExpression(TokenType[] acceptableOperators, CreateExpression expressionConstructor, Func<IExpression?> childExpressionParser, int limit=255)
+    private delegate IExpression CreateMultipleExpression(List<IExpression> expressions, List<TokenType> operators);
+    private IExpression? TryParseExpression(TokenType[] acceptableOperators, CreateMultipleExpression multipleExpressionConstructor, Func<IExpression?> childExpressionParser)
     {
         var expression = childExpressionParser();
         if (expression == null)
@@ -227,7 +227,7 @@ public class LanguageParser
         var expressions = new List<IExpression>();
         var operators = new List<TokenType>();
         expressions.Add(expression);
-        while (acceptableOperators.Contains(_tokenBuffer.Current.Type) && limit > 1)
+        while (acceptableOperators.Contains(_tokenBuffer.Current.Type))
         {
             operators.Add(_tokenBuffer.Take().Type);
             expression = childExpressionParser();
@@ -236,7 +236,6 @@ public class LanguageParser
                 throw new TokenException(_tokenBuffer.Current.Line, _tokenBuffer.Current.Column, $"Expected factor, but received, {_tokenBuffer.Current.Value}");
             }
             expressions.Add(expression);
-            limit--;
         }
 
         if (expressions.Count == 1)
@@ -244,7 +243,31 @@ public class LanguageParser
             return expressions[0];
         }
         
-        return expressionConstructor(expressions, operators);
+        return multipleExpressionConstructor(expressions, operators);
+    }
+    
+    private delegate IExpression CreateSingleExpression(IExpression leftExpression, IExpression rightExpression, TokenType operatorType);
+    private IExpression? TryParseExpression(TokenType[] acceptableOperators, CreateSingleExpression expressionConstructor, Func<IExpression?> childExpressionParser)
+    {
+        var leftExpression = childExpressionParser();
+        if (leftExpression == null)
+        {
+            return null;
+        }
+
+        if (!acceptableOperators.Contains(_tokenBuffer.Current.Type))
+        {
+            return leftExpression;
+        }
+        var operatorType = _tokenBuffer.Take().Type;
+        
+        var rightExpression = childExpressionParser();
+        if (rightExpression == null)
+        {
+            throw new TokenException(_tokenBuffer.Current.Line, _tokenBuffer.Current.Column, $"Expected factor, but received, {_tokenBuffer.Current.Value}");
+        }
+        
+        return expressionConstructor(leftExpression, rightExpression, operatorType);
     }
     
     #endregion
@@ -338,7 +361,7 @@ public class LanguageParser
             {
                 break;
             }
-            expression = TryParseExpression();
+            expression = ParseExpression($"Arguments expects expression after {TokenType.Comma.TextValue()}.");
         }
 
         return expressions;

@@ -6,13 +6,13 @@ namespace BlockScript.Parser.Expressions;
 public class LogicExpression : IExpression
 {
     public List<IExpression> Expressions { get; }
-    public TokenType Type { get; }
+    public TokenType Operator { get; }
 
-    public LogicExpression(List<IExpression> expressions, TokenType type)
+    public LogicExpression(List<IExpression> expressions, TokenType operatortype)
     {
         Expressions = expressions;
-        Type = type;
+        Operator = operatortype;
     }
 
-    public override string ToString() => $"{Expressions.Stringify($" {Type.TextValue()} ")}";
+    public override string ToString() => $"{Expressions.Stringify($" {Operator.TextValue()} ")}";
 }
