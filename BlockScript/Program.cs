@@ -1,3 +1,4 @@
+using BlockScript.Interpreter;
 using BlockScript.Lexer;
 using BlockScript.Parser;
 
@@ -24,6 +25,9 @@ try
     var parser = new LanguageParser(lexer.GetToken);
     var program = parser.ParserProgram();
     Console.WriteLine(program);
+    var interpreter = new LanguageInterpreter();
+    var returnValue = interpreter.ExecuteProgram(program);
+    Console.WriteLine(returnValue);
 }
 catch (Exception e)
 {
