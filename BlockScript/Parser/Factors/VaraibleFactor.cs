@@ -1,13 +1,8 @@
-﻿namespace BlockScript.Parser.Factors;
+﻿using BlockScript.Lexer;
 
-public class VariableFactor : IFactor
+namespace BlockScript.Parser.Factors;
+
+public record VariableFactor(string Identifier, Position Position) : IFactor
 {
-    public string Identifier { get; }
-
-    public VariableFactor(string identifier)
-    {
-        Identifier = identifier;
-    }
-
     public override string ToString() => $"${Identifier}";
 }

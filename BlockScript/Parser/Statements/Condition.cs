@@ -1,19 +1,12 @@
-﻿using BlockScript.Parser.Expressions;
+﻿using BlockScript.Lexer;
+using BlockScript.Parser.Expressions;
 using BlockScript.Utilities;
 
 namespace BlockScript.Parser.Statements
 {
-    public class Condition : IStatement
+    public record Condition(List<(IExpression condition, IStatement body)> ConditionaryItems, IStatement? ElseBody, Position Position)
+        : IStatement
     {
-        public List<(IExpression condition, IStatement body)> ConditionaryItems { get; }
-        public IStatement? ElseBody { get; }
-
-        public Condition(List<(IExpression condition, IStatement body)> conditionaryItems, IStatement? elseBody)
-        {
-            ConditionaryItems = conditionaryItems;
-            ElseBody = elseBody;
-        }
-
         public override string ToString() => $"if {ConditionaryItems.Stringify("else if")} {(ElseBody != null ? $"else {ElseBody}" : "")}";
     }
 }

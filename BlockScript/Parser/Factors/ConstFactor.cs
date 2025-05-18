@@ -1,13 +1,8 @@
-﻿namespace BlockScript.Parser.Factors;
+﻿using BlockScript.Lexer;
 
-public class ConstFactor : IFactor
+namespace BlockScript.Parser.Factors;
+
+public record ConstFactor(object Value, Position Position) : IFactor
 {
-    public object Value { get; }
     
-    public ConstFactor(object value)
-    {
-        Value = value;
-    }
-    
-    public override string ToString() => Value.ToString();
 }
