@@ -1,7 +1,10 @@
 ﻿using BlockScript.Exceptions;
+using BlockScript.Interpreter.BuildInStatements;
 using BlockScript.Lexer;
+using BlockScript.Parser.Expressions;
 using BlockScript.Parser.Factors;
 using BlockScript.Parser.Statements;
+using BlockScript.Reader;
 
 namespace BlockScript.Interpreter;
 
@@ -15,23 +18,38 @@ public class LanguageInterpreter
     
     public object? ExecuteProgram(Block block)
     {
-        _contextStack.Push(new Context(null));
+        var startContext = new Context(null);
+        startContext.AddData("print", new Lambda([Print.PARAMTEER_NAME], new Print(Position.Default), Position.Default));
+        _contextStack.Push(startContext);
         return Execute(block);
     }
+    
     private object? Execute(IStatement statement)
     {
         return statement switch
         {
-            Block typedStatement => Execute(typedStatement),
-            Assign typedStatement => Execute(typedStatement),
-            Lambda typedStatement => Execute(typedStatement),
-            FunctionCall typedStatement => Execute(typedStatement),
-            VariableFactor typedStatement => Execute(typedStatement),
-            ConstFactor typedStatement => Execute(typedStatement),
+            // statements
+            Block s => Execute(s),
+            Assign s => Execute(s),
+            Lambda s => Execute(s),
+            FunctionCall s => Execute(s),
+            Condition s => Execute(s),
+            Print s => Execute(s),
+            
+            // expressions
+            CompereExpression s => Execute(s),
+            ArithmeticalExpression s => Execute(s),
+            
+            // factors
+            VariableFactor s => Execute(s),
+            ConstFactor s => Execute(s),
+            
             _ => throw new Exception($"Unknown statement type of {statement.GetType()}")
         };
     }
-    
+
+    #region Statements
+
     private object? Execute(Block block)
     {
         object? returnValue = null;
@@ -85,15 +103,90 @@ public class LanguageInterpreter
         return result;
     }
 
-    private object? Execute(VariableFactor variable)
+    private object? Execute(Condition condition)
     {
-        return GetContextData(variable.Identifier, variable.Position);
+        foreach (var conditionItem in condition.ConditionaryItems)
+        {
+            if (ParseBool(Execute(conditionItem.condition), conditionItem.condition.Position))
+            {
+                return Execute(conditionItem.body);
+            }  
+        }
+
+        if (condition.ElseBody != null)
+        {
+            return Execute(condition.ElseBody);
+        }
+
+        return null;
+    }
+    
+    private object? Execute(Print _)
+    {
+        var value = GetContextData(Print.PARAMTEER_NAME, Position.Default);
+        Console.WriteLine(value);
+        return value;
+    }
+    
+    #endregion
+
+    #region Expressions
+
+    private object? Execute(CompereExpression compereExpression)
+    {
+        var left = ParseInt(Execute(compereExpression.Lhs), compereExpression.Lhs.Position);
+        var right = ParseInt(Execute(compereExpression.Rhs), compereExpression.Rhs.Position);
+        return compereExpression.Operator switch
+        {
+            TokenType.OperatorEqual => left == right,
+            TokenType.OperatorLessEqual => left <= right,
+            TokenType.OperatorLess => left < right,
+            TokenType.OperatorGreaterEqual => left >= right,
+            TokenType.OperatorGreater => left > right,
+            TokenType.OperatorNotEqual => left != right,
+            _ => throw new RuntimeException(compereExpression.Position, $"Unexpected {compereExpression.Operator.TextValue()} operator in compere expression!")
+        };
+    }
+    
+    private object? Execute(ArithmeticalExpression arithmeticalExpression)
+    {
+        var left = Execute(arithmeticalExpression.Lhs);
+        var right = Execute(arithmeticalExpression.Rhs);
+
+        if (arithmeticalExpression.Operator is TokenType.OperatorAdd && left is string || right is string)
+        {
+            var leftString = ParseString(left, arithmeticalExpression.Lhs.Position);
+            var rightString = ParseString(right, arithmeticalExpression.Rhs.Position);
+            return leftString + rightString;
+        }
+        
+        var leftNumber = ParseInt(left, arithmeticalExpression.Lhs.Position);
+        var rightNumber = ParseInt(right, arithmeticalExpression.Rhs.Position);
+        return arithmeticalExpression.Operator switch
+        {
+            TokenType.OperatorAdd => leftNumber + rightNumber,
+            TokenType.OperatorSubtract => leftNumber - rightNumber,
+            TokenType.OperatorMultiply => leftNumber * rightNumber,
+            TokenType.OperatorDivide => () => {
+                if (rightNumber == 0)
+                {
+                    throw new RuntimeException(arithmeticalExpression.Position, $"Cannot divide by zero!");
+                }
+                return leftNumber / rightNumber;
+            },
+            _ => throw new RuntimeException(arithmeticalExpression.Position, $"Unexpected {arithmeticalExpression.Operator.TextValue()} operator in compere expression!")
+        };
     }
 
-    private object? Execute(ConstFactor constFactor)
-    {
-        return constFactor.Value;
-    }
+    #endregion
+
+    #region Factor
+
+    private object? Execute(VariableFactor variable) => GetContextData(variable.Identifier, variable.Position);
+
+    private object? Execute(ConstFactor constFactor) => constFactor.Value;
+
+    #endregion
     
     private object? GetContextData(string identifier, Position position)
     {
@@ -104,4 +197,43 @@ public class LanguageInterpreter
 
         return dataValue;
     }
+
+    #region Parsing
+
+    private static bool ParseBool(object? value, Position position)
+    {
+        return value switch
+        {
+            int v => v > 0,
+            string v => v.Length > 0,
+            bool v => v,
+            null => false,
+            _ => throw new RuntimeException(position, $"{value} can not be parsed to bool value!")
+        };
+    }
+    
+    private static int ParseInt(object? value, Position position)
+    {
+        return value switch
+        {
+            int v => v,
+            bool v => v ? 1 : 0,
+            null => 0,
+            _ => throw new RuntimeException(position, $"{value} can not be parsed to int value!")
+        };
+    }
+
+    private static string ParseString(object? value, Position position)
+    {
+        return value switch
+        {
+            string v => v,
+            int v => v.ToString(),
+            bool v => v ? "true" : "false",
+            null => "",
+            _ => throw new RuntimeException(position, $"{value} can not be parsed to int value!")
+        };
+    }
+    
+    #endregion
 }
