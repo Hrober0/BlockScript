@@ -10,8 +10,8 @@ namespace BlockScript.Lexer
             (UnifiedCharacters.EndOfText.ToString(), TokenType.EndOfText),
             (";", TokenType.EndOfStatement),
             (",", TokenType.Comma),
-            ("(", TokenType.ParenhticesOpen),
-            (")", TokenType.ParenhticesClose),
+            ("(", TokenType.ParenthesesOpen),
+            (")", TokenType.ParenthesesClose),
             ("{", TokenType.BraceOpen),
             ("}", TokenType.BraceClose),
 

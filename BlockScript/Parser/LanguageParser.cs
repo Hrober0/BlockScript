@@ -69,7 +69,7 @@ public class LanguageParser
             return null;
         }
         var position = _tokenBuffer.Current.Position;
-        var identifierToken = TakeTokenOrThrow(TokenType.Identifier, "Assigment require name.");
+        var identifierToken = TakeTokenOrThrow(TokenType.Identifier, "Assigment requires a name.");
         var nullAssign = _tokenBuffer.Current.Type is TokenType.OperatorNullAssign;
         _tokenBuffer.Take();
         var statement = ParseStatement("Assigment require value");
@@ -78,7 +78,7 @@ public class LanguageParser
     
     private IStatement? TryParseLambda()
     {
-        if (!TryTakeToken(TokenType.ParenhticesOpen, out var startToken))
+        if (!TryTakeToken(TokenType.ParenthesesOpen, out var startToken))
         {
             return null;
         }
@@ -99,7 +99,7 @@ public class LanguageParser
 
         var errorMessage = "Lambda should have \"(args) => expression\" syntax";
         
-        TakeTokenOrThrow(TokenType.ParenhticesClose, errorMessage);
+        TakeTokenOrThrow(TokenType.ParenthesesClose, errorMessage);
         TakeTokenOrThrow(TokenType.OperatorArrow, errorMessage);
 
         var body = ParseStatement(errorMessage);
@@ -318,7 +318,7 @@ public class LanguageParser
 
     private IFactor? TryParseFunctionCall()
     {
-        if (_tokenBuffer.Current.Type != TokenType.Identifier || _tokenBuffer.Next.Type != TokenType.ParenhticesOpen)
+        if (_tokenBuffer.Current.Type != TokenType.Identifier || _tokenBuffer.Next.Type != TokenType.ParenthesesOpen)
         {
             return null;
         }
@@ -326,7 +326,7 @@ public class LanguageParser
         var errorMessage = "Function call should have \"name(args)\" syntax";
         var identifierToken = TakeTokenOrThrow(TokenType.Identifier, errorMessage);
         
-        TakeTokenOrThrow(TokenType.ParenhticesOpen, errorMessage);
+        TakeTokenOrThrow(TokenType.ParenthesesOpen, errorMessage);
         
         var arguments = new List<IExpression>();
         while (true)
@@ -344,7 +344,7 @@ public class LanguageParser
             }
         }
         
-        TakeTokenOrThrow(TokenType.ParenhticesClose, errorMessage);
+        TakeTokenOrThrow(TokenType.ParenthesesClose, errorMessage);
         
         return new FunctionCall((string)identifierToken.Value, arguments, identifierToken.Position);
     }
