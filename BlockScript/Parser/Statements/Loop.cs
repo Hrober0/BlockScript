@@ -1,5 +1,6 @@
 ﻿using BlockScript.Lexer;
 using BlockScript.Parser.Expressions;
+using BlockScript.Reader;
 
 namespace BlockScript.Parser.Statements
 {

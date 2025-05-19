@@ -3,6 +3,7 @@ using BlockScript.Lexer;
 using BlockScript.Parser.Expressions;
 using BlockScript.Parser.Factors;
 using BlockScript.Parser.Statements;
+using BlockScript.Reader;
 using BlockScript.Utilities;
 
 namespace BlockScript.Parser;
@@ -174,28 +175,28 @@ public class LanguageParser
     
     private IExpression? TryParseExpression() => TryParseOrExpression();
     
-    private IExpression? TryParseOrExpression() => TryParseExpression([TokenType.OperatorOr],
-        (expressions, _) => new LogicExpression(expressions, TokenType.OperatorOr),
+    private IExpression? TryParseOrExpression() => TryParseMultipleExpression([TokenType.OperatorOr],
+        (lhs, rhs, operatorToken) => new LogicExpression(lhs, rhs, operatorToken.Type, operatorToken.Position),
         TryParseAndExpression);
 
-    private IExpression? TryParseAndExpression() => TryParseExpression([TokenType.OperatorAnd],
-        (expressions, _) => new LogicExpression(expressions, TokenType.OperatorAnd),
+    private IExpression? TryParseAndExpression() => TryParseMultipleExpression([TokenType.OperatorAnd],
+        (lhs, rhs, operatorToken) => new LogicExpression(lhs, rhs, operatorToken.Type, operatorToken.Position),
         TryParseCompereExpression);
 
-    private IExpression? TryParseCompereExpression() => TryParseExpression([TokenType.OperatorEqual, TokenType.OperatorNotEqual, TokenType.OperatorLess,  TokenType.OperatorLessEqual, TokenType.OperatorGreater, TokenType.OperatorGreaterEqual],
-        (leftExpression, rightExpression, operatorType) => new CompereExpression(leftExpression, rightExpression, operatorType),
+    private IExpression? TryParseCompereExpression() => TryParseSingleExpression([TokenType.OperatorEqual, TokenType.OperatorNotEqual, TokenType.OperatorLess,  TokenType.OperatorLessEqual, TokenType.OperatorGreater, TokenType.OperatorGreaterEqual],
+        (lhs, rhs, operatorToken) => new CompereExpression(lhs, rhs, operatorToken.Type, operatorToken.Position),
         TryParseNullColExpression);
     
-    private IExpression? TryParseNullColExpression() => TryParseExpression([TokenType.OperatorNullCoalescing],
-        (expressions, _) => new NullCoalescingExpression(expressions),
+    private IExpression? TryParseNullColExpression() => TryParseMultipleExpression([TokenType.OperatorNullCoalescing],
+        (lhs, rhs, operatorToken) => new NullCoalescingExpression(lhs, rhs, operatorToken.Position),
         TryParseAddExpression);
     
-    private IExpression? TryParseAddExpression() => TryParseExpression([TokenType.OperatorAdd, TokenType.OperatorSubtract],
-        (expressions, operators) => new ArithmeticalExpression(expressions, operators),
+    private IExpression? TryParseAddExpression() => TryParseMultipleExpression([TokenType.OperatorAdd, TokenType.OperatorSubtract],
+        (lhs, rhs, operatorToken) => new ArithmeticalExpression(lhs, rhs, operatorToken.Type, operatorToken.Position),
         TryParseMultiplicationExpression);
     
-    private IExpression? TryParseMultiplicationExpression() => TryParseExpression([TokenType.OperatorMultiply, TokenType.OperatorDivide],
-        (expressions, operators) => new ArithmeticalExpression(expressions, operators),
+    private IExpression? TryParseMultiplicationExpression() => TryParseMultipleExpression([TokenType.OperatorMultiply, TokenType.OperatorDivide],
+        (lhs, rhs, operatorToken) => new ArithmeticalExpression(lhs, rhs, operatorToken.Type, operatorToken.Position),
         TryParseNotExpression);
     
     private IExpression? TryParseNotExpression()
@@ -213,8 +214,8 @@ public class LanguageParser
         return new NotExpression(factor);
     }
 
-    private delegate IExpression CreateMultipleExpression(List<IExpression> expressions, List<TokenType> operators);
-    private IExpression? TryParseExpression(TokenType[] acceptableOperators, CreateMultipleExpression multipleExpressionConstructor, Func<IExpression?> childExpressionParser)
+    private delegate IExpression CreateExpression(IExpression lhs, IExpression rhs, TokenData operatorToken);
+    private IExpression? TryParseMultipleExpression(TokenType[] acceptableOperators, CreateExpression expressionConstructor, Func<IExpression?> childExpressionParser)
     {
         var expression = childExpressionParser();
         if (expression == null)
@@ -222,11 +223,11 @@ public class LanguageParser
             return null;
         }
         var expressions = new List<IExpression>();
-        var operators = new List<TokenType>();
+        var operators = new List<TokenData>();
         expressions.Add(expression);
         while (acceptableOperators.Contains(_tokenBuffer.Current.Type))
         {
-            operators.Add(_tokenBuffer.Take().Type);
+            operators.Add(_tokenBuffer.Take());
             expression = childExpressionParser();
             if (expression == null)
             {
@@ -239,12 +240,18 @@ public class LanguageParser
         {
             return expressions[0];
         }
-        
-        return multipleExpressionConstructor(expressions, operators);
+
+        return CreateExpression(0);
+
+        IExpression CreateExpression(int index)
+        {
+            var nextExpression = index < operators.Count - 1
+                ? CreateExpression(index + 1)
+                : expressions[index + 1];
+            return expressionConstructor(expressions[index], nextExpression, operators[index]);
+        }
     }
-    
-    private delegate IExpression CreateSingleExpression(IExpression leftExpression, IExpression rightExpression, TokenType operatorType);
-    private IExpression? TryParseExpression(TokenType[] acceptableOperators, CreateSingleExpression expressionConstructor, Func<IExpression?> childExpressionParser)
+    private IExpression? TryParseSingleExpression(TokenType[] acceptableOperators, CreateExpression expressionConstructor, Func<IExpression?> childExpressionParser)
     {
         var leftExpression = childExpressionParser();
         if (leftExpression == null)
@@ -256,7 +263,7 @@ public class LanguageParser
         {
             return leftExpression;
         }
-        var operatorType = _tokenBuffer.Take().Type;
+        var operatorToken = _tokenBuffer.Take();
         
         var rightExpression = childExpressionParser();
         if (rightExpression == null)
@@ -264,7 +271,7 @@ public class LanguageParser
             throw new TokenException(_tokenBuffer.Current.Position, $"Expected factor, but received, {_tokenBuffer.Current.Value}");
         }
         
-        return expressionConstructor(leftExpression, rightExpression, operatorType);
+        return expressionConstructor(leftExpression, rightExpression, operatorToken);
     }
     
     #endregion

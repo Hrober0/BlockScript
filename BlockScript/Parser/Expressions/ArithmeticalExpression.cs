@@ -1,9 +1,10 @@
 ﻿using BlockScript.Lexer;
+using BlockScript.Reader;
 using BlockScript.Utilities;
 
 namespace BlockScript.Parser.Expressions;
 
-public record ArithmeticalExpression(List<IExpression> Expressions, List<TokenType> Operators) : IExpression
+public record ArithmeticalExpression(IExpression Lhs, IExpression Rhs, TokenType Operator, Position Position) : IExpression
 {
-    public override string ToString() => $"{Expressions.Stringify(index => $" {Operators[index - 1].TextValue()} ")}";
+    public override string ToString() => $"{Lhs} {Operator.TextValue()} {Rhs}";
 }

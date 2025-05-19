@@ -203,7 +203,7 @@ public class ParserTests
 
         assignment.Identifier.Should().Be("x");
         var expr = assignment.Value.Should().BeOfType<ArithmeticalExpression>().Subject;
-        expr.Expressions.Should().HaveCount(2);
+        expr.Operator.Should().Be(TokenType.OperatorAdd);
     }
 
     [Fact]
@@ -342,10 +342,9 @@ public class ParserTests
         lambda.Arguments.Should().BeEquivalentTo(["x", "y"]);
 
         var body = lambda.Body.Should().BeOfType<ArithmeticalExpression>().Subject;
-        body.Expressions.Should().HaveCount(2);
-        body.Expressions[0].Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("z");
-        body.Expressions[1].Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("k");
-        body.Operators.Should().ContainSingle().Which.Should().Be(TokenType.OperatorAdd);
+        body.Lhs.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("z");
+        body.Rhs.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("k");
+        body.Operator.Should().Be(TokenType.OperatorAdd);
     }
 
     [Fact]
@@ -499,16 +498,14 @@ public class ParserTests
         condition.ElseBody.Should().BeNull();
         
         var conditionExpression = condition.ConditionaryItems[0].condition.Should().BeOfType<ArithmeticalExpression>().Subject;
-        conditionExpression.Expressions.Should().HaveCount(2);
-        conditionExpression.Expressions[0].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(true);
-        conditionExpression.Expressions[1].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
-        conditionExpression.Operators.Should().ContainEquivalentOf(TokenType.OperatorSubtract);
+        conditionExpression.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(true);
+        conditionExpression.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
+        conditionExpression.Operator.Should().Be(TokenType.OperatorSubtract);
         
         var conditionBody = condition.ConditionaryItems[0].body.Should().BeOfType<ArithmeticalExpression>().Subject;
-        conditionBody.Expressions.Should().HaveCount(2);
-        conditionBody.Expressions[0].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(false);
-        conditionBody.Expressions[1].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
-        conditionBody.Operators.Should().ContainEquivalentOf(TokenType.OperatorDivide);
+        conditionBody.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(false);
+        conditionBody.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
+        conditionBody.Operator.Should().Be(TokenType.OperatorDivide);
     }
     
     [Fact]
@@ -934,9 +931,9 @@ public class ParserTests
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Identifier, Value = "negate" },
             new TokenData { Type = TokenType.ParenthesesOpen },
-            new TokenData { Type = TokenType.Integer, Value = 69, Position = new(1,69) },
+            new TokenData { Type = TokenType.Integer, Value = 69 },
             new TokenData { Type = TokenType.OperatorAdd },
-            new TokenData { Type = TokenType.Integer, Value = 42, Position = new(1,42) },
+            new TokenData { Type = TokenType.Integer, Value = 42 },
             new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
         );
@@ -952,8 +949,9 @@ public class ParserTests
         functionCall.Arguments.Should().ContainSingle();
 
         var expr = functionCall.Arguments[0].Should().BeOfType<ArithmeticalExpression>().Subject;
-        expr.Operators.Should().ContainEquivalentOf(TokenType.OperatorAdd);
-        expr.Expressions.Should().BeEquivalentTo([new ConstFactor(69, new(1, 69)), new ConstFactor(42, new(1, 42))]);
+        expr.Operator.Should().Be(TokenType.OperatorAdd);
+        expr.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(69);
+        expr.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(42);
     }
 
     [Fact]
@@ -1003,11 +1001,11 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Integer, Value = 1, Position = new(1,1)},
+            new TokenData { Type = TokenType.Integer, Value = 1 },
             new TokenData { Type = tokenType },
-            new TokenData { Type = TokenType.Integer, Value = 2, Position = new(1,2) },
+            new TokenData { Type = TokenType.Integer, Value = 2 },
             new TokenData { Type = tokenType },
-            new TokenData { Type = TokenType.Integer, Value = 3, Position = new(1,3) },
+            new TokenData { Type = TokenType.Integer, Value = 3 },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -1015,14 +1013,15 @@ public class ParserTests
         var result = parser.ParserProgram();
 
         // Assert
-        var expression = result.Statements.Should().ContainSingle()
+        var topExpression = result.Statements.Should().ContainSingle()
               .Which.Should().BeOfType<ArithmeticalExpression>().Subject;
-        expression.Expressions.Should().BeEquivalentTo([
-            new ConstFactor(1, new(1,1)),
-            new ConstFactor(2, new (1, 2)),
-            new ConstFactor(3, new (1, 3))
-        ]);
-        expression.Operators.Should().BeEquivalentTo([tokenType, tokenType]);
+        topExpression.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
+        topExpression.Operator.Should().Be(tokenType);
+        
+        var innerExpression = topExpression.Rhs.Should().BeOfType<ArithmeticalExpression>().Subject;
+        innerExpression.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
+        innerExpression.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(3);
+        innerExpression.Operator.Should().Be(tokenType);
     }
     
     [Theory]
@@ -1048,8 +1047,8 @@ public class ParserTests
         // Assert
         var expression = result.Statements.Should().ContainSingle()
                                .Which.Should().BeOfType<CompereExpression>().Subject;
-        expression.LeftExpression.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
-        expression.RightExpression.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
+        expression.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
+        expression.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
         expression.Operator.Should().Be(tokenType);
     }
     
@@ -1072,14 +1071,15 @@ public class ParserTests
         var result = parser.ParserProgram();
 
         // Assert
-        var expression = result.Statements.Should().ContainSingle()
-                               .Which.Should().BeOfType<LogicExpression>().Subject;
-        expression.Expressions.Should().BeEquivalentTo([
-            new ConstFactor(1, new(1,1)),
-            new ConstFactor(2, new (1, 2)),
-            new ConstFactor(3, new (1, 3))
-        ]);
-        expression.Operator.Should().Be(tokenType);
+        var topExpression = result.Statements.Should().ContainSingle()
+                                  .Which.Should().BeOfType<LogicExpression>().Subject;
+        topExpression.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
+        topExpression.Operator.Should().Be(tokenType);
+        
+        var innerExpression = topExpression.Rhs.Should().BeOfType<LogicExpression>().Subject;
+        innerExpression.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
+        innerExpression.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(3);
+        innerExpression.Operator.Should().Be(tokenType);
     }
     
     [Fact]
@@ -1088,17 +1088,17 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Integer, Value = 1 },
-            new TokenData { Type = TokenType.OperatorOr },
+            new TokenData { Type = TokenType.OperatorOr },          // orExpression1
             new TokenData { Type = TokenType.Integer, Value = 2 },
-            new TokenData { Type = TokenType.OperatorOr },
+            new TokenData { Type = TokenType.OperatorOr },          // orExpression2
             
             new TokenData { Type = TokenType.Integer, Value = 3 },
-            new TokenData { Type = TokenType.OperatorAnd },
+            new TokenData { Type = TokenType.OperatorAnd },         // andExpression1
             new TokenData { Type = TokenType.Integer, Value = 4 },
-            new TokenData { Type = TokenType.OperatorAnd },
+            new TokenData { Type = TokenType.OperatorAnd },         // andExpression2
             new TokenData { Type = TokenType.Integer, Value = 5 },
             
-            new TokenData { Type = TokenType.OperatorOr },
+            new TokenData { Type = TokenType.OperatorOr },          // orExpression3
             new TokenData { Type = TokenType.Integer, Value = 6 },
             new TokenData { Type = TokenType.EndOfStatement }
         );
@@ -1107,54 +1107,27 @@ public class ParserTests
         var result = parser.ParserProgram();
 
         // Assert
-        var orExpression = result.Statements.Should().ContainSingle()
+        var orExpression1 = result.Statements.Should().ContainSingle()
                                .Which.Should().BeOfType<LogicExpression>().Subject;
-        orExpression.Operator.Should().Be(TokenType.OperatorOr);
-        orExpression.Expressions.Should().HaveCount(4);
-        orExpression.Expressions[0].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
-        orExpression.Expressions[1].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
+        orExpression1.Operator.Should().Be(TokenType.OperatorOr);
+        orExpression1.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
+        var orExpression2 = orExpression1.Rhs.Should().BeOfType<LogicExpression>().Subject;
         
-        var andExpression = orExpression.Expressions[2].Should().BeOfType<LogicExpression>().Subject;
-        andExpression.Operator.Should().Be(TokenType.OperatorAnd);
-        andExpression.Expressions.Should().HaveCount(3);
-        andExpression.Expressions[0].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(3);
-        andExpression.Expressions[1].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(4);
-        andExpression.Expressions[2].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(5);
+        orExpression2.Operator.Should().Be(TokenType.OperatorOr);
+        orExpression2.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
+        var orExpression3 = orExpression2.Rhs.Should().BeOfType<LogicExpression>().Subject;
         
-        orExpression.Expressions[3].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(6);
-    }
-    
-    [Fact]
-    public void Parser_ShouldParseArithmeticalExpression_FromManyAddEntries()
-    {
-        // Arrange
-        var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Integer, Value = 1 },
-            new TokenData { Type = TokenType.OperatorAdd },
-            new TokenData { Type = TokenType.String, Value = "2" },
-            new TokenData { Type = TokenType.OperatorSubtract },
-            new TokenData { Type = TokenType.Boolean, Value = false },
-            new TokenData { Type = TokenType.OperatorAdd },
-            new TokenData { Type = TokenType.Null },
-            new TokenData { Type = TokenType.EndOfStatement }
-        );
-
-        // Act
-        var result = parser.ParserProgram();
-
-        // Assert
-        var expression = result.Statements.Should().ContainSingle()
-                               .Which.Should().BeOfType<ArithmeticalExpression>().Subject;
-        expression.Expressions.Should().HaveCount(4);
-        expression.Expressions[0].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
-        expression.Expressions[1].Should().BeOfType<ConstFactor>().Which.Value.Should().Be("2");
-        expression.Expressions[2].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(false);
-        expression.Expressions[3].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(null);
-        expression.Operators.Should().Equal(
-            TokenType.OperatorAdd,
-            TokenType.OperatorSubtract,
-            TokenType.OperatorAdd
-        );
+        orExpression3.Operator.Should().Be(TokenType.OperatorOr);
+        var andExpression1 = orExpression3.Lhs.Should().BeOfType<LogicExpression>().Subject;
+        orExpression3.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(6);
+        
+        andExpression1.Operator.Should().Be(TokenType.OperatorAnd);
+        andExpression1.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(3);
+        var andExpression2 = andExpression1.Rhs.Should().BeOfType<LogicExpression>().Subject;
+        
+        andExpression2.Operator.Should().Be(TokenType.OperatorAnd);
+        andExpression2.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(4);
+        andExpression2.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(5);
     }
     
     [Fact]
@@ -1188,8 +1161,8 @@ public class ParserTests
 
         var expr = result.Statements.Should().ContainSingle().Which
                          .Should().BeOfType<NullCoalescingExpression>().Subject;
-
-        expr.Expressions.Should().HaveCount(2);
+        expr.Lhs.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("a");
+        expr.Rhs.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("b");
     }
 
     [Fact]
@@ -1209,17 +1182,15 @@ public class ParserTests
         var result = parser.ParserProgram();
         
         var multiplyExpression = result.Statements.Should().ContainSingle().Which.Should().BeOfType<ArithmeticalExpression>().Subject;
-        multiplyExpression.Operators.Should().ContainEquivalentOf(TokenType.OperatorMultiply);
-        multiplyExpression.Expressions.Should().HaveCount(2);
-        multiplyExpression.Expressions[0].Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("a");
+        multiplyExpression.Operator.Should().Be(TokenType.OperatorMultiply);
+        multiplyExpression.Lhs.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("a");
         
-        var block = multiplyExpression.Expressions[1].Should().BeOfType<Block>().Subject;
+        var block = multiplyExpression.Rhs.Should().BeOfType<Block>().Subject;
         
         var addExpression = block.Statements.Should().ContainSingle().Which.Should().BeOfType<ArithmeticalExpression>().Subject;
-        addExpression.Operators.Should().ContainEquivalentOf(TokenType.OperatorAdd);
-        addExpression.Expressions.Should().HaveCount(2);
-        addExpression.Expressions[0].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
-        addExpression.Expressions[1].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
+        addExpression.Operator.Should().Be(TokenType.OperatorAdd);
+        addExpression.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
+        addExpression.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
     }
 
     [Fact]
@@ -1259,34 +1230,30 @@ public class ParserTests
 
         // LogicLeft || LogicRight | (-2 + 3 * 4 > 5) || ({ if 6 > 7 { 8 } } ?? a);
         logicExpr.Operator.Should().Be(TokenType.OperatorOr);
-        logicExpr.Expressions.Should().HaveCount(2);
-        var logicLeft = logicExpr.Expressions[0].Should().BeOfType<CompereExpression>().Subject;
-        var logicRight = logicExpr.Expressions[1].Should().BeOfType<NullCoalescingExpression>().Subject;
+        var logicLeft = logicExpr.Lhs.Should().BeOfType<CompereExpression>().Subject;
+        var logicRight = logicExpr.Rhs.Should().BeOfType<NullCoalescingExpression>().Subject;
 
         // LogicLeft: CompLeft > 5 | (-2 + 3 * 4) > (5)
         logicLeft.Operator.Should().Be(TokenType.OperatorGreater);
-        var compLeft = logicLeft.LeftExpression.Should().BeOfType<ArithmeticalExpression>().Subject;
-        logicLeft.RightExpression.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(5);
+        var compLeft = logicLeft.Lhs.Should().BeOfType<ArithmeticalExpression>().Subject;
+        logicLeft.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(5);
 
         // CompLeft: -2 + ArithmeticRight | (-2) + (3 * 4)
-        compLeft.Operators.Should().ContainInOrder(TokenType.OperatorAdd);
-        compLeft.Expressions.Should().HaveCount(2);
-        compLeft.Expressions[0].Should().BeOfType<NotExpression>().Which.Factor
+        compLeft.Operator.Should().Be(TokenType.OperatorAdd);
+        compLeft.Lhs.Should().BeOfType<NotExpression>().Which.Factor
             .Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
-        var arithmeticRight = compLeft.Expressions[1].Should().BeOfType<ArithmeticalExpression>().Subject;
+        var arithmeticRight = compLeft.Rhs.Should().BeOfType<ArithmeticalExpression>().Subject;
         
         // ArithmeticRight: 3 * 4
-        arithmeticRight.Operators.Should().ContainInOrder(TokenType.OperatorMultiply);
-        arithmeticRight.Expressions.Should().HaveCount(2);
-        arithmeticRight.Expressions[0].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(3);
-        arithmeticRight.Expressions[1].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(4);
+        arithmeticRight.Operator.Should().Be(TokenType.OperatorMultiply);
+        arithmeticRight.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(3);
+        arithmeticRight.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(4);
         
         // LogicRight: NullCoalRight ?? a | ({ if 6 > 7 { 8 } }) ?? (a)
-        logicRight.Expressions.Should().HaveCount(2);
-        var nullCoalRight = logicRight.Expressions[0].Should().BeOfType<Block>()
+        var nullCoalRight = logicRight.Lhs.Should().BeOfType<Block>()
                                       .Which.Statements.Should().ContainSingle()
                                       .Which.Should().BeOfType<Condition>().Subject;
-        logicRight.Expressions[1].Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("a");
+        logicRight.Rhs.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("a");
         
         // NullCoalRight: condition | if 6 > 7 { 8 }
         nullCoalRight.ConditionaryItems.Should().ContainSingle()

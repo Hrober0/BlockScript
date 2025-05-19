@@ -1,3 +1,5 @@
+using BlockScript.Reader;
+
 namespace BlockScript.Lexer;
 
 public readonly struct TokenData
