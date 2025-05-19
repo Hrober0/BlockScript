@@ -60,7 +60,6 @@ public class LanguageParser
         ?? TryParseLambda()
         ?? TryParseCondition()
         ?? TryParseLoop()
-        ?? TryParsePrint()
         ??  TryParseExpression();
 
     private IStatement? TryParseAssign()
@@ -156,22 +155,6 @@ public class LanguageParser
         var body = ParseStatement(errorMessage);
         
         return new Loop(condition, body, startToken.Position);
-    }
-    
-    private IStatement? TryParsePrint()
-    {
-        if (!TryTakeToken(TokenType.Print, out var startToken))
-        {
-            return null;
-        }
-        
-        var errorMessage = $"Print should have \"{TokenType.Print.TextValue()}(expression)\" syntax";
-
-        TakeTokenOrThrow(TokenType.ParenhticesOpen, errorMessage);
-        var body = ParseStatement(errorMessage);
-        TakeTokenOrThrow(TokenType.ParenhticesClose, errorMessage);
-        
-        return new Print(body, startToken.Position);
     }
     
     #endregion
