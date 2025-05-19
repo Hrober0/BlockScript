@@ -1,4 +1,5 @@
-﻿using BlockScript.Utilities;
+﻿using BlockScript.Lexer;
+using BlockScript.Utilities;
 
 namespace BlockScript.Reader;
 
@@ -13,7 +14,7 @@ public class CharacterReader(TextReader textReader)
     {
         if (_currentCharacter == UnifiedCharacters.EndOfText)
         {
-            return new(UnifiedCharacters.EndOfText, _line, _column);
+            return new Character(UnifiedCharacters.EndOfText, new Position(_line, _column));
         }
         
         if (_currentCharacter == UnifiedCharacters.NewLine)
@@ -44,7 +45,7 @@ public class CharacterReader(TextReader textReader)
         }
 
         _column++;
-        return new(_currentCharacter, _line, _column);
+        return new Character(_currentCharacter, new Position(_line, _column));
     }
 
     private static char ParseChar(int streamChar)

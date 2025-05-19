@@ -1,3 +1,5 @@
-﻿namespace BlockScript.Reader;
+﻿using BlockScript.Lexer;
 
-public record Character(char Char, int Line, int Column);
+namespace BlockScript.Reader;
+
+public record Character(char Char, Position Position);

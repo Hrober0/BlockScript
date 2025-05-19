@@ -5,8 +5,9 @@ public enum TokenType
     // Syntax
     EndOfText,
     EndOfStatement,
-    ParenhticesOpen,
-    ParenhticesClose,
+    Comma,
+    ParenthesesOpen,
+    ParenthesesClose,
     BraceOpen,
     BraceClose,
     
@@ -33,7 +34,6 @@ public enum TokenType
     OperatorGreaterEqual,
     OperatorGreater,
     OperatorNotEqual,
-    OperatorNot,
     OperatorOr,
     OperatorAnd,
     OperatorNullCoalescing,
