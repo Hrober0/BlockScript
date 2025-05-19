@@ -1,4 +1,2 @@
-()===<>>=>0001230 """ssss asd\n";   sdfsdf;
-;null;truewe false true||&&=-+{}*/#adasdad  a
-#w
-loop{}{} loopw
+fib = (i) => if i <= 1 1 else fib(i-1) + fib(i-2);
+fib(4); # 1 2 3 5

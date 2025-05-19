@@ -55,7 +55,7 @@ public class Lexer
             }
         }
         
-        throw new TokenException(startCharacter.Line, startCharacter.Column, $"Invalid token \'{startCharacter.Char}\'");
+        throw new TokenException(startCharacter.Position, $"Invalid token \'{startCharacter.Char}\'");
     }
     
     private bool TryBuildNumber(out TokenData token)
@@ -72,7 +72,7 @@ public class Lexer
             var newValue = value * 10 + nextDigit;
             if (newValue < value)
             {
-                throw new TokenException(startCharacter.Line, startCharacter.Column,
+                throw new TokenException(startCharacter.Position,
                     $"Int value {value}{nextDigit} exceeds {int.MaxValue}.");
             }
             value = newValue;
@@ -81,8 +81,7 @@ public class Lexer
             
         token = new TokenData
         {
-            Line = startCharacter.Line,
-            Column = startCharacter.Column,
+            Position = startCharacter.Position,
             Type = TokenType.Integer,
             Value = value,
         };
@@ -103,7 +102,7 @@ public class Lexer
         {
             if (stringBuilder.Length >= MAX_BUFFER_LENGTH)
             {
-                throw new TokenException(_buffer.Next.Line, _buffer.Next.Column,
+                throw new TokenException(_buffer.Next.Position,
                     $"Identifier exceeds {MAX_BUFFER_LENGTH} characters.");
             }
 
@@ -122,8 +121,7 @@ public class Lexer
             
             token = new TokenData
             {
-                Line = startCharacter.Line,
-                Column = startCharacter.Column,
+                Position = startCharacter.Position,
                 Type = tokenType,
                 Value = value,
             };
@@ -132,8 +130,7 @@ public class Lexer
             
         token = new TokenData
         {
-            Line = startCharacter.Line,
-            Column = startCharacter.Column,
+            Position = startCharacter.Position,
             Type = TokenType.Identifier,
             Value = stringValue,
         };
@@ -155,7 +152,7 @@ public class Lexer
         {
             if (stringBuilder.Length >= MAX_BUFFER_LENGTH)
             {
-                throw new TokenException(_buffer.Current.Line, _buffer.Current.Column,
+                throw new TokenException(_buffer.Current.Position,
                     $"Comment exceeds {MAX_BUFFER_LENGTH} characters.");
             }
                 
@@ -165,8 +162,7 @@ public class Lexer
             
         token = new TokenData
         {
-            Line = startCharacter.Line,
-            Column = startCharacter.Column,
+            Position = startCharacter.Position,
             Type = TokenType.Comment,
             Value = stringBuilder.ToString(),
         };
@@ -188,8 +184,7 @@ public class Lexer
         var symbol = foundSymbols[0];
         token = new TokenData
         {
-            Line = _buffer.Current.Line,
-            Column = _buffer.Current.Column,
+            Position = _buffer.Current.Position,
             Type = symbol.tokenType,
             Value = symbol.token,
         };
@@ -220,8 +215,7 @@ public class Lexer
                 _buffer.Take();
                 token = new TokenData
                 {
-                    Line = startCharacter.Line,
-                    Column = startCharacter.Column,
+                    Position = startCharacter.Position,
                     Type = TokenType.String,
                     Value = stringBuilder.ToString(),
                 };
@@ -230,7 +224,7 @@ public class Lexer
 
             if (stringBuilder.Length >= MAX_BUFFER_LENGTH)
             {
-                throw new TokenException(_buffer.Next.Line, _buffer.Next.Column,
+                throw new TokenException(_buffer.Next.Position,
                     $"String exceeds {MAX_BUFFER_LENGTH} characters.");
             }
 
@@ -242,11 +236,11 @@ public class Lexer
 
         if (isSpecialCharacter)
         {
-            throw new TokenException(_buffer.Current.Line, _buffer.Current.Column,
+            throw new TokenException(_buffer.Current.Position,
                 $"Unexpected end of string, expected character after \'{SPECIAL_CHARACTER}\' and string close \'{STRING_IDENTIFIER}\'.");    
         }
         
-        throw new TokenException(_buffer.Current.Line, _buffer.Current.Column,
+        throw new TokenException(_buffer.Current.Position,
             $"Unexpected end of string, expected \'{STRING_IDENTIFIER}\'");
     }
 }

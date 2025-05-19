@@ -19,8 +19,8 @@ public class CharacterReaderTests
             
             // Assert
             character.Char.Should().Be(UnifiedCharacters.EndOfText);
-            character.Line.Should().Be(1);
-            character.Column.Should().Be(1);
+            character.Position.Line.Should().Be(1);
+            character.Position.Column.Should().Be(1);
         }
         
         [Fact]
@@ -36,12 +36,12 @@ public class CharacterReaderTests
             
             // Assert
             character1.Char.Should().Be(UnifiedCharacters.EndOfText);
-            character1.Line.Should().Be(1);
-            character1.Column.Should().Be(1);
+            character1.Position.Line.Should().Be(1);
+            character1.Position.Column.Should().Be(1);
             
             character2.Char.Should().Be(UnifiedCharacters.EndOfText);
-            character2.Line.Should().Be(1);
-            character2.Column.Should().Be(1);
+            character2.Position.Line.Should().Be(1);
+            character2.Position.Column.Should().Be(1);
         }
         
         [Fact]
@@ -57,12 +57,12 @@ public class CharacterReaderTests
             
             // Assert
             character1.Char.Should().Be('+');
-            character1.Line.Should().Be(1);
-            character1.Column.Should().Be(1);
+            character1.Position.Line.Should().Be(1);
+            character1.Position.Column.Should().Be(1);
             
             character2.Char.Should().Be(UnifiedCharacters.EndOfText);
-            character2.Line.Should().Be(1);
-            character2.Column.Should().Be(2);
+            character2.Position.Line.Should().Be(1);
+            character2.Position.Column.Should().Be(2);
         }
         
         [Theory]
@@ -79,8 +79,8 @@ public class CharacterReaderTests
             
             // Assert
             character.Char.Should().Be(UnifiedCharacters.WhiteSpace);
-            character.Line.Should().Be(1);
-            character.Column.Should().Be(1);
+            character.Position.Line.Should().Be(1);
+            character.Position.Column.Should().Be(1);
         }
 
         [Theory]
@@ -100,15 +100,15 @@ public class CharacterReaderTests
             
             // Assert
             character1.Char.Should().Be('+');
-            character1.Line.Should().Be(1);
-            character1.Column.Should().Be(1);
+            character1.Position.Line.Should().Be(1);
+            character1.Position.Column.Should().Be(1);
 
             character2.Char.Should().Be(UnifiedCharacters.NewLine);
-            character2.Line.Should().Be(1);
-            character2.Column.Should().Be(2);
+            character2.Position.Line.Should().Be(1);
+            character2.Position.Column.Should().Be(2);
             
             character3.Char.Should().Be('-');
-            character3.Line.Should().Be(2);
-            character3.Column.Should().Be(1);
+            character3.Position.Line.Should().Be(2);
+            character3.Position.Column.Should().Be(1);
         }
 }

@@ -288,7 +288,7 @@ public class ParserTests
         // Assert
         var lambda = result.Statements.Should().ContainSingle()
             .Which.Should().BeOfType<Lambda>().Subject;
-        lambda.Arguments.Should().ContainSingle().Which.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be( "x");
+        lambda.Arguments.Should().ContainSingle().Which.Should().Be( "x");
         lambda.Body.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(42);
     }
     
@@ -312,7 +312,7 @@ public class ParserTests
         // Assert
         var lambda = result.Statements.Should().ContainSingle()
                            .Which.Should().BeOfType<Lambda>().Subject;
-        lambda.Arguments.Should().ContainSingle().Which.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be( "x");
+        lambda.Arguments.Should().ContainSingle().Which.Should().Be( "x");
         lambda.Body.Should().BeOfType<Block>().Which.Statements.Should().BeEmpty();
     }
 
@@ -339,7 +339,7 @@ public class ParserTests
         // Assert
         var lambda = result.Statements.Should().ContainSingle()
             .Which.Should().BeOfType<Lambda>().Subject;
-        lambda.Arguments.Should().BeEquivalentTo([new VariableFactor("x"), new VariableFactor("y")]);
+        lambda.Arguments.Should().BeEquivalentTo(["x", "y"]);
 
         var body = lambda.Body.Should().BeOfType<ArithmeticalExpression>().Subject;
         body.Expressions.Should().HaveCount(2);
@@ -348,6 +348,32 @@ public class ParserTests
         body.Operators.Should().ContainSingle().Which.Should().Be(TokenType.OperatorAdd);
     }
 
+    [Fact]
+    public void Parser_ShouldParseLambda_WithTrailingComma()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.Identifier, Value = "x" },
+            new TokenData { Type = TokenType.Comma },
+            new TokenData { Type = TokenType.ParenhticesClose },
+            new TokenData { Type = TokenType.OperatorArrow },
+            new TokenData { Type = TokenType.Identifier, Value = "y" },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        var lambda = result.Statements.Should().ContainSingle()
+            .Which.Should().BeOfType<Lambda>().Subject;
+        lambda.Arguments.Should().ContainSingle().Which.Should().Be("x");
+
+        var body = lambda.Body.Should().BeOfType<VariableFactor>()
+            .Which.Identifier.Should().Be("y");
+    }
+    
     [Fact]
     public void Parser_ShouldThrow_WhenLambdaMissingBody()
     {
@@ -914,6 +940,31 @@ public class ParserTests
     }
     
     [Fact]
+    public void Parser_ShouldParseFunctionCall_WithTrailingComma()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Identifier, Value = "sum" },
+            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Comma },
+            new TokenData { Type = TokenType.ParenhticesClose },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        var functionCall = result.Statements.Should().ContainSingle()
+            .Which.Should().BeOfType<FunctionCall>().Subject;
+
+        functionCall.Identifier.Should().Be("sum");
+        functionCall.Arguments.Should().ContainSingle().
+            Which.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
+    }
+    
+    [Fact]
     public void Parser_ShouldThrow_WhenArgumentsAreNotSeparatedByCommas()
     {
         // Arrange
@@ -967,24 +1018,6 @@ public class ParserTests
     }
 
     [Fact]
-    public void Parser_ShouldThrow_WhenFunctionCall_HasTrailingComma()
-    {
-        var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "foo" },
-            new TokenData { Type = TokenType.ParenhticesOpen },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
-            new TokenData { Type = TokenType.Comma },
-            new TokenData { Type = TokenType.ParenhticesClose },
-            new TokenData { Type = TokenType.EndOfStatement }
-        );
-
-        Action act = () => parser.ParserProgram();
-
-        act.Should().Throw<TokenException>()
-            .WithMessage("*Arguments expects expression after ','.*");
-    }
-
-    [Fact]
     public void Parser_ShouldThrow_WhenFunctionCall_EmptyCommasBetweenArguments()
     {
         var parser = CreateParserFromTokens(
@@ -1009,9 +1042,9 @@ public class ParserTests
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Identifier, Value = "negate" },
             new TokenData { Type = TokenType.ParenhticesOpen },
-            new TokenData { Type = TokenType.Integer, Value = 69 },
+            new TokenData { Type = TokenType.Integer, Value = 69, Position = new(1,69) },
             new TokenData { Type = TokenType.OperatorAdd },
-            new TokenData { Type = TokenType.Integer, Value = 42 },
+            new TokenData { Type = TokenType.Integer, Value = 42, Position = new(1,42) },
             new TokenData { Type = TokenType.ParenhticesClose },
             new TokenData { Type = TokenType.EndOfStatement }
         );
@@ -1028,7 +1061,7 @@ public class ParserTests
 
         var expr = functionCall.Arguments[0].Should().BeOfType<ArithmeticalExpression>().Subject;
         expr.Operators.Should().ContainEquivalentOf(TokenType.OperatorAdd);
-        expr.Expressions.Should().BeEquivalentTo([new ConstFactor(69), new ConstFactor(42)]);
+        expr.Expressions.Should().BeEquivalentTo([new ConstFactor(69, new(1, 69)), new ConstFactor(42, new(1, 42))]);
     }
 
     [Fact]
@@ -1078,11 +1111,11 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Integer, Value = 1, Position = new(1,1)},
             new TokenData { Type = tokenType },
-            new TokenData { Type = TokenType.Integer, Value = 2 },
+            new TokenData { Type = TokenType.Integer, Value = 2, Position = new(1,2) },
             new TokenData { Type = tokenType },
-            new TokenData { Type = TokenType.Integer, Value = 3 },
+            new TokenData { Type = TokenType.Integer, Value = 3, Position = new(1,3) },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -1093,7 +1126,9 @@ public class ParserTests
         var expression = result.Statements.Should().ContainSingle()
               .Which.Should().BeOfType<ArithmeticalExpression>().Subject;
         expression.Expressions.Should().BeEquivalentTo([
-            new ConstFactor(1), new ConstFactor(2), new ConstFactor(3)
+            new ConstFactor(1, new(1,1)),
+            new ConstFactor(2, new (1, 2)),
+            new ConstFactor(3, new (1, 3))
         ]);
         expression.Operators.Should().BeEquivalentTo([tokenType, tokenType]);
     }
@@ -1133,11 +1168,11 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Integer, Value = 1, Position = new(1, 1)},
             new TokenData { Type = tokenType },
-            new TokenData { Type = TokenType.Integer, Value = 2 },
+            new TokenData { Type = TokenType.Integer, Value = 2, Position = new(1, 2) },
             new TokenData { Type = tokenType },
-            new TokenData { Type = TokenType.Integer, Value = 3 },
+            new TokenData { Type = TokenType.Integer, Value = 3, Position = new(1, 3) },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -1148,7 +1183,9 @@ public class ParserTests
         var expression = result.Statements.Should().ContainSingle()
                                .Which.Should().BeOfType<LogicExpression>().Subject;
         expression.Expressions.Should().BeEquivalentTo([
-            new ConstFactor(1), new ConstFactor(2), new ConstFactor(3)
+            new ConstFactor(1, new(1,1)),
+            new ConstFactor(2, new (1, 2)),
+            new ConstFactor(3, new (1, 3))
         ]);
         expression.Operator.Should().Be(tokenType);
     }

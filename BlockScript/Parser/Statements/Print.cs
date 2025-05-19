@@ -1,16 +1,10 @@
-﻿using BlockScript.Parser.Expressions;
+﻿using BlockScript.Lexer;
+using BlockScript.Parser.Expressions;
 
 namespace BlockScript.Parser.Statements
 {
-    public class Print : IStatement
+    public record Print(IStatement Body, Position Position) : IStatement
     {
-        public IStatement Body { get; }
-
-        public Print(IStatement body)
-        {
-            Body = body;
-        }
-
         public override string ToString() => $"Print({Body})";
     }
 }

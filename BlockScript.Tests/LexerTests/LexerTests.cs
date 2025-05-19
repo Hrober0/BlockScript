@@ -545,8 +545,8 @@ public class LexerTests
         // Assert
         token.Should().NotBeNull();
         token.Type.Should().Be(TokenType.String);
-        token.Line.Should().Be(1);
-        token.Column.Should().Be(1);
+        token.Position.Line.Should().Be(1);
+        token.Position.Column.Should().Be(1);
     }
 
     [Fact]
@@ -563,8 +563,8 @@ public class LexerTests
         // Assert
         token.Should().NotBeNull();
         token.Type.Should().Be(TokenType.Comment);
-        token.Line.Should().Be(1);
-        token.Column.Should().Be(1);
+        token.Position.Line.Should().Be(1);
+        token.Position.Column.Should().Be(1);
     }
 
     [Fact]
@@ -581,8 +581,8 @@ public class LexerTests
         // Assert
         token.Should().NotBeNull();
         token.Type.Should().Be(TokenType.Integer);
-        token.Line.Should().Be(1);
-        token.Column.Should().Be(1);
+        token.Position.Line.Should().Be(1);
+        token.Position.Column.Should().Be(1);
     }
 
     [Fact]
@@ -599,8 +599,8 @@ public class LexerTests
         // Assert
         token.Should().NotBeNull();
         token.Type.Should().Be(TokenType.Identifier);
-        token.Line.Should().Be(1);
-        token.Column.Should().Be(1);
+        token.Position.Line.Should().Be(1);
+        token.Position.Column.Should().Be(1);
     }
 
     [Fact]
@@ -625,48 +625,48 @@ public class LexerTests
 
         // Assert for token1 (variableName)
         token1.Type.Should().Be(TokenType.Identifier);
-        token1.Line.Should().Be(1);
-        token1.Column.Should().Be(1);
+        token1.Position.Line.Should().Be(1);
+        token1.Position.Column.Should().Be(1);
 
         // Assert for token2 (;)
         token2.Type.Should().Be(TokenType.EndOfStatement);
-        token2.Line.Should().Be(1);
-        token2.Column.Should().Be(13);
+        token2.Position.Line.Should().Be(1);
+        token2.Position.Column.Should().Be(13);
 
         // Assert for token3 (loop)
         token3.Type.Should().Be(TokenType.Loop);
-        token3.Line.Should().Be(2);
-        token3.Column.Should().Be(1);
+        token3.Position.Line.Should().Be(2);
+        token3.Position.Column.Should().Be(1);
 
         // Assert for token4 (;)
         token4.Type.Should().Be(TokenType.EndOfStatement);
-        token4.Line.Should().Be(3);
-        token4.Column.Should().Be(1);
+        token4.Position.Line.Should().Be(3);
+        token4.Position.Column.Should().Be(1);
 
         // Assert for token5 (x)
         token5.Type.Should().Be(TokenType.Identifier);
-        token5.Line.Should().Be(3);
-        token5.Column.Should().Be(2);
+        token5.Position.Line.Should().Be(3);
+        token5.Position.Column.Should().Be(2);
 
         // Assert for token6 (=)
         token6.Type.Should().Be(TokenType.OperatorAssign);
-        token6.Line.Should().Be(3);
-        token6.Column.Should().Be(4);
+        token6.Position.Line.Should().Be(3);
+        token6.Position.Column.Should().Be(4);
 
         // Assert for token7 (10)
         token7.Type.Should().Be(TokenType.Integer);
-        token7.Line.Should().Be(3);
-        token7.Column.Should().Be(6);
+        token7.Position.Line.Should().Be(3);
+        token7.Position.Column.Should().Be(6);
 
         // Assert for token8 (;)
         token8.Type.Should().Be(TokenType.EndOfStatement);
-        token8.Line.Should().Be(3);
-        token8.Column.Should().Be(8);
+        token8.Position.Line.Should().Be(3);
+        token8.Position.Column.Should().Be(8);
 
         // Assert for token9 (comment)
         token9.Type.Should().Be(TokenType.Comment);
-        token9.Line.Should().Be(4);
-        token9.Column.Should().Be(1);
+        token9.Position.Line.Should().Be(4);
+        token9.Position.Column.Should().Be(1);
         
         // Assert for token10 (end)
         token10.Type.Should().Be(TokenType.EndOfText);

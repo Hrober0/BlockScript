@@ -1,18 +1,12 @@
 ﻿using System.Text;
+using BlockScript.Lexer;
 using BlockScript.Parser.Statements;
 using BlockScript.Utilities;
 
 namespace BlockScript.Parser.Factors;
 
-public class Block : IFactor
+public record Block(List<IStatement> Statements, Position Position) : IFactor
 {
-    public List<IStatement> Statements { get; }
-
-    public Block(List<IStatement> statements)
-    {
-        Statements = statements;
-    }
-    
     public override string ToString()
     {
         var sb = new StringBuilder("Block {");
