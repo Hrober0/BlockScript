@@ -377,7 +377,6 @@ public class LexerTests
     [InlineData("loop", TokenType.Loop)]
     [InlineData("if",   TokenType.If)]
     [InlineData("else", TokenType.Else)]
-    [InlineData("print", TokenType.Print)]
     public void GetToken_ShouldReturnValidKeyWordToken(string keyword, TokenType tokenType)
     {
         // Arrange

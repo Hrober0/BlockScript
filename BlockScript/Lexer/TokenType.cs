@@ -6,8 +6,8 @@ public enum TokenType
     EndOfText,
     EndOfStatement,
     Comma,
-    ParenhticesOpen,
-    ParenhticesClose,
+    ParenthesesOpen,
+    ParenthesesClose,
     BraceOpen,
     BraceClose,
     
@@ -15,7 +15,6 @@ public enum TokenType
     Loop,
     If,
     Else,
-    Print,
     
     // Data
     Integer,

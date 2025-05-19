@@ -274,9 +274,9 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.Identifier, Value = "x" },
-            new TokenData { Type = TokenType.ParenhticesClose },
+            new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.OperatorArrow },
             new TokenData { Type = TokenType.Integer, Value = 42 },
             new TokenData { Type = TokenType.EndOfStatement }
@@ -297,9 +297,9 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.Identifier, Value = "x" },
-            new TokenData { Type = TokenType.ParenhticesClose },
+            new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.OperatorArrow },
             new TokenData { Type = TokenType.BraceOpen },
             new TokenData { Type = TokenType.BraceClose },
@@ -321,11 +321,11 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.Identifier, Value = "x" },
             new TokenData { Type = TokenType.Comma },
             new TokenData { Type = TokenType.Identifier, Value = "y" },
-            new TokenData { Type = TokenType.ParenhticesClose },
+            new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.OperatorArrow },
             new TokenData { Type = TokenType.Identifier, Value = "z" },
             new TokenData { Type = TokenType.OperatorAdd },
@@ -353,10 +353,10 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.Identifier, Value = "x" },
             new TokenData { Type = TokenType.Comma },
-            new TokenData { Type = TokenType.ParenhticesClose },
+            new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.OperatorArrow },
             new TokenData { Type = TokenType.Identifier, Value = "y" },
             new TokenData { Type = TokenType.EndOfStatement }
@@ -379,9 +379,9 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.Identifier, Value = "x" },
-            new TokenData { Type = TokenType.ParenhticesClose },
+            new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.OperatorArrow }
         );
 
@@ -398,9 +398,9 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.Identifier, Value = "x" },
-            new TokenData { Type = TokenType.ParenhticesClose },
+            new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.Integer, Value = 42 }
         );
 
@@ -417,7 +417,7 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.OperatorArrow },
             new TokenData { Type = TokenType.Integer, Value = 42 }
         );
@@ -751,114 +751,6 @@ public class ParserTests
     }
     
     #endregion
-
-    #region Print
-
-    [Fact]
-    public void Parser_ShouldParsePrint()
-    {
-        // Arrange
-        var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Print },
-            new TokenData { Type = TokenType.ParenhticesOpen },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
-            new TokenData { Type = TokenType.ParenhticesClose },
-            new TokenData { Type = TokenType.EndOfStatement }
-        );
-
-        // Act
-        var result = parser.ParserProgram();
-
-        // Assert
-        var lambda = result.Statements.Should().ContainSingle()
-                           .Which.Should().BeOfType<Print>().Subject;
-        lambda.Body.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
-    }
-    
-    [Fact]
-    public void Parser_ShouldParsePrint_WithComplexExpression()
-    {
-        // Arrange
-        var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Print },
-            new TokenData { Type = TokenType.ParenhticesOpen },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
-            new TokenData { Type = TokenType.OperatorAdd },
-            new TokenData { Type = TokenType.Integer, Value = 2 },
-            new TokenData { Type = TokenType.ParenhticesClose },
-            new TokenData { Type = TokenType.EndOfStatement }
-        );
-
-        // Act
-        var result = parser.ParserProgram();
-
-        // Assert
-        var print = result.Statements.Should().ContainSingle()
-                          .Which.Should().BeOfType<Print>().Subject;
-
-        var expr = print.Body.Should().BeOfType<ArithmeticalExpression>().Subject;
-        expr.Expressions.Should().HaveCount(2);
-    }
-
-    [Fact]
-    public void Parser_ShouldThrow_WhenPrintMissingOpeningParen()
-    {
-        // Arrange
-        var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Print },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
-            new TokenData { Type = TokenType.ParenhticesClose },
-            new TokenData { Type = TokenType.EndOfStatement }
-        );
-
-        // Act
-        var act = () => parser.ParserProgram();
-
-        // Assert
-        act.Should().Throw<TokenException>()
-           .WithMessage("*Expected '('*");
-    }
-
-    [Fact]
-    public void Parser_ShouldThrow_WhenPrintMissingClosingParen()
-    {
-        // Arrange
-        var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Print },
-            new TokenData { Type = TokenType.ParenhticesOpen },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
-            new TokenData { Type = TokenType.EndOfStatement }
-        );
-
-        // Act
-        var act = () => parser.ParserProgram();
-
-        // Assert
-        act.Should().Throw<TokenException>()
-           .WithMessage("*Expected ')'*");
-    }
-    
-    [Fact]
-    public void Parser_ShouldThrow_WhenPrintHasNoExpression()
-    {
-        // Arrange
-        var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Print },
-            new TokenData { Type = TokenType.ParenhticesOpen },
-            new TokenData { Type = TokenType.ParenhticesClose },
-            new TokenData { Type = TokenType.EndOfStatement }
-        );
-
-        // Act
-        var act = () => parser.ParserProgram();
-
-        // Assert
-        act.Should().Throw<TokenException>()
-           .WithMessage("*expected statement*");
-    }
-
-
-    #endregion
     
     #region FunctionCall
 
@@ -868,8 +760,8 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Identifier, Value = "x" },
-            new TokenData { Type = TokenType.ParenhticesOpen },
-            new TokenData { Type = TokenType.ParenhticesClose },
+            new TokenData { Type = TokenType.ParenthesesOpen },
+            new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -890,9 +782,9 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Identifier, Value = "foo" },
-            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.Integer, Value = 1 },
-            new TokenData { Type = TokenType.ParenhticesClose },
+            new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -915,13 +807,13 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Identifier, Value = "sum" },
-            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.Integer, Value = 1 },
             new TokenData { Type = TokenType.Comma },
             new TokenData { Type = TokenType.Integer, Value = 2 },
             new TokenData { Type = TokenType.Comma },
             new TokenData { Type = TokenType.Integer, Value = 3 },
-            new TokenData { Type = TokenType.ParenhticesClose },
+            new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -945,10 +837,10 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Identifier, Value = "sum" },
-            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.Integer, Value = 1 },
             new TokenData { Type = TokenType.Comma },
-            new TokenData { Type = TokenType.ParenhticesClose },
+            new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -970,10 +862,10 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Identifier, Value = "sum" },
-            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.Integer, Value = 1 },
             new TokenData { Type = TokenType.Integer, Value = 2 },
-            new TokenData { Type = TokenType.ParenhticesClose },
+            new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -990,7 +882,7 @@ public class ParserTests
     {
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Identifier, Value = "foo" },
-            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.Integer, Value = 1 },
             new TokenData { Type = TokenType.EndOfStatement }
         );
@@ -1007,7 +899,7 @@ public class ParserTests
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Identifier, Value = "foo" },
             new TokenData { Type = TokenType.Integer, Value = 1 },
-            new TokenData { Type = TokenType.ParenhticesClose },
+            new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -1022,10 +914,10 @@ public class ParserTests
     {
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Identifier, Value = "foo" },
-            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.Comma },
             new TokenData { Type = TokenType.Comma },
-            new TokenData { Type = TokenType.ParenhticesClose },
+            new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -1041,11 +933,11 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Identifier, Value = "negate" },
-            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.Integer, Value = 69, Position = new(1,69) },
             new TokenData { Type = TokenType.OperatorAdd },
             new TokenData { Type = TokenType.Integer, Value = 42, Position = new(1,42) },
-            new TokenData { Type = TokenType.ParenhticesClose },
+            new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -1070,12 +962,12 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Identifier, Value = "ff" },
-            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.Identifier, Value = "getValue" },
-            new TokenData { Type = TokenType.ParenhticesOpen },
+            new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.Integer, Value = 7 },
-            new TokenData { Type = TokenType.ParenhticesClose },
-            new TokenData { Type = TokenType.ParenhticesClose },
+            new TokenData { Type = TokenType.ParenthesesClose },
+            new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
