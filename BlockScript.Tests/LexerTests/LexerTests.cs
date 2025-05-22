@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using BlockScript.Exceptions;
 using BlockScript.Lexer;
+using BlockScript.Lexer.FactorValues;
 using FluentAssertions;
 using Xunit;
 
@@ -36,7 +37,7 @@ public class LexerTests
 
         // Assert
         token.Type.Should().Be(TokenType.Loop);
-        token.Value.Should().Be("loop");
+        token.Value.Should().Be(new StringFactor("loop"));
     }
     
     #region comment
@@ -55,7 +56,7 @@ public class LexerTests
 
         // Assert
         token1.Type.Should().Be(TokenType.Comment);
-        token1.Value.Should().Be("This is a comment");
+        token1.Value.Should().Be(new StringFactor("This is a comment"));
         token2.Type.Should().Be(TokenType.EndOfText);
     }
     
@@ -133,7 +134,7 @@ public class LexerTests
 
         // Assert
         token1.Type.Should().Be(TokenType.Integer);
-        token1.Value.Should().Be(2147483647);
+        token1.Value.Should().Be(new IntFactor(2147483647));
         token2.Type.Should().Be(TokenType.EndOfText);
     }
     
@@ -151,7 +152,7 @@ public class LexerTests
 
         // Assert
         token1.Type.Should().Be(TokenType.Integer);
-        token1.Value.Should().Be(10);
+        token1.Value.Should().Be(new IntFactor(10));
         token2.Type.Should().Be(TokenType.EndOfText);
     }
 
@@ -225,7 +226,7 @@ public class LexerTests
 
         // Assert
         token1.Type.Should().Be(TokenType.String);
-        token1.Value.Should().Be("Hello, World!");
+        token1.Value.Should().Be(new StringFactor("Hello, World!"));
         token2.Type.Should().Be(TokenType.EndOfText);
     }
     
@@ -242,7 +243,7 @@ public class LexerTests
 
         // Assert
         token.Type.Should().Be(TokenType.String);
-        token.Value.Should().Be("");
+        token.Value.Should().Be(new StringFactor(""));
     }
     
     [Fact]
@@ -260,9 +261,9 @@ public class LexerTests
 
         // Assert
         token1.Type.Should().Be(TokenType.String);
-        token1.Value.Should().Be("Hello, World!");
+        token1.Value.Should().Be(new StringFactor("Hello, World!"));
         token2.Type.Should().Be(TokenType.String);
-        token2.Value.Should().Be("a");
+        token2.Value.Should().Be(new StringFactor("a"));
         token3.Type.Should().Be(TokenType.EndOfText);
     }
     
@@ -279,7 +280,7 @@ public class LexerTests
 
         // Assert
         token.Type.Should().Be(TokenType.String);
-        token.Value.Should().Be("[\\\"]");
+        token.Value.Should().Be(new StringFactor("[\\\"]"));
     }
 
     [Fact]
@@ -463,8 +464,8 @@ public class LexerTests
         lexer.GetToken().Type.Should().Be(TokenType.OperatorGreaterEqual);
         lexer.GetToken().Type.Should().Be(TokenType.OperatorNotEqual);
         lexer.GetToken().Type.Should().Be(TokenType.OperatorAdd);
-        lexer.GetToken().Value.Should().Be("==");
-        lexer.GetToken().Value.Should().Be("=");
+        lexer.GetToken().Value.Should().Be(new StringFactor("=="));
+        lexer.GetToken().Value.Should().Be(new StringFactor("="));
         lexer.GetToken().Type.Should().Be(TokenType.EndOfText);
     }
     

@@ -1,6 +1,7 @@
 ﻿using BlockScript.Exceptions;
 using BlockScript.Interpreter.BuildInMethods;
 using BlockScript.Lexer;
+using BlockScript.Lexer.FactorValues;
 using BlockScript.Parser.Expressions;
 using BlockScript.Parser.Factors;
 using BlockScript.Parser.Statements;
@@ -16,7 +17,7 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
     
     private Context CurrentContext => _contextStack.Peek();
     
-    public object? ExecuteProgram(Block block)
+    public IFactorValue ExecuteProgram(Block block)
     {
         var startContext = new Context(null);
         foreach (var method in buildInMethods)
@@ -27,7 +28,7 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         return Execute(block);
     }
     
-    private object? Execute(IStatement statement)
+    private IFactorValue Execute(IStatement statement)
     {
         return statement switch
         {
@@ -53,19 +54,19 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
 
     #region Statements
 
-    private object? Execute(Block block)
+    private IFactorValue Execute(Block block)
     {
-        object? returnValue = null;
+        IFactorValue? returnValue = null;
         foreach (var statement in block.Statements)
         {
             returnValue = Execute(statement);
         }
-        return returnValue;
+        return returnValue ?? new NullFactor();
     }
 
-    private object? Execute(Assign assign)
+    private IFactorValue Execute(Assign assign)
     {
-        if (assign.NullAssign && CurrentContext.TryGetData(assign.Identifier, out var dataValue) && dataValue != null)
+        if (assign.NullAssign && CurrentContext.TryGetData(assign.Identifier, out var dataValue) && dataValue is not NullFactor)
         {
             return dataValue;
         }
@@ -75,11 +76,11 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         return newValue;
     }
 
-    private object? Execute(Lambda lambda) => lambda;
+    private IFactorValue Execute(Lambda lambda) => lambda;
     
-    private object? Execute(BuildInMethod buildInMethod) => buildInMethod.Execute(CurrentContext);
+    private IFactorValue Execute(BuildInMethod buildInMethod) => buildInMethod.Execute(CurrentContext);
 
-    private object? Execute(FunctionCall functionCall)
+    private IFactorValue Execute(FunctionCall functionCall)
     {
         var dataValue = CurrentContext.GetContextData(functionCall.Identifier, functionCall.Position);
 
@@ -108,7 +109,7 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         return result;
     }
 
-    private object? Execute(Condition condition)
+    private IFactorValue Execute(Condition condition)
     {
         foreach (var conditionItem in condition.ConditionaryItems)
         {
@@ -123,18 +124,18 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
             return Execute(condition.ElseBody);
         }
 
-        return null;
+        return new NullFactor();
     }
 
     #endregion
 
     #region Expressions
 
-    private object? Execute(CompereExpression compereExpression)
+    private IFactorValue Execute(CompereExpression compereExpression)
     {
         var left = ParseInt(Execute(compereExpression.Lhs), compereExpression.Lhs.Position);
         var right = ParseInt(Execute(compereExpression.Rhs), compereExpression.Rhs.Position);
-        return compereExpression.Operator switch
+        var result = compereExpression.Operator switch
         {
             TokenType.OperatorEqual => left == right,
             TokenType.OperatorLessEqual => left <= right,
@@ -144,81 +145,86 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
             TokenType.OperatorNotEqual => left != right,
             _ => throw new RuntimeException(compereExpression.Position, $"Unexpected {compereExpression.Operator.TextValue()} operator in compere expression!")
         };
+        return new BoolFactor(result);
     }
     
-    private object? Execute(ArithmeticalExpression arithmeticalExpression)
+    private IFactorValue Execute(ArithmeticalExpression arithmeticalExpression)
     {
         var left = Execute(arithmeticalExpression.Lhs);
         var right = Execute(arithmeticalExpression.Rhs);
 
-        if (arithmeticalExpression.Operator is TokenType.OperatorAdd && left is string || right is string)
+        if (arithmeticalExpression.Operator is TokenType.OperatorAdd && left is StringFactor || right is StringFactor)
         {
             var leftString = ParseString(left, arithmeticalExpression.Lhs.Position);
             var rightString = ParseString(right, arithmeticalExpression.Rhs.Position);
-            return leftString + rightString;
+            return new StringFactor(leftString + rightString);
         }
         
         var leftNumber = ParseInt(left, arithmeticalExpression.Lhs.Position);
         var rightNumber = ParseInt(right, arithmeticalExpression.Rhs.Position);
-        return arithmeticalExpression.Operator switch
+        int result = arithmeticalExpression.Operator switch
         {
             TokenType.OperatorAdd => leftNumber + rightNumber,
             TokenType.OperatorSubtract => leftNumber - rightNumber,
             TokenType.OperatorMultiply => leftNumber * rightNumber,
-            TokenType.OperatorDivide => () => {
-                if (rightNumber == 0)
-                {
-                    throw new RuntimeException(arithmeticalExpression.Position, $"Cannot divide by zero!");
-                }
-                return leftNumber / rightNumber;
-            },
+            TokenType.OperatorDivide => DivideSave(leftNumber, rightNumber),
             _ => throw new RuntimeException(arithmeticalExpression.Position, $"Unexpected {arithmeticalExpression.Operator.TextValue()} operator in compere expression!")
         };
+        return new IntFactor(result);
+
+        int DivideSave(int dividend, int divisor)
+        {
+            if (divisor == 0)
+            {
+                throw new RuntimeException(arithmeticalExpression.Position, $"Cannot divide by zero!");
+            }
+            return dividend / divisor;
+        }
     }
 
     #endregion
 
     #region Factor
 
-    private object? Execute(VariableFactor variable) => CurrentContext.GetContextData(variable.Identifier, variable.Position);
+    private IFactorValue Execute(VariableFactor variable) => CurrentContext.GetContextData(variable.Identifier, variable.Position);
 
-    private object? Execute(ConstFactor constFactor) => constFactor.Value;
+    private IFactorValue Execute(ConstFactor constFactor) => constFactor.Value;
 
     #endregion
 
     #region Parsing
 
-    private static bool ParseBool(object? value, Position position)
+    private static bool ParseBool(IFactorValue value, Position position)
     {
         return value switch
         {
-            int v => v > 0,
-            string v => v.Length > 0,
-            bool v => v,
-            null => false,
+            IntFactor v => v.Value > 0,
+            StringFactor v => v.Value.Length > 0,
+            BoolFactor v => v.Value,
+            NullFactor => false,
             _ => throw new RuntimeException(position, $"{value} can not be parsed to bool value!")
         };
     }
     
-    private static int ParseInt(object? value, Position position)
+    private static int ParseInt(IFactorValue value, Position position)
     {
         return value switch
         {
-            int v => v,
-            bool v => v ? 1 : 0,
-            null => 0,
+            IntFactor v => v.Value,
+            BoolFactor v => v.Value ? 1 : 0,
+            NullFactor => 0,
             _ => throw new RuntimeException(position, $"{value} can not be parsed to int value!")
         };
     }
 
-    private static string ParseString(object? value, Position position)
+    private static string ParseString(IFactorValue value, Position position)
     {
         return value switch
         {
-            string v => v,
-            int v => v.ToString(),
-            bool v => v ? "true" : "false",
-            null => "",
+            StringFactor v => v.Value,
+            IntFactor v => v.Value.ToString(),
+            BoolFactor v => v.Value ? "true" : "false",
+            NullFactor => "",
             _ => throw new RuntimeException(position, $"{value} can not be parsed to int value!")
         };
     }

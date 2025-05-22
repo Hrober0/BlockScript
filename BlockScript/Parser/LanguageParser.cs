@@ -1,9 +1,9 @@
 ﻿using BlockScript.Exceptions;
 using BlockScript.Lexer;
+using BlockScript.Lexer.FactorValues;
 using BlockScript.Parser.Expressions;
 using BlockScript.Parser.Factors;
 using BlockScript.Parser.Statements;
-using BlockScript.Reader;
 using BlockScript.Utilities;
 
 namespace BlockScript.Parser;
@@ -74,7 +74,7 @@ public class LanguageParser
         var nullAssign = _tokenBuffer.Current.Type is TokenType.OperatorNullAssign;
         _tokenBuffer.Take();
         var statement = ParseStatement("Assigment require value");
-        return new Assign((string)identifierToken.Value, statement, nullAssign, position);
+        return new Assign((string)(StringFactor)identifierToken.Value, statement, nullAssign, position);
     }
     
     private IStatement? TryParseLambda()
@@ -84,14 +84,14 @@ public class LanguageParser
             return null;
         }
 
-        var paramaters = new List<string>();
+        var arguments = new List<string>();
         while (true)
         {
             if (!TryTakeToken(TokenType.Identifier, out var identifierToken))
             {
                 break;
             }
-            paramaters.Add((string)identifierToken.Value);
+            arguments.Add((string)(StringFactor)identifierToken.Value);
             if (!TryTakeToken(TokenType.Comma, out _))
             {
                 break;
@@ -105,7 +105,7 @@ public class LanguageParser
 
         var body = ParseStatement(errorMessage);
         
-        return new Lambda(paramaters, body, startToken.Position);
+        return new Lambda(arguments, body, startToken.Position);
     }
 
     private IStatement? TryParseCondition()
@@ -353,7 +353,7 @@ public class LanguageParser
         
         TakeTokenOrThrow(TokenType.ParenthesesClose, errorMessage);
         
-        return new FunctionCall((string)identifierToken.Value, arguments, identifierToken.Position);
+        return new FunctionCall((string)(StringFactor)identifierToken.Value, arguments, identifierToken.Position);
     }
 
     private IFactor? TryParseVariableFactor()
@@ -362,7 +362,7 @@ public class LanguageParser
         {
             return null;
         }
-        return new VariableFactor((string)token.Value, token.Position);
+        return new VariableFactor((string)(StringFactor)token.Value, token.Position);
     }
     
     #endregion

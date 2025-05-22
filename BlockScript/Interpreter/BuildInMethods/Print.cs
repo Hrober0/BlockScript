@@ -1,4 +1,5 @@
-﻿using BlockScript.Reader;
+﻿using BlockScript.Lexer.FactorValues;
+using BlockScript.Reader;
 
 namespace BlockScript.Interpreter.BuildInMethods
 {
@@ -9,7 +10,7 @@ namespace BlockScript.Interpreter.BuildInMethods
         public override string Identifier => "print";
         public override List<string> Arguments => [PARAMETER_NAME];
 
-        public override object? Execute(Context context)
+        public override IFactorValue Execute(Context context)
         {
             var value = context.GetContextData(PARAMETER_NAME, Position.Default);
             Console.WriteLine(value);

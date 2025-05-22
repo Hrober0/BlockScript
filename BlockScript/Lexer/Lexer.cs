@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using BlockScript.Exceptions;
+using BlockScript.Lexer.FactorValues;
 using BlockScript.Reader;
 using BlockScript.Utilities;
 
@@ -82,7 +83,7 @@ public class Lexer
         {
             Position = startCharacter.Position,
             Type = TokenType.Integer,
-            Value = value,
+            Value = new IntFactor(value),
         };
         return true;
     }
@@ -112,12 +113,12 @@ public class Lexer
         var stringValue = stringBuilder.ToString();
         if (_keyWords.TryGetValue(stringValue, out var tokenType))
         {
-            object value = tokenType switch
+            IFactorValue value = tokenType switch
             {
-                TokenType.Boolean => stringValue == "true",
-                _ => stringValue,
+                TokenType.Boolean => new BoolFactor(stringValue == "true"),
+                TokenType.Null => new NullFactor(),
+                _ => new StringFactor(stringValue),
             };
-            
             token = new TokenData
             {
                 Position = startCharacter.Position,
@@ -131,7 +132,7 @@ public class Lexer
         {
             Position = startCharacter.Position,
             Type = TokenType.Identifier,
-            Value = stringValue,
+            Value = new StringFactor(stringValue),
         };
         return true;
     }
@@ -163,7 +164,7 @@ public class Lexer
         {
             Position = startCharacter.Position,
             Type = TokenType.Comment,
-            Value = stringBuilder.ToString(),
+            Value = new StringFactor(stringBuilder.ToString()),
         };
         return true;
     }
@@ -185,7 +186,7 @@ public class Lexer
         {
             Position = _buffer.Current.Position,
             Type = symbol.tokenType,
-            Value = symbol.token,
+            Value = new StringFactor(symbol.token),
         };
         for (var i = 0; i < symbol.token.Length; i++)
         {
@@ -216,7 +217,7 @@ public class Lexer
                 {
                     Position = startCharacter.Position,
                     Type = TokenType.String,
-                    Value = stringBuilder.ToString(),
+                    Value = new StringFactor(stringBuilder.ToString()),
                 };
                 return true;
             }

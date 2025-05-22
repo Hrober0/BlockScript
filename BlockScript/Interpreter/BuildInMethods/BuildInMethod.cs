@@ -1,4 +1,5 @@
-﻿using BlockScript.Parser.Statements;
+﻿using BlockScript.Lexer.FactorValues;
+using BlockScript.Parser.Statements;
 using BlockScript.Reader;
 
 namespace BlockScript.Interpreter.BuildInMethods
@@ -10,6 +11,6 @@ namespace BlockScript.Interpreter.BuildInMethods
         public abstract string Identifier { get; }
         public abstract List<string> Arguments { get; }
 
-        public abstract object? Execute(Context context);
+        public abstract IFactorValue Execute(Context context);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using BlockScript.Exceptions;
+using BlockScript.Lexer.FactorValues;
 using BlockScript.Parser.Statements;
 using BlockScript.Reader;
 
@@ -6,18 +7,18 @@ namespace BlockScript.Interpreter;
 
 public class Context(Context? _parent)
 {
-    private readonly Dictionary<string, object?> _data = new();
+    private readonly Dictionary<string, IFactorValue> _data = new();
 
-    public bool TryGetData(string identifier, out object? statement)
+    public bool TryGetData(string identifier, out IFactorValue value)
     {
-        if (_data.TryGetValue(identifier, out statement!))
+        if (_data.TryGetValue(identifier, out value!))
         {
             return true;
         }
-        return _parent?.TryGetData(identifier, out statement) ?? false;
+        return _parent?.TryGetData(identifier, out value) ?? false;
     }
     
-    public object? GetContextData(string identifier, Position position)
+    public IFactorValue GetContextData(string identifier, Position position)
     {
         if (!TryGetData(identifier, out var dataValue))
         {
@@ -27,5 +28,5 @@ public class Context(Context? _parent)
         return dataValue;
     }
     
-    public void AddData(string identifier, object? statement) => _data[identifier] = statement;
+    public void AddData(string identifier, IFactorValue value) => _data[identifier] = value;
 }

@@ -1,6 +1,7 @@
 ﻿using BlockScript.Exceptions;
 using BlockScript.Lexer;
 using BlockScript.Parser;
+using BlockScript.Lexer.FactorValues;
 using BlockScript.Parser.Expressions;
 using BlockScript.Parser.Factors;
 using BlockScript.Parser.Statements;
@@ -18,9 +19,9 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("a") },
             new TokenData { Type = TokenType.OperatorAssign },
-            new TokenData { Type = TokenType.Integer }
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1) }
             // missing EndOfStatement
         );
 
@@ -53,10 +54,10 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Comment, Value = "this is a comment" },
-            new TokenData { Type = TokenType.Identifier, Value = "a" },
+            new TokenData { Type = TokenType.Comment, Value = new StringFactor("this is a comment") },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("a") },
             new TokenData { Type = TokenType.OperatorAssign },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -72,12 +73,12 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "a" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("a")},
             new TokenData { Type = TokenType.OperatorAssign },
-            new TokenData { Type = TokenType.Integer, Value = 5 },
-            new TokenData { Type = TokenType.Identifier, Value = "a" },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(5)},
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("a")},
             new TokenData { Type = TokenType.OperatorAssign },
-            new TokenData { Type = TokenType.Integer, Value = 5 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(5)},
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -133,9 +134,9 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.BraceOpen },
-            new TokenData { Type = TokenType.Identifier, Value = "a" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("a")},
             new TokenData { Type = TokenType.OperatorAssign },
-            new TokenData { Type = TokenType.Integer, Value = 5 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(5)},
             new TokenData { Type = TokenType.EndOfStatement },
             new TokenData { Type = TokenType.BraceClose },
             new TokenData { Type = TokenType.EndOfStatement }
@@ -151,7 +152,7 @@ public class ParserTests
         var assignment = firstBlock.Statements.Should().ContainSingle()
                                    .Which.Should().BeOfType<Assign>().Subject;
         assignment.Identifier.Should().Be("a");
-        assignment.Value.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(5);
+        assignment.Value.ShouldBeConstFactor(5);
     }
     
     #endregion
@@ -165,9 +166,9 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "true"},
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("true")},
             new TokenData { Type = tokenType},
-            new TokenData { Type = TokenType.Boolean, Value = false },
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(false) },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -178,7 +179,7 @@ public class ParserTests
         var assigment = result.Statements.Should().ContainSingle()
                            .Which.Should().BeOfType<Assign>().Subject;
         assigment.Identifier.Should().Be("true");
-        assigment.Value.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(false);
+        assigment.Value.ShouldBeConstFactor(false);
     }
     
     [Fact]
@@ -186,11 +187,11 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "x" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("x") },
             new TokenData { Type = TokenType.OperatorAssign },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
             new TokenData { Type = TokenType.OperatorAdd },
-            new TokenData { Type = TokenType.Integer, Value = 2 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -211,9 +212,9 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "x" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("x") },
             new TokenData { Type = TokenType.OperatorAssign },
-            new TokenData { Type = TokenType.Null },
+            new TokenData { Type = TokenType.Null, Value = new NullFactor() },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -224,7 +225,7 @@ public class ParserTests
         var assignment = result.Statements.Should().ContainSingle()
                                .Which.Should().BeOfType<Assign>().Subject;
 
-        assignment.Value.Should().BeOfType<ConstFactor>().Which.Value.Should().BeNull();
+        assignment.Value.Should().BeOfType<ConstFactor>().Which.Value.Should().BeOfType<NullFactor>();
     }
 
     [Fact]
@@ -232,7 +233,7 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "x" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("x") },
             new TokenData { Type = TokenType.OperatorAssign },
             new TokenData { Type = TokenType.EndOfStatement }
         );
@@ -250,9 +251,9 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "x" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("x") },
             new TokenData { Type = TokenType.OperatorAssign },
-            new TokenData { Type = TokenType.Integer, Value = 42 }
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(42) }
             // missing EndOfStatement
         );
         
@@ -275,10 +276,10 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.ParenthesesOpen },
-            new TokenData { Type = TokenType.Identifier, Value = "x" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("x") },
             new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.OperatorArrow },
-            new TokenData { Type = TokenType.Integer, Value = 42 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(42) },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -289,7 +290,7 @@ public class ParserTests
         var lambda = result.Statements.Should().ContainSingle()
             .Which.Should().BeOfType<Lambda>().Subject;
         lambda.Arguments.Should().ContainSingle().Which.Should().Be( "x");
-        lambda.Body.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(42);
+        lambda.Body.ShouldBeConstFactor(42);
     }
     
     [Fact]
@@ -298,7 +299,7 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.ParenthesesOpen },
-            new TokenData { Type = TokenType.Identifier, Value = "x" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("x") },
             new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.OperatorArrow },
             new TokenData { Type = TokenType.BraceOpen },
@@ -322,14 +323,14 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.ParenthesesOpen },
-            new TokenData { Type = TokenType.Identifier, Value = "x" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("x") },
             new TokenData { Type = TokenType.Comma },
-            new TokenData { Type = TokenType.Identifier, Value = "y" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("y") },
             new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.OperatorArrow },
-            new TokenData { Type = TokenType.Identifier, Value = "z" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("z") },
             new TokenData { Type = TokenType.OperatorAdd },
-            new TokenData { Type = TokenType.Identifier, Value = "k" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("k") },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -353,11 +354,11 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.ParenthesesOpen },
-            new TokenData { Type = TokenType.Identifier, Value = "x" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("x") },
             new TokenData { Type = TokenType.Comma },
             new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.OperatorArrow },
-            new TokenData { Type = TokenType.Identifier, Value = "y" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("y") },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -369,7 +370,7 @@ public class ParserTests
             .Which.Should().BeOfType<Lambda>().Subject;
         lambda.Arguments.Should().ContainSingle().Which.Should().Be("x");
 
-        var body = lambda.Body.Should().BeOfType<VariableFactor>()
+        lambda.Body.Should().BeOfType<VariableFactor>()
             .Which.Identifier.Should().Be("y");
     }
     
@@ -379,7 +380,7 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.ParenthesesOpen },
-            new TokenData { Type = TokenType.Identifier, Value = "x" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("x") },
             new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.OperatorArrow }
         );
@@ -398,9 +399,9 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.ParenthesesOpen },
-            new TokenData { Type = TokenType.Identifier, Value = "x" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("x") },
             new TokenData { Type = TokenType.ParenthesesClose },
-            new TokenData { Type = TokenType.Integer, Value = 42 }
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(42) }
         );
 
         // Act
@@ -418,7 +419,7 @@ public class ParserTests
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.OperatorArrow },
-            new TokenData { Type = TokenType.Integer, Value = 42 }
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(42) }
         );
 
         // Act
@@ -439,8 +440,8 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.If },
-            new TokenData { Type = TokenType.Boolean, Value = true },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(true) },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -451,8 +452,8 @@ public class ParserTests
         var condition = result.Statements.Should().ContainSingle()
                               .Which.Should().BeOfType<Condition>().Subject;
         condition.ConditionaryItems.Should().HaveCount(1);
-        condition.ConditionaryItems[0].condition.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(true);
-        condition.ConditionaryItems[0].body.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
+        condition.ConditionaryItems[0].condition.ShouldBeConstFactor(true);
+        condition.ConditionaryItems[0].body.ShouldBeConstFactor(1);
         condition.ElseBody.Should().BeNull();
     }
     
@@ -462,7 +463,7 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.If },
-            new TokenData { Type = TokenType.Boolean, Value = true }
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(true) }
         );
 
         // Act
@@ -479,12 +480,12 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.If },
-            new TokenData { Type = TokenType.Boolean, Value = true },
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(true) },
             new TokenData { Type = TokenType.OperatorSubtract },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
-            new TokenData { Type = TokenType.Boolean, Value = false },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(false) },
             new TokenData { Type = TokenType.OperatorDivide },
-            new TokenData { Type = TokenType.Integer, Value = 2 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -498,13 +499,13 @@ public class ParserTests
         condition.ElseBody.Should().BeNull();
         
         var conditionExpression = condition.ConditionaryItems[0].condition.Should().BeOfType<ArithmeticalExpression>().Subject;
-        conditionExpression.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(true);
-        conditionExpression.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
+        conditionExpression.Lhs.ShouldBeConstFactor(true);
+        conditionExpression.Rhs.ShouldBeConstFactor(1);
         conditionExpression.Operator.Should().Be(TokenType.OperatorSubtract);
         
         var conditionBody = condition.ConditionaryItems[0].body.Should().BeOfType<ArithmeticalExpression>().Subject;
-        conditionBody.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(false);
-        conditionBody.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
+        conditionBody.Lhs.ShouldBeConstFactor(false);
+        conditionBody.Rhs.ShouldBeConstFactor(2);
         conditionBody.Operator.Should().Be(TokenType.OperatorDivide);
     }
     
@@ -514,10 +515,10 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.If },
-            new TokenData { Type = TokenType.Boolean, Value = true },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(true) },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
             new TokenData { Type = TokenType.Else },
-            new TokenData { Type = TokenType.Integer, Value = 2 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -528,10 +529,10 @@ public class ParserTests
         var condition = result.Statements.Should().ContainSingle()
             .Which.Should().BeOfType<Condition>().Subject;
         condition.ConditionaryItems.Should().HaveCount(1);
-        condition.ConditionaryItems[0].condition.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(true);
-        condition.ConditionaryItems[0].body.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
+        condition.ConditionaryItems[0].condition.ShouldBeConstFactor(true);
+        condition.ConditionaryItems[0].body.ShouldBeConstFactor(1);
         condition.ElseBody.Should().NotBeNull();
-        condition.ElseBody.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
+        condition.ElseBody.ShouldBeConstFactor(2);
     }
     
     [Fact]
@@ -540,12 +541,12 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.If },
-            new TokenData { Type = TokenType.Boolean, Value = true },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(true) },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
             new TokenData { Type = TokenType.Else },
             new TokenData { Type = TokenType.If },
-            new TokenData { Type = TokenType.Boolean, Value = false },
-            new TokenData { Type = TokenType.Integer, Value = 2 },
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(false) },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -556,10 +557,10 @@ public class ParserTests
         var condition = result.Statements.Should().ContainSingle()
                               .Which.Should().BeOfType<Condition>().Subject;
         condition.ConditionaryItems.Should().HaveCount(2);
-        condition.ConditionaryItems[0].condition.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(true);
-        condition.ConditionaryItems[0].body.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
-        condition.ConditionaryItems[1].condition.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(false);
-        condition.ConditionaryItems[1].body.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
+        condition.ConditionaryItems[0].condition.ShouldBeConstFactor(true);
+        condition.ConditionaryItems[0].body.ShouldBeConstFactor(1);
+        condition.ConditionaryItems[1].condition.ShouldBeConstFactor(false);
+        condition.ConditionaryItems[1].body.ShouldBeConstFactor(2);
         condition.ElseBody.Should().BeNull();
     }
 
@@ -569,16 +570,16 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.If },
-            new TokenData { Type = TokenType.Boolean, Value = true },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(true) },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
             new TokenData { Type = TokenType.Else },
             new TokenData { Type = TokenType.If },
-            new TokenData { Type = TokenType.Boolean, Value = false },
-            new TokenData { Type = TokenType.Integer, Value = 2 },
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(false) },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
             new TokenData { Type = TokenType.Else },
             new TokenData { Type = TokenType.If },
-            new TokenData { Type = TokenType.Integer, Value = 3 },
-            new TokenData { Type = TokenType.String, Value = "4" },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(3)},
+            new TokenData { Type = TokenType.String, Value = new StringFactor("4") },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -589,12 +590,12 @@ public class ParserTests
         var condition = result.Statements.Should().ContainSingle()
                               .Which.Should().BeOfType<Condition>().Subject;
         condition.ConditionaryItems.Should().HaveCount(3);
-        condition.ConditionaryItems[0].condition.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(true);
-        condition.ConditionaryItems[0].body.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
-        condition.ConditionaryItems[1].condition.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(false);
-        condition.ConditionaryItems[1].body.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
-        condition.ConditionaryItems[2].condition.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(3);
-        condition.ConditionaryItems[2].body.Should().BeOfType<ConstFactor>().Which.Value.Should().Be("4");
+        condition.ConditionaryItems[0].condition.ShouldBeConstFactor(true);
+        condition.ConditionaryItems[0].body.ShouldBeConstFactor(1);
+        condition.ConditionaryItems[1].condition.ShouldBeConstFactor(false);
+        condition.ConditionaryItems[1].body.ShouldBeConstFactor(2);
+        condition.ConditionaryItems[2].condition.ShouldBeConstFactor(3);
+        condition.ConditionaryItems[2].body.ShouldBeConstFactor("4");
         condition.ElseBody.Should().BeNull();
     }
     
@@ -604,11 +605,11 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.If },
-            new TokenData { Type = TokenType.Boolean, Value = true },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(true) },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
             new TokenData { Type = TokenType.Else },
             new TokenData { Type = TokenType.If },
-            new TokenData { Type = TokenType.Boolean, Value = false }
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(false) }
         );
 
         // Act
@@ -625,14 +626,14 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.If },
-            new TokenData { Type = TokenType.Boolean, Value = true },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(true) },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
             new TokenData { Type = TokenType.Else },
             new TokenData { Type = TokenType.If },
-            new TokenData { Type = TokenType.Boolean, Value = false },
-            new TokenData { Type = TokenType.Integer, Value = 2 },
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(false) },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
             new TokenData { Type = TokenType.Else },
-            new TokenData { Type = TokenType.Integer, Value = 3 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(3)},
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -643,12 +644,12 @@ public class ParserTests
         var condition = result.Statements.Should().ContainSingle()
                               .Which.Should().BeOfType<Condition>().Subject;
         condition.ConditionaryItems.Should().HaveCount(2);
-        condition.ConditionaryItems[0].condition.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(true);
-        condition.ConditionaryItems[0].body.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
-        condition.ConditionaryItems[1].condition.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(false);
-        condition.ConditionaryItems[1].body.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
+        condition.ConditionaryItems[0].condition.ShouldBeConstFactor(true);
+        condition.ConditionaryItems[0].body.ShouldBeConstFactor(1);
+        condition.ConditionaryItems[1].condition.ShouldBeConstFactor(false);
+        condition.ConditionaryItems[1].body.ShouldBeConstFactor(2);
         condition.ElseBody.Should().NotBeNull();
-        condition.ElseBody.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(3);
+        condition.ElseBody.ShouldBeConstFactor(3);
     }
     
     [Fact]
@@ -657,12 +658,12 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.If },
-            new TokenData { Type = TokenType.Boolean, Value = true },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(true) },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
             new TokenData { Type = TokenType.Else },
             new TokenData { Type = TokenType.If },
-            new TokenData { Type = TokenType.Boolean, Value = false },
-            new TokenData { Type = TokenType.Integer, Value = 2 },
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(false) },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
             new TokenData { Type = TokenType.Else }
         );
 
@@ -684,8 +685,8 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Loop },
-            new TokenData { Type = TokenType.Boolean, Value = true },
-            new TokenData { Type = TokenType.Integer, Value = 123 },
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(true) },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(123) },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -703,7 +704,7 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Loop },
-            new TokenData { Type = TokenType.Identifier, Value = "cond" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("cond") },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -721,10 +722,10 @@ public class ParserTests
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Loop },
-            new TokenData { Type = TokenType.Boolean, Value = true },
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(true) },
             new TokenData { Type = TokenType.Loop },
-            new TokenData { Type = TokenType.Boolean, Value = false },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(false) },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -735,16 +736,13 @@ public class ParserTests
         var outerLoop = result.Statements.Should().ContainSingle()
             .Which.Should().BeOfType<Loop>().Subject;
 
-        outerLoop.Condition.Should().BeOfType<ConstFactor>()
-            .Which.Value.Should().Be(true);
+        outerLoop.Condition.ShouldBeConstFactor(true);
 
         var innerLoop = outerLoop.Body.Should().BeOfType<Loop>().Subject;
 
-        innerLoop.Condition.Should().BeOfType<ConstFactor>()
-            .Which.Value.Should().Be(false);
+        innerLoop.Condition.ShouldBeConstFactor(false);
 
-        innerLoop.Body.Should().BeOfType<ConstFactor>()
-            .Which.Value.Should().Be(1);
+        innerLoop.Body.ShouldBeConstFactor(1);
     }
     
     #endregion
@@ -756,7 +754,7 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "x" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("x") },
             new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
@@ -778,9 +776,9 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "foo" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("foo") },
             new TokenData { Type = TokenType.ParenthesesOpen },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
             new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
         );
@@ -794,8 +792,7 @@ public class ParserTests
 
         functionCall.Identifier.Should().Be("foo");
         functionCall.Arguments.Should().ContainSingle()
-            .Which.Should().BeOfType<ConstFactor>()
-            .Which.Value.Should().Be(1);
+            .Which.ShouldBeConstFactor(1);
     }
 
     [Fact]
@@ -803,13 +800,13 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "sum" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("sum") },
             new TokenData { Type = TokenType.ParenthesesOpen },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
             new TokenData { Type = TokenType.Comma },
-            new TokenData { Type = TokenType.Integer, Value = 2 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
             new TokenData { Type = TokenType.Comma },
-            new TokenData { Type = TokenType.Integer, Value = 3 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(3)},
             new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
         );
@@ -823,9 +820,9 @@ public class ParserTests
 
         functionCall.Identifier.Should().Be("sum");
         functionCall.Arguments.Should().HaveCount(3);
-        functionCall.Arguments[0].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
-        functionCall.Arguments[1].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
-        functionCall.Arguments[2].Should().BeOfType<ConstFactor>().Which.Value.Should().Be(3);
+        functionCall.Arguments[0].ShouldBeConstFactor(1);
+        functionCall.Arguments[1].ShouldBeConstFactor(2);
+        functionCall.Arguments[2].ShouldBeConstFactor(3);
     }
     
     [Fact]
@@ -833,9 +830,9 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "sum" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("sum") },
             new TokenData { Type = TokenType.ParenthesesOpen },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
             new TokenData { Type = TokenType.Comma },
             new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
@@ -850,7 +847,7 @@ public class ParserTests
 
         functionCall.Identifier.Should().Be("sum");
         functionCall.Arguments.Should().ContainSingle().
-            Which.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
+            Which.ShouldBeConstFactor(1);
     }
     
     [Fact]
@@ -858,10 +855,10 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "sum" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("sum") },
             new TokenData { Type = TokenType.ParenthesesOpen },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
-            new TokenData { Type = TokenType.Integer, Value = 2 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
             new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
         );
@@ -878,9 +875,9 @@ public class ParserTests
     public void Parser_ShouldThrow_WhenFunctionCall_MissingClosingParenthesis()
     {
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "foo" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("foo") },
             new TokenData { Type = TokenType.ParenthesesOpen },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -894,8 +891,8 @@ public class ParserTests
     public void Parser_ShouldThrow_WhenFunctionCall_MissingOpeningParenthesis()
     {
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "foo" },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("foo") },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
             new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
         );
@@ -910,7 +907,7 @@ public class ParserTests
     public void Parser_ShouldThrow_WhenFunctionCall_EmptyCommasBetweenArguments()
     {
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "foo" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("foo") },
             new TokenData { Type = TokenType.ParenthesesOpen },
             new TokenData { Type = TokenType.Comma },
             new TokenData { Type = TokenType.Comma },
@@ -929,11 +926,11 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "negate" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("negate") },
             new TokenData { Type = TokenType.ParenthesesOpen },
-            new TokenData { Type = TokenType.Integer, Value = 69 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(69) },
             new TokenData { Type = TokenType.OperatorAdd },
-            new TokenData { Type = TokenType.Integer, Value = 42 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(42) },
             new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
         );
@@ -950,8 +947,8 @@ public class ParserTests
 
         var expr = functionCall.Arguments[0].Should().BeOfType<ArithmeticalExpression>().Subject;
         expr.Operator.Should().Be(TokenType.OperatorAdd);
-        expr.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(69);
-        expr.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(42);
+        expr.Lhs.ShouldBeConstFactor(69);
+        expr.Rhs.ShouldBeConstFactor(42);
     }
 
     [Fact]
@@ -959,11 +956,11 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "ff" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("ff") },
             new TokenData { Type = TokenType.ParenthesesOpen },
-            new TokenData { Type = TokenType.Identifier, Value = "getValue" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("getValue") },
             new TokenData { Type = TokenType.ParenthesesOpen },
-            new TokenData { Type = TokenType.Integer, Value = 7 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(7) },
             new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.ParenthesesClose },
             new TokenData { Type = TokenType.EndOfStatement }
@@ -982,8 +979,7 @@ public class ParserTests
         var innerCall = printCall.Arguments[0].Should().BeOfType<FunctionCall>().Subject;
         innerCall.Identifier.Should().Be("getValue");
         innerCall.Arguments.Should().ContainSingle()
-            .Which.Should().BeOfType<ConstFactor>()
-            .Which.Value.Should().Be(7);
+            .Which.ShouldBeConstFactor(7);
     }
 
     #endregion
@@ -1001,11 +997,11 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
             new TokenData { Type = tokenType },
-            new TokenData { Type = TokenType.Integer, Value = 2 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
             new TokenData { Type = tokenType },
-            new TokenData { Type = TokenType.Integer, Value = 3 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(3)},
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -1015,12 +1011,12 @@ public class ParserTests
         // Assert
         var topExpression = result.Statements.Should().ContainSingle()
               .Which.Should().BeOfType<ArithmeticalExpression>().Subject;
-        topExpression.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
+        topExpression.Lhs.ShouldBeConstFactor(1);
         topExpression.Operator.Should().Be(tokenType);
         
         var innerExpression = topExpression.Rhs.Should().BeOfType<ArithmeticalExpression>().Subject;
-        innerExpression.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
-        innerExpression.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(3);
+        innerExpression.Lhs.ShouldBeConstFactor(2);
+        innerExpression.Rhs.ShouldBeConstFactor(3);
         innerExpression.Operator.Should().Be(tokenType);
     }
     
@@ -1035,9 +1031,9 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
             new TokenData { Type = tokenType },
-            new TokenData { Type = TokenType.Integer, Value = 2 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -1047,8 +1043,8 @@ public class ParserTests
         // Assert
         var expression = result.Statements.Should().ContainSingle()
                                .Which.Should().BeOfType<CompereExpression>().Subject;
-        expression.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
-        expression.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
+        expression.Lhs.ShouldBeConstFactor(1);
+        expression.Rhs.ShouldBeConstFactor(2);
         expression.Operator.Should().Be(tokenType);
     }
     
@@ -1059,11 +1055,11 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Integer, Value = 1, Position = new(1, 1)},
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1) },
             new TokenData { Type = tokenType },
-            new TokenData { Type = TokenType.Integer, Value = 2, Position = new(1, 2) },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2) },
             new TokenData { Type = tokenType },
-            new TokenData { Type = TokenType.Integer, Value = 3, Position = new(1, 3) },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(3) },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -1073,12 +1069,12 @@ public class ParserTests
         // Assert
         var topExpression = result.Statements.Should().ContainSingle()
                                   .Which.Should().BeOfType<LogicExpression>().Subject;
-        topExpression.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
+        topExpression.Lhs.ShouldBeConstFactor(1);
         topExpression.Operator.Should().Be(tokenType);
         
         var innerExpression = topExpression.Rhs.Should().BeOfType<LogicExpression>().Subject;
-        innerExpression.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
-        innerExpression.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(3);
+        innerExpression.Lhs.ShouldBeConstFactor(2);
+        innerExpression.Rhs.ShouldBeConstFactor(3);
         innerExpression.Operator.Should().Be(tokenType);
     }
     
@@ -1087,19 +1083,19 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1) },
             new TokenData { Type = TokenType.OperatorOr },          // orExpression1
-            new TokenData { Type = TokenType.Integer, Value = 2 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2) },
             new TokenData { Type = TokenType.OperatorOr },          // orExpression2
             
-            new TokenData { Type = TokenType.Integer, Value = 3 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(3) },
             new TokenData { Type = TokenType.OperatorAnd },         // andExpression1
-            new TokenData { Type = TokenType.Integer, Value = 4 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(4) },
             new TokenData { Type = TokenType.OperatorAnd },         // andExpression2
-            new TokenData { Type = TokenType.Integer, Value = 5 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(5) },
             
             new TokenData { Type = TokenType.OperatorOr },          // orExpression3
-            new TokenData { Type = TokenType.Integer, Value = 6 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(6) },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -1110,24 +1106,24 @@ public class ParserTests
         var orExpression1 = result.Statements.Should().ContainSingle()
                                .Which.Should().BeOfType<LogicExpression>().Subject;
         orExpression1.Operator.Should().Be(TokenType.OperatorOr);
-        orExpression1.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
+        orExpression1.Lhs.ShouldBeConstFactor(1);
         var orExpression2 = orExpression1.Rhs.Should().BeOfType<LogicExpression>().Subject;
         
         orExpression2.Operator.Should().Be(TokenType.OperatorOr);
-        orExpression2.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
+        orExpression2.Lhs.ShouldBeConstFactor(2);
         var orExpression3 = orExpression2.Rhs.Should().BeOfType<LogicExpression>().Subject;
         
         orExpression3.Operator.Should().Be(TokenType.OperatorOr);
         var andExpression1 = orExpression3.Lhs.Should().BeOfType<LogicExpression>().Subject;
-        orExpression3.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(6);
+        orExpression3.Rhs.ShouldBeConstFactor(6);
         
         andExpression1.Operator.Should().Be(TokenType.OperatorAnd);
-        andExpression1.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(3);
+        andExpression1.Lhs.ShouldBeConstFactor(3);
         var andExpression2 = andExpression1.Rhs.Should().BeOfType<LogicExpression>().Subject;
         
         andExpression2.Operator.Should().Be(TokenType.OperatorAnd);
-        andExpression2.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(4);
-        andExpression2.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(5);
+        andExpression2.Lhs.ShouldBeConstFactor(4);
+        andExpression2.Rhs.ShouldBeConstFactor(5);
     }
     
     [Fact]
@@ -1135,7 +1131,7 @@ public class ParserTests
     {
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.OperatorSubtract },
-            new TokenData { Type = TokenType.Integer, Value = 42 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(42) },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -1144,16 +1140,16 @@ public class ParserTests
         var expr = result.Statements.Should().ContainSingle().Which
                          .Should().BeOfType<NotExpression>().Subject;
 
-        expr.Factor.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(42);
+        expr.Factor.ShouldBeConstFactor(42);
     }
 
     [Fact]
     public void Parser_ShouldParseNullCoalescingExpression()
     {
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "a" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("a") },
             new TokenData { Type = TokenType.OperatorNullCoalescing },
-            new TokenData { Type = TokenType.Identifier, Value = "b" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("b") },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -1169,12 +1165,12 @@ public class ParserTests
     public void Parser_ShouldParseParenthesizedExpression()
     {
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "a" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("a") },
             new TokenData { Type = TokenType.OperatorMultiply },
             new TokenData { Type = TokenType.BraceOpen },
-            new TokenData { Type = TokenType.Integer, Value = 1 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1) },
             new TokenData { Type = TokenType.OperatorAdd },
-            new TokenData { Type = TokenType.Integer, Value = 2 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2) },
             new TokenData { Type = TokenType.BraceClose },
             new TokenData { Type = TokenType.EndOfStatement }
         );
@@ -1189,35 +1185,35 @@ public class ParserTests
         
         var addExpression = block.Statements.Should().ContainSingle().Which.Should().BeOfType<ArithmeticalExpression>().Subject;
         addExpression.Operator.Should().Be(TokenType.OperatorAdd);
-        addExpression.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(1);
-        addExpression.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
+        addExpression.Lhs.ShouldBeConstFactor(1);
+        addExpression.Rhs.ShouldBeConstFactor(2);
     }
 
     [Fact]
     public void Parser_ShouldParse_ComplexExpressionWithPrecedence()
     {
-        // -2 + 3 * 4 > 5 || { if 6 > 7 { 8 } } ?? a;
+        // -2 +new IntFactor(3)*new IntFactor(4)> new IntFactor(5)|| { if 6 > 7 { 8 } } ?? a;
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.OperatorSubtract },
-            new TokenData { Type = TokenType.Integer, Value = 2 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2) },
             new TokenData { Type = TokenType.OperatorAdd },
-            new TokenData { Type = TokenType.Integer, Value = 3 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(3) },
             new TokenData { Type = TokenType.OperatorMultiply },
-            new TokenData { Type = TokenType.Integer, Value = 4 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(4) },
             new TokenData { Type = TokenType.OperatorGreater },
-            new TokenData { Type = TokenType.Integer, Value = 5 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(5) },
             new TokenData { Type = TokenType.OperatorOr },
             new TokenData { Type = TokenType.BraceOpen },
             new TokenData { Type = TokenType.If },
-            new TokenData { Type = TokenType.Integer, Value = 6 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(6) },
             new TokenData { Type = TokenType.OperatorGreater },
-            new TokenData { Type = TokenType.Integer, Value = 7 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(7) },
             new TokenData { Type = TokenType.BraceOpen },
-            new TokenData { Type = TokenType.Integer, Value = 8 },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(8) },
             new TokenData { Type = TokenType.BraceClose },
             new TokenData { Type = TokenType.BraceClose },
             new TokenData { Type = TokenType.OperatorNullCoalescing },
-            new TokenData { Type = TokenType.Identifier, Value = "a" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("a") },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -1228,26 +1224,26 @@ public class ParserTests
         var logicExpr = result.Statements.Should().ContainSingle().Which
             .Should().BeOfType<LogicExpression>().Subject;
 
-        // LogicLeft || LogicRight | (-2 + 3 * 4 > 5) || ({ if 6 > 7 { 8 } } ?? a);
+        // LogicLeft || LogicRight | (-2 +new IntFactor(3)*new IntFactor(4)> 5) || ({ if 6 > 7 { 8 } } ?? a);
         logicExpr.Operator.Should().Be(TokenType.OperatorOr);
         var logicLeft = logicExpr.Lhs.Should().BeOfType<CompereExpression>().Subject;
         var logicRight = logicExpr.Rhs.Should().BeOfType<NullCoalescingExpression>().Subject;
 
-        // LogicLeft: CompLeft > 5 | (-2 + 3 * 4) > (5)
+        // LogicLeft: CompLeft > new IntFactor(5)| (-2 +new IntFactor(3)* 4) > (5)
         logicLeft.Operator.Should().Be(TokenType.OperatorGreater);
         var compLeft = logicLeft.Lhs.Should().BeOfType<ArithmeticalExpression>().Subject;
-        logicLeft.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(5);
+        logicLeft.Rhs.ShouldBeConstFactor(5);
 
         // CompLeft: -2 + ArithmeticRight | (-2) + (3 * 4)
         compLeft.Operator.Should().Be(TokenType.OperatorAdd);
         compLeft.Lhs.Should().BeOfType<NotExpression>().Which.Factor
-            .Should().BeOfType<ConstFactor>().Which.Value.Should().Be(2);
+            .ShouldBeConstFactor(2);
         var arithmeticRight = compLeft.Rhs.Should().BeOfType<ArithmeticalExpression>().Subject;
         
-        // ArithmeticRight: 3 * 4
+        // ArithmeticRight:new IntFactor(3)* 4
         arithmeticRight.Operator.Should().Be(TokenType.OperatorMultiply);
-        arithmeticRight.Lhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(3);
-        arithmeticRight.Rhs.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(4);
+        arithmeticRight.Lhs.ShouldBeConstFactor(3);
+        arithmeticRight.Rhs.ShouldBeConstFactor(4);
         
         // LogicRight: NullCoalRight ?? a | ({ if 6 > 7 { 8 } }) ?? (a)
         var nullCoalRight = logicRight.Lhs.Should().BeOfType<Block>()
@@ -1259,7 +1255,7 @@ public class ParserTests
         nullCoalRight.ConditionaryItems.Should().ContainSingle()
                      .Which.body.Should().BeOfType<Block>()
                      .Which.Statements.Should().ContainSingle()
-                     .Which.Should().BeOfType<ConstFactor>().Which.Value.Should().Be(8);
+                     .Which.ShouldBeConstFactor(8);
         nullCoalRight.ElseBody.Should().BeNull();
     }
     
@@ -1267,17 +1263,21 @@ public class ParserTests
 
     #region Factors
 
+    public static IEnumerable<object[]> FactorCases =>
+    [
+        [TokenType.Integer, new IntFactor(42)],
+        [TokenType.Boolean, new BoolFactor(true)],
+        [TokenType.String, new StringFactor("aa")],
+        [TokenType.Null, new NullFactor()]
+    ];
+    
     [Theory]
-    [InlineData(TokenType.Integer, 42)]
-    [InlineData(TokenType.Boolean, true)]
-    [InlineData(TokenType.Boolean, false)]
-    [InlineData(TokenType.String, "aa")]
-    [InlineData(TokenType.Null, null)]
-    public void Parser_ShouldParseConstFactor(TokenType tokenType, object value)
+    [MemberData(nameof(FactorCases))]
+    public void Parser_ShouldParseConstFactor(TokenType tokenType, IFactorValue factor)
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = tokenType, Value = value },
+            new TokenData { Type = tokenType, Value = factor },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -1287,7 +1287,7 @@ public class ParserTests
         // Assert
         result.Statements.Should().ContainSingle()
               .Which.Should().BeOfType<ConstFactor>()
-              .Which.Value.Should().Be(value);
+              .Which.Value.Should().Be(factor);
     }
     
     [Fact]
@@ -1295,7 +1295,7 @@ public class ParserTests
     {
         // Arrange
         var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = "variable" },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("variable") },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
