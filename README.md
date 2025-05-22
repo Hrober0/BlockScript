@@ -449,7 +449,6 @@ statement	= assign
 			| lambda
 			| condition
 			| loop
-			| print
 			| expr;
 
 assign		= identifier op_asign statement;
@@ -457,7 +456,6 @@ lambda		= "(" args ")" "=>" statement;
 func_call	= identifier "(" args ")";
 condition	= "if" expr statement { "else" "if" expr statement } ["else" statement];
 loop		= "loop" expr statement;
-print		= "print" "(" statement ")";
 
 args		= [{ expr "," } expr];
 

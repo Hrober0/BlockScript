@@ -1,5 +1,5 @@
 ﻿using BlockScript.Exceptions;
-using BlockScript.Interpreter.BuildInStatements;
+using BlockScript.Interpreter.BuildInMethods;
 using BlockScript.Lexer;
 using BlockScript.Parser.Expressions;
 using BlockScript.Parser.Factors;
@@ -8,7 +8,7 @@ using BlockScript.Reader;
 
 namespace BlockScript.Interpreter;
 
-public class LanguageInterpreter
+public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
 {
     private const int RECURSION_LIMIT = 10;
     
@@ -19,7 +19,10 @@ public class LanguageInterpreter
     public object? ExecuteProgram(Block block)
     {
         var startContext = new Context(null);
-        startContext.AddData("print", new Lambda([Print.PARAMTEER_NAME], new Print(Position.Default), Position.Default));
+        foreach (var method in buildInMethods)
+        {
+            startContext.AddData(method.Identifier, new Lambda(method.Arguments, method, method.Position));
+        }
         _contextStack.Push(startContext);
         return Execute(block);
     }
@@ -32,9 +35,9 @@ public class LanguageInterpreter
             Block s => Execute(s),
             Assign s => Execute(s),
             Lambda s => Execute(s),
+            BuildInMethod s => Execute(s),
             FunctionCall s => Execute(s),
             Condition s => Execute(s),
-            Print s => Execute(s),
             
             // expressions
             CompereExpression s => Execute(s),
@@ -73,10 +76,12 @@ public class LanguageInterpreter
     }
 
     private object? Execute(Lambda lambda) => lambda;
+    
+    private object? Execute(BuildInMethod buildInMethod) => buildInMethod.Execute(CurrentContext);
 
     private object? Execute(FunctionCall functionCall)
     {
-        var dataValue = GetContextData(functionCall.Identifier, functionCall.Position);
+        var dataValue = CurrentContext.GetContextData(functionCall.Identifier, functionCall.Position);
 
         if (dataValue is not Lambda lambda)
         {
@@ -120,14 +125,7 @@ public class LanguageInterpreter
 
         return null;
     }
-    
-    private object? Execute(Print _)
-    {
-        var value = GetContextData(Print.PARAMTEER_NAME, Position.Default);
-        Console.WriteLine(value);
-        return value;
-    }
-    
+
     #endregion
 
     #region Expressions
@@ -182,21 +180,11 @@ public class LanguageInterpreter
 
     #region Factor
 
-    private object? Execute(VariableFactor variable) => GetContextData(variable.Identifier, variable.Position);
+    private object? Execute(VariableFactor variable) => CurrentContext.GetContextData(variable.Identifier, variable.Position);
 
     private object? Execute(ConstFactor constFactor) => constFactor.Value;
 
     #endregion
-    
-    private object? GetContextData(string identifier, Position position)
-    {
-        if (!CurrentContext.TryGetData(identifier, out var dataValue))
-        {
-            throw new RuntimeException(position, $"Variable of name {identifier} was not defined!");
-        }
-
-        return dataValue;
-    }
 
     #region Parsing
 

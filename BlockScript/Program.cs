@@ -1,4 +1,5 @@
 using BlockScript.Interpreter;
+using BlockScript.Interpreter.BuildInMethods;
 using BlockScript.Lexer;
 using BlockScript.Parser;
 
@@ -25,7 +26,12 @@ try
     var parser = new LanguageParser(lexer.GetToken);
     var program = parser.ParserProgram();
     Console.WriteLine(program);
-    var interpreter = new LanguageInterpreter();
+
+    var buildInMethods = new List<BuildInMethod>()
+    {
+        new Print(),
+    };
+    var interpreter = new LanguageInterpreter(buildInMethods);
     var returnValue = interpreter.ExecuteProgram(program);
     Console.WriteLine(returnValue);
 }
