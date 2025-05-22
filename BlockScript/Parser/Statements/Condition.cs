@@ -1,5 +1,4 @@
-﻿using BlockScript.Lexer;
-using BlockScript.Parser.Expressions;
+﻿using BlockScript.Parser.Expressions;
 using BlockScript.Reader;
 using BlockScript.Utilities;
 
