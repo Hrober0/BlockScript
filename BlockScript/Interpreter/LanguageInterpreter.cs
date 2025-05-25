@@ -11,7 +11,8 @@ namespace BlockScript.Interpreter;
 
 public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
 {
-    private const int RECURSION_LIMIT = 100;
+    private const int RECURSION_LIMIT = 1_000;
+    private const int LOOP_COUNT_LIMIT = 1_000;
     
     private readonly Stack<Context> _contextStack = new();
     
@@ -41,6 +42,7 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
             BuildInMethod s => Execute(s),
             FunctionCall s => Execute(s),
             Condition s => Execute(s),
+            Loop s => Execute(s),
             
             // expressions
             CompereExpression s => Execute(s),
@@ -156,6 +158,32 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         }
 
         return new NullFactor();
+    }
+
+    private IFactorValue Execute(Loop loop)
+    {
+        IFactorValue? returnValue = null;
+        int iterations = 0;
+        while (true)
+        {
+            var conditionResult = Execute(loop.Condition);
+            if (!ParseBool(conditionResult, loop.Condition.Position))
+            {
+                break;
+            }
+            
+            _contextStack.Push(new Context(CurrentContext));
+            returnValue = Execute(loop.Body);
+            _contextStack.Pop();    
+            
+            iterations++;
+            if (iterations > LOOP_COUNT_LIMIT)
+            {
+                throw new RuntimeException(loop.Position, $"Loop exceeded loop count limit");
+            }
+        }
+        
+        return returnValue ?? new NullFactor();
     }
 
     #endregion

@@ -5,5 +5,7 @@ namespace BlockScript.Parser.Expressions;
 
 public record CompereExpression(IExpression Lhs, IExpression Rhs, TokenType Operator, Position Position) : IExpression
 {
+    public CompereExpression(IExpression lhs, IExpression rhs, TokenType operatorType) : this(lhs, rhs, operatorType, Position.Default) { }
+    
     public override string ToString() => $"{Lhs} {Operator.TextValue()} {Rhs}";
 }

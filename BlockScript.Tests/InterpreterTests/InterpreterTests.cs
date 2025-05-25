@@ -674,6 +674,139 @@ public class InterpreterTests
 
     #endregion
     
+    #region Loop
+    
+    [Fact]
+    public void Interpreter_ShouldExecuteLoop()
+    {
+        /*
+         * v = true;
+         * loop v v := false;
+         */
+        
+        // Arrange
+        List<IStatement> program = [
+            new Declaration("v", ConstFactor(true)),
+            new Loop(new VariableFactor("v"), new Assign("v", ConstFactor(false))),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().BeEquivalentTo(new BoolFactor(false));
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldExecuteLoop_WhenConditionIsFalse()
+    {
+        /*
+         * loop false print(true);
+         */
+        
+        // Arrange
+        var output = new List<IFactorValue>();
+        List<IStatement> program = [
+            new Loop(ConstFactor(false), AddToOutput(ConstFactor(true))),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program, [new TestMethod(output)]);
+        
+        // Assert
+        result.Should().BeOfType<NullFactor>();
+        output.Should().BeEmpty();
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldThrow_WhenExecuteLoopExceedLoopLimit()
+    {
+        /*
+         * loop true true;
+         */
+        
+        // Arrange
+        List<IStatement> program = [
+            new Loop(ConstFactor(true), ConstFactor(true)),
+        ];
+        
+        // Act
+        var act = () => ExecuteProgram(program);
+        
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage($"*Loop exceeded loop count limit*");
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldExecuteLoop_WhenConditionReturnInt_AndIsDecreasedFromBodyBlock()
+    {
+        /*
+         * i = 5;
+         * loop i { i := i - 1; print(i) };
+         */
+        
+        // Arrange
+        var output = new List<IFactorValue>();
+        List<IStatement> program = [
+            new Declaration("i", ConstFactor(5)),
+            new Loop(new VariableFactor("i"),
+                new Block([
+                    new Assign("i", new ArithmeticalExpression(new VariableFactor("i"), ConstFactor(1), TokenType.OperatorSubtract)),
+                    AddToOutput("i"),
+                ])
+            ),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program, [new TestMethod(output)]);
+        
+        // Assert
+        result.Should().BeEquivalentTo(new IntFactor(0));
+        output.Should().BeEquivalentTo([
+            new IntFactor(4),
+            new IntFactor(3),
+            new IntFactor(2),
+            new IntFactor(1),
+            new IntFactor(0)
+        ]);
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldExecuteLoop_WhenConditionReturnInt_AndIsDecreasedFromConditionBlock()
+    {
+        /*
+         * i = 2;
+         * loop { i := i + 1; i < 6 } print(i);
+         */
+        
+        // Arrange
+        var output = new List<IFactorValue>();
+        List<IStatement> program = [
+            new Declaration("i", ConstFactor(2)),
+            new Loop(
+                new Block([
+                    new Assign("i", new ArithmeticalExpression(new VariableFactor("i"), ConstFactor(1), TokenType.OperatorAdd)),
+                    new CompereExpression(new VariableFactor("i"), ConstFactor(6), TokenType.OperatorLess) ,
+                ]),
+            AddToOutput("i")
+            ),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program, [new TestMethod(output)]);
+        
+        // Assert
+        result.Should().BeEquivalentTo(new IntFactor(5));
+        output.Should().BeEquivalentTo([
+            new IntFactor(3),
+            new IntFactor(4),
+            new IntFactor(5),
+        ]);
+    }
+    
+    #endregion
+    
     #endregion
 
     #region Expressions
@@ -692,4 +825,7 @@ public class InterpreterTests
     private static ConstFactor ConstFactor(int value) => new ConstFactor(new IntFactor(value), Position.Default);
     private static ConstFactor ConstFactor(bool value) => new ConstFactor(new BoolFactor(value), Position.Default);
     private static ConstFactor ConstFactor(string value) => new ConstFactor(new StringFactor(value), Position.Default);
+    
+    private static FunctionCall AddToOutput(IExpression expression) => new FunctionCall(TestMethod.IDENTIFIER, [expression]);
+    private static FunctionCall AddToOutput(string variableName) => AddToOutput(new VariableFactor(variableName));
 }
