@@ -11,6 +11,6 @@ namespace BlockScript.Interpreter.BuildInMethods
         public abstract string Identifier { get; }
         public abstract List<string> Arguments { get; }
 
-        public abstract IFactorValue Execute(Context context);
+        public abstract IFactorValue Execute(Func<IStatement, IFactorValue> execute, Context context);
     }
 }

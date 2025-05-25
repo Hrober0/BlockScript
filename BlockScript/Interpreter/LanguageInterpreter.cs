@@ -11,7 +11,7 @@ namespace BlockScript.Interpreter;
 
 public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
 {
-    private const int RECURSION_LIMIT = 10;
+    private const int RECURSION_LIMIT = 100;
     
     private readonly Stack<Context> _contextStack = new();
     
@@ -22,7 +22,7 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         var startContext = new Context(null);
         foreach (var method in buildInMethods)
         {
-            startContext.AddData(method.Identifier, new Lambda(method.Arguments, method, method.Position));
+            startContext.SetData(method.Identifier, new ContextLambda(new Lambda(method.Arguments, method, method.Position), startContext));
         }
         _contextStack.Push(startContext);
         return Execute(block);
@@ -57,10 +57,12 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
     private IFactorValue Execute(Block block)
     {
         IFactorValue? returnValue = null;
+        _contextStack.Push(new Context(CurrentContext));
         foreach (var statement in block.Statements)
         {
             returnValue = Execute(statement);
         }
+        _contextStack.Pop();
         return returnValue ?? new NullFactor();
     }
 
@@ -72,22 +74,24 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         }
 
         var newValue = Execute(assign.Value);
-        CurrentContext.AddData(assign.Identifier, newValue);
+        CurrentContext.SetData(assign.Identifier, newValue);
         return newValue;
     }
-
-    private IFactorValue Execute(Lambda lambda) => lambda;
     
-    private IFactorValue Execute(BuildInMethod buildInMethod) => buildInMethod.Execute(CurrentContext);
+    private IFactorValue Execute(Lambda lambda) => new ContextLambda(lambda, CurrentContext);
+    
+    private IFactorValue Execute(BuildInMethod buildInMethod) => buildInMethod.Execute(Execute, CurrentContext);
 
     private IFactorValue Execute(FunctionCall functionCall)
     {
         var dataValue = CurrentContext.GetContextData(functionCall.Identifier, functionCall.Position);
 
-        if (dataValue is not Lambda lambda)
+        if (dataValue is not ContextLambda contextLambda)
         {
             throw new RuntimeException(functionCall.Position, $"{dataValue} is not callable!");
         }
+        
+        var (lambda, localContext) = contextLambda;
 
         if (lambda.Arguments.Count != functionCall.Arguments.Count)
         {
@@ -99,11 +103,12 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
             throw new RuntimeException(functionCall.Position, $"Exceeded recursion limit");
         }
         
-        _contextStack.Push(new Context(CurrentContext));
+        var newContext = new Context(localContext);
         for (int i = 0; i < functionCall.Arguments.Count; i++)
         {
-            CurrentContext.AddData(lambda.Arguments[i], Execute(functionCall.Arguments[i]));   
+            newContext.AddData(lambda.Arguments[i], Execute(functionCall.Arguments[i]));   
         }
+        _contextStack.Push(newContext);
         var result = Execute(lambda.Body);
         _contextStack.Pop();
         return result;

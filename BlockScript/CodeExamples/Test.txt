@@ -1,2 +1,2 @@
 fib = (i) => if i <= 1 1 else fib(i-1) + fib(i-2);
-fib(4); # 1 2 3 5
+print(fib(6)); # 1 2 3 5 8 13

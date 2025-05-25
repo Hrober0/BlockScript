@@ -8,6 +8,8 @@ namespace BlockScript.Parser.Factors;
 
 public record Block(List<IStatement> Statements, Position Position) : IFactor
 {
+    public Block(List<IStatement> Statements) : this(Statements, Position.Default) { }
+    
     public override string ToString()
     {
         var sb = new StringBuilder("Block {");

@@ -5,9 +5,15 @@ using BlockScript.Reader;
 
 namespace BlockScript.Interpreter;
 
-public class Context(Context? _parent)
+public class Context
 {
+    private readonly Context? _parent; 
     private readonly Dictionary<string, IFactorValue> _data = new();
+
+    public Context(Context? parent)
+    {
+        _parent = parent;
+    }
 
     public bool TryGetData(string identifier, out IFactorValue value)
     {
@@ -27,6 +33,23 @@ public class Context(Context? _parent)
 
         return dataValue;
     }
-    
+
     public void AddData(string identifier, IFactorValue value) => _data[identifier] = value;
+    
+    public void SetData(string identifier, IFactorValue value)
+    {
+        var current = this;
+        do
+        {
+            if (current._data.ContainsKey(identifier))
+            {
+                current._data[identifier] = value;
+                return;
+            }
+        
+            current = current._parent;
+        } while (current != null);
+        
+        _data[identifier] = value;
+    }
 }
