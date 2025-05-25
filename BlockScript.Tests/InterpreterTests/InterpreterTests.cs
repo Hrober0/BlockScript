@@ -44,7 +44,7 @@ public class InterpreterTests
         var result = ExecuteProgram(program);
         
         // Assert
-        result.Should().BeOfType<IntFactor>().Which.Value.Should().Be(69);
+        result.Should().BeEquivalentTo(new IntFactor(69));
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public class InterpreterTests
         var result = ExecuteProgram(program);
         
         // Assert
-        result.Should().BeOfType<NullFactor>();
+        result.Should().BeEquivalentTo(new NullFactor());
     }
     
     [Fact]
@@ -77,7 +77,7 @@ public class InterpreterTests
         var result = ExecuteProgram(program);
         
         // Assert
-        result.Should().BeOfType<IntFactor>().Which.Value.Should().Be(69);
+        result.Should().BeEquivalentTo(new IntFactor(69));
     }
 
     #endregion
@@ -140,7 +140,7 @@ public class InterpreterTests
     {
         // Arrange
         List<IStatement> program = [
-            new Assign("myVar", ConstFactor(1)),
+            new Declaration("myVar", ConstFactor(1)),
             new Block([
                 new Assign("inner", ConstFactor(2)),
             ]),
@@ -426,7 +426,7 @@ public class InterpreterTests
     {
         // Arrange
         List<IStatement> program = [
-            new Assign("x", new Lambda([], ConstFactor(1))),
+            new Declaration("x", new Lambda([], ConstFactor(1))),
             new FunctionCall("x", []),
         ];
         
@@ -551,11 +551,11 @@ public class InterpreterTests
             ]))),
             
             new Declaration("fc", new FunctionCall("f", [])),
-            new FunctionCall(TestMethod.IDENTIFIER, [new FunctionCall("fc", [])]),  // should add 4 to output
+            AddToOutput(new FunctionCall("fc", [])),                    // should add 4 to output
             new Declaration("fc", new FunctionCall("f", [])),
-            new FunctionCall(TestMethod.IDENTIFIER, [new FunctionCall("fc", [])]),  // should add 4 to output
-            new FunctionCall(TestMethod.IDENTIFIER, [new FunctionCall("fc", [])]),  // should add 5 to output
-            new FunctionCall(TestMethod.IDENTIFIER, [new FunctionCall("fc", [])]),  // should add 6 to output
+            AddToOutput(new FunctionCall("fc", [])),                    // should add 4 to output
+            AddToOutput(new FunctionCall("fc", [])),                    // should add 5 to output
+            AddToOutput(new FunctionCall("fc", [])),                    // should add 6 to output
         ];
         
         // Act
