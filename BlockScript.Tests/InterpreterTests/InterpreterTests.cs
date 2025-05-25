@@ -811,7 +811,74 @@ public class InterpreterTests
 
     #region Expressions
 
+    #region Logical
+
+    [Theory]
+    [InlineData(true, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(false, false, false)]
+    public void Interpreter_ShouldExecuteLogicExpression_WhenAndTwoBooleans(bool left, bool right, bool expected)
+    {
+        // Arrange
+        List<IStatement> program = [
+            new LogicExpression(ConstFactor(left), ConstFactor(right), TokenType.OperatorAnd),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().BeEquivalentTo(new BoolFactor(expected));
+    }
     
+    [Theory]
+    [InlineData(true, true, true)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(false, false, false)]
+    public void Interpreter_ShouldExecuteLogicExpression_WhenOrTwoBooleans(bool left, bool right, bool expected)
+    {
+        // Arrange
+        List<IStatement> program = [
+            new LogicExpression(ConstFactor(left), ConstFactor(right), TokenType.OperatorOr),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().BeEquivalentTo(new BoolFactor(expected));
+    } 
+
+    [Theory]
+    [InlineData(0, true, false)]
+    [InlineData(1, true, true)]
+    [InlineData(true, 0, false)]
+    [InlineData(true, 1, true)]
+    [InlineData(1, 1, true)]
+    [InlineData("", true, false)]
+    [InlineData("asd", true, true)]
+    [InlineData(true, "", false)]
+    [InlineData(true, "asd", true)]
+    [InlineData("asd", "asd", true)]
+    [InlineData(true, null, false)]
+    [InlineData(null, true,false)]
+    public void Interpreter_ShouldExecuteLogicExpression_WhenFactorsAreNotBooleans(object? left, object? right, bool expected)
+    {
+        // Arrange
+        List<IStatement> program = [
+            new LogicExpression(ConstFactor(left), ConstFactor(right), TokenType.OperatorAnd),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().BeEquivalentTo(new BoolFactor(expected));
+    } 
+    
+    #endregion
 
     #endregion
 
@@ -825,6 +892,15 @@ public class InterpreterTests
     private static ConstFactor ConstFactor(int value) => new ConstFactor(new IntFactor(value), Position.Default);
     private static ConstFactor ConstFactor(bool value) => new ConstFactor(new BoolFactor(value), Position.Default);
     private static ConstFactor ConstFactor(string value) => new ConstFactor(new StringFactor(value), Position.Default);
+
+    private static ConstFactor ConstFactor(object? value) => value switch
+    {
+        null => ConstFactor(),
+        int v => ConstFactor(v),
+        bool v => ConstFactor(v),
+        string v => ConstFactor(v),
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+    };
     
     private static FunctionCall AddToOutput(IExpression expression) => new FunctionCall(TestMethod.IDENTIFIER, [expression]);
     private static FunctionCall AddToOutput(string variableName) => AddToOutput(new VariableFactor(variableName));

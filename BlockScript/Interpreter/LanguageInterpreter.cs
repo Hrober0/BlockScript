@@ -1,4 +1,5 @@
-﻿using BlockScript.Exceptions;
+﻿using System.Linq.Expressions;
+using BlockScript.Exceptions;
 using BlockScript.Interpreter.BuildInMethods;
 using BlockScript.Lexer;
 using BlockScript.Lexer.FactorValues;
@@ -45,6 +46,7 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
             Loop s => Execute(s),
             
             // expressions
+            LogicExpression s => Execute(s),
             CompereExpression s => Execute(s),
             ArithmeticalExpression s => Execute(s),
             
@@ -190,6 +192,19 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
 
     #region Expressions
 
+    private IFactorValue Execute(LogicExpression logicExpression)
+    {
+        var left = ParseBool(Execute(logicExpression.Lhs), logicExpression.Lhs.Position);
+        var right = ParseBool(Execute(logicExpression.Rhs), logicExpression.Rhs.Position);
+        var result = logicExpression.Operator switch
+        {
+            TokenType.OperatorAnd => left && right,
+            TokenType.OperatorOr => left || right,
+            _ => throw new RuntimeException(logicExpression.Position, $"Unexpected {logicExpression.Operator.TextValue()} operator in logic expression!")
+        };
+        return new BoolFactor(result);
+    }
+    
     private IFactorValue Execute(CompereExpression compereExpression)
     {
         var left = ParseInt(Execute(compereExpression.Lhs), compereExpression.Lhs.Position);
@@ -270,6 +285,7 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         return value switch
         {
             IntFactor v => v.Value,
+            StringFactor v => v.Value.Length,
             BoolFactor v => v.Value ? 1 : 0,
             NullFactor => 0,
             _ => throw new RuntimeException(position, $"{value} can not be parsed to int value!")
@@ -280,8 +296,8 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
     {
         return value switch
         {
-            StringFactor v => v.Value,
             IntFactor v => v.Value.ToString(),
+            StringFactor v => v.Value,
             BoolFactor v => v.Value ? "true" : "false",
             NullFactor => "",
             _ => throw new RuntimeException(position, $"{value} can not be parsed to int value!")
