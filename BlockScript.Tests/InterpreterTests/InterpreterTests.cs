@@ -880,6 +880,77 @@ public class InterpreterTests
     
     #endregion
 
+    #region Compere
+
+    [Theory]
+    // ==
+    [InlineData(TokenType.OperatorEqual,         2, 2, true)]
+    [InlineData(TokenType.OperatorEqual,         2, 1, false)]
+    [InlineData(TokenType.OperatorEqual,         1, 3, false)]
+    // <=
+    [InlineData(TokenType.OperatorLessEqual,     2, 2, true)]
+    [InlineData(TokenType.OperatorLessEqual,     1, 2, true)]
+    [InlineData(TokenType.OperatorLessEqual,     3, 2, false)]
+
+    // <
+    [InlineData(TokenType.OperatorLess,          1, 2, true)]
+    [InlineData(TokenType.OperatorLess,          2, 2, false)]
+    [InlineData(TokenType.OperatorLess,          3, 2, false)]
+
+    // >=
+    [InlineData(TokenType.OperatorGreaterEqual,  2, 2, true)]
+    [InlineData(TokenType.OperatorGreaterEqual,  3, 2, true)]
+    [InlineData(TokenType.OperatorGreaterEqual,  1, 2, false)]
+
+    // >
+    [InlineData(TokenType.OperatorGreater,       3, 2, true)]
+    [InlineData(TokenType.OperatorGreater,       2, 2, false)]
+    [InlineData(TokenType.OperatorGreater,       1, 2, false)]
+
+    // !=
+    [InlineData(TokenType.OperatorNotEqual,      2, 1, true)]
+    [InlineData(TokenType.OperatorNotEqual,      2, 2, false)]
+    [InlineData(TokenType.OperatorNotEqual,      1, 2, true)]
+    public void Interpreter_ShouldExecuteCompereExpression_WhenTwoFactorsAreInts(TokenType tokenType, int left, int right, bool expected)
+    {
+        // Arrange
+        List<IStatement> program = [
+            new CompereExpression(ConstFactor(left), ConstFactor(right), tokenType),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().BeEquivalentTo(new BoolFactor(expected));
+    }
+    
+    [Theory]
+    [InlineData("foo",    "foo",    true)]
+    [InlineData("foo",    "bar",    false)]
+    [InlineData(true,     true,     true)]
+    [InlineData(true,     false,    false)]
+    [InlineData(null,     null,     true)]
+    [InlineData(null,     "text",   false)]
+    [InlineData("text",   null,     false)]
+    [InlineData(0,        true,     false)]
+    [InlineData(0,        false,     true)]
+    public void Interpreter_ShouldExecuteCompereExpression_WhenTwoFactorsAreNotInt(object? left, object? right, bool expected)
+    {
+        // Arrange
+        List<IStatement> program = [
+            new CompereExpression(ConstFactor(left), ConstFactor(right), TokenType.OperatorEqual),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().BeEquivalentTo(new BoolFactor(expected));
+    }
+
+    #endregion
+
     #endregion
 
     private static IFactorValue ExecuteProgram(List<IStatement> statements, List<BuildInMethod>? methods = null)

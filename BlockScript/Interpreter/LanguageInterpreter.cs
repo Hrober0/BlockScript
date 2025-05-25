@@ -207,16 +207,26 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
     
     private IFactorValue Execute(CompereExpression compereExpression)
     {
-        var left = ParseInt(Execute(compereExpression.Lhs), compereExpression.Lhs.Position);
-        var right = ParseInt(Execute(compereExpression.Rhs), compereExpression.Rhs.Position);
+        var left = Execute(compereExpression.Lhs);
+        var right = Execute(compereExpression.Rhs);
+        
+        if (compereExpression.Operator == TokenType.OperatorEqual 
+            && left is StringFactor lString
+            && right is StringFactor rString)
+        {
+            return new BoolFactor(lString.Value == rString.Value);
+        }
+        
+        var leftValue = ParseInt(left, compereExpression.Lhs.Position);
+        var rightValue = ParseInt(right, compereExpression.Rhs.Position);
         var result = compereExpression.Operator switch
         {
-            TokenType.OperatorEqual => left == right,
-            TokenType.OperatorLessEqual => left <= right,
-            TokenType.OperatorLess => left < right,
-            TokenType.OperatorGreaterEqual => left >= right,
-            TokenType.OperatorGreater => left > right,
-            TokenType.OperatorNotEqual => left != right,
+            TokenType.OperatorEqual => leftValue == rightValue,
+            TokenType.OperatorLessEqual => leftValue <= rightValue,
+            TokenType.OperatorLess => leftValue < rightValue,
+            TokenType.OperatorGreaterEqual => leftValue >= rightValue,
+            TokenType.OperatorGreater => leftValue > rightValue,
+            TokenType.OperatorNotEqual => leftValue != rightValue,
             _ => throw new RuntimeException(compereExpression.Position, $"Unexpected {compereExpression.Operator.TextValue()} operator in compere expression!")
         };
         return new BoolFactor(result);
