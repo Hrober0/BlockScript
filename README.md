@@ -491,7 +491,7 @@ op_check		= "??"
 op_add			= "+" | "-";
 op_mul			= "*" | "/";
 
-op_asign		= "=" | "?=";
+op_asign		= "=" | "?=" | ":=";
 
 identifier		= letter { letter | digit };
 

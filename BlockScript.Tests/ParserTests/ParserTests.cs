@@ -159,15 +159,13 @@ public class ParserTests
     
     #region Assigment
 
-    [Theory]
-    [InlineData(TokenType.OperatorAssign)]
-    [InlineData(TokenType.OperatorNullAssign)]
-    public void Parser_ShouldParseAssigment(TokenType tokenType)
+    [Fact]
+    public void Parser_ShouldParseAssigment()
     {
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Identifier, Value = new StringFactor("true")},
-            new TokenData { Type = tokenType},
+            new TokenData { Type = TokenType.OperatorAssign},
             new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(false) },
             new TokenData { Type = TokenType.EndOfStatement }
         );
@@ -203,18 +201,41 @@ public class ParserTests
                                .Which.Should().BeOfType<Assign>().Subject;
 
         assignment.Identifier.Should().Be("x");
-        var expr = assignment.Value.Should().BeOfType<ArithmeticalExpression>().Subject;
-        expr.Operator.Should().Be(TokenType.OperatorAdd);
+        assignment.Value.Should().BeOfType<ArithmeticalExpression>()
+                  .Which.Operator.Should().Be(TokenType.OperatorAdd);
     }
-
+    
     [Fact]
-    public void Parser_ShouldParseAssignment_ToNull()
+    public void Parser_ShouldParseNullAssigment()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("true")},
+            new TokenData { Type = TokenType.OperatorNullAssign},
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(false) },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        var assigment = result.Statements.Should().ContainSingle()
+                              .Which.Should().BeOfType<NullAssign>().Subject;
+        assigment.Identifier.Should().Be("true");
+        assigment.Value.ShouldBeConstFactor(false);
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseNullAssignment_WithExpressionValue()
     {
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Identifier, Value = new StringFactor("x") },
-            new TokenData { Type = TokenType.OperatorAssign },
-            new TokenData { Type = TokenType.Null, Value = new NullFactor() },
+            new TokenData { Type = TokenType.OperatorNullAssign },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
+            new TokenData { Type = TokenType.OperatorAdd },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -223,18 +244,69 @@ public class ParserTests
 
         // Assert
         var assignment = result.Statements.Should().ContainSingle()
-                               .Which.Should().BeOfType<Assign>().Subject;
+                               .Which.Should().BeOfType<NullAssign>().Subject;
 
-        assignment.Value.Should().BeOfType<ConstFactor>().Which.Value.Should().BeOfType<NullFactor>();
+        assignment.Identifier.Should().Be("x");
+        assignment.Value.Should().BeOfType<ArithmeticalExpression>()
+                  .Which.Operator.Should().Be(TokenType.OperatorAdd);
     }
-
+    
     [Fact]
-    public void Parser_ShouldThrow_WhenAssignmentValueMissing()
+    public void Parser_ShouldParseDeclaration()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("true")},
+            new TokenData { Type = TokenType.OperatorDeclaration},
+            new TokenData { Type = TokenType.Boolean, Value = new BoolFactor(false) },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        var assigment = result.Statements.Should().ContainSingle()
+                              .Which.Should().BeOfType<Declaration>().Subject;
+        assigment.Identifier.Should().Be("true");
+        assigment.Value.ShouldBeConstFactor(false);
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseDeclaration_WithExpressionValue()
     {
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Identifier, Value = new StringFactor("x") },
-            new TokenData { Type = TokenType.OperatorAssign },
+            new TokenData { Type = TokenType.OperatorDeclaration },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
+            new TokenData { Type = TokenType.OperatorAdd },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        var assignment = result.Statements.Should().ContainSingle()
+                               .Which.Should().BeOfType<Declaration>().Subject;
+
+        assignment.Identifier.Should().Be("x");
+        assignment.Value.Should().BeOfType<ArithmeticalExpression>()
+                  .Which.Operator.Should().Be(TokenType.OperatorAdd);
+    }
+
+    [Theory]
+    [InlineData(TokenType.OperatorAssign)]
+    [InlineData(TokenType.OperatorNullAssign)]
+    [InlineData(TokenType.OperatorDeclaration)]
+    public void Parser_ShouldThrow_WhenAssignmentValueMissing(TokenType tokenType)
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("x") },
+            new TokenData { Type = tokenType },
             new TokenData { Type = TokenType.EndOfStatement }
         );
 
@@ -245,26 +317,7 @@ public class ParserTests
         act.Should().Throw<TokenException>()
             .WithMessage("*Expected statement*");
     }
-
-    [Fact]
-    public void Parser_ShouldThrow_WhenAssignmentMissingSemicolon()
-    {
-        // Arrange
-        var parser = CreateParserFromTokens(
-            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("x") },
-            new TokenData { Type = TokenType.OperatorAssign },
-            new TokenData { Type = TokenType.Integer, Value = new IntFactor(42) }
-            // missing EndOfStatement
-        );
-        
-        // Act
-        var act = () => parser.ParserProgram();
-
-        // Assert
-        act.Should().Throw<TokenException>()
-           .WithMessage("*Expected ';'*");
-    }
-
+    
     
     #endregion
     

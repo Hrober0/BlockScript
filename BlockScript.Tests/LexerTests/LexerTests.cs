@@ -420,8 +420,6 @@ public class LexerTests
     
     [Theory]
     [InlineData("==", TokenType.OperatorEqual)]
-    [InlineData("=>", TokenType.OperatorArrow)]
-    [InlineData("=", TokenType.OperatorAssign)]
     [InlineData("<=", TokenType.OperatorLessEqual)]
     [InlineData("<", TokenType.OperatorLess)]
     [InlineData(">=", TokenType.OperatorGreaterEqual)]
@@ -430,11 +428,14 @@ public class LexerTests
     [InlineData("||", TokenType.OperatorOr)]
     [InlineData("&&", TokenType.OperatorAnd)]
     [InlineData("??", TokenType.OperatorNullCoalescing)]
-    [InlineData("?=", TokenType.OperatorNullAssign)]
     [InlineData("+", TokenType.OperatorAdd)]
     [InlineData("-", TokenType.OperatorSubtract)]
     [InlineData("*", TokenType.OperatorMultiply)]
     [InlineData("/", TokenType.OperatorDivide)]
+    [InlineData("=>", TokenType.OperatorArrow)]
+    [InlineData(":=", TokenType.OperatorAssign)]
+    [InlineData("=", TokenType.OperatorDeclaration)]
+    [InlineData("?=", TokenType.OperatorNullAssign)]
     public void GetToken_ShouldReturnValidOperatorTokens(string @operator, TokenType tokenType)
     {
         // Arrange
@@ -649,7 +650,7 @@ public class LexerTests
         token5.Position.Column.Should().Be(2);
 
         // Assert for token6 (=)
-        token6.Type.Should().Be(TokenType.OperatorAssign);
+        token6.Type.Should().Be(TokenType.OperatorDeclaration);
         token6.Position.Line.Should().Be(3);
         token6.Position.Column.Should().Be(4);
 

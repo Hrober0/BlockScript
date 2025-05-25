@@ -22,7 +22,7 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         var startContext = new Context(null);
         foreach (var method in buildInMethods)
         {
-            startContext.SetData(method.Identifier, new ContextLambda(new Lambda(method.Arguments, method, method.Position), startContext));
+            startContext.AddData(method.Identifier, new ContextLambda(new Lambda(method.Arguments, method, method.Position), startContext));
         }
         _contextStack.Push(startContext);
         return Execute(block);
@@ -35,6 +35,8 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
             // statements
             Block s => Execute(s),
             Assign s => Execute(s),
+            NullAssign s => Execute(s),
+            Declaration s => Execute(s),
             Lambda s => Execute(s),
             BuildInMethod s => Execute(s),
             FunctionCall s => Execute(s),
@@ -68,13 +70,37 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
 
     private IFactorValue Execute(Assign assign)
     {
-        if (assign.NullAssign && CurrentContext.TryGetData(assign.Identifier, out var dataValue) && dataValue is not NullFactor)
+        if (!CurrentContext.TryGetData(assign.Identifier, out _))
         {
-            return dataValue;
+            throw new RuntimeException(assign.Position, $"Variable of name {assign.Identifier} was not defined!");
         }
 
         var newValue = Execute(assign.Value);
         CurrentContext.SetData(assign.Identifier, newValue);
+        return newValue;
+    }
+    
+    private IFactorValue Execute(NullAssign nullAssign)
+    {
+        if (!CurrentContext.TryGetData(nullAssign.Identifier, out var dataValue))
+        {
+            throw new RuntimeException(nullAssign.Position, $"Variable of name {nullAssign.Identifier} was not defined!");
+        }
+        
+        if (dataValue is not NullFactor)
+        {
+            return dataValue;
+        }
+
+        var newValue = Execute(nullAssign.Value);
+        CurrentContext.SetData(nullAssign.Identifier, newValue);
+        return newValue;
+    }
+    
+    private IFactorValue Execute(Declaration declaration)
+    {
+        var newValue = Execute(declaration.Value);
+        CurrentContext.AddData(declaration.Identifier, newValue);
         return newValue;
     }
     

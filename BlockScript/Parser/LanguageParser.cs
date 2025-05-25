@@ -58,6 +58,8 @@ public class LanguageParser
     
     private IStatement? TryParseStatement() =>
         TryParseAssign()
+        ?? TryParseNullAssign()
+        ?? TryParseDeclaration()
         ?? TryParseLambda()
         ?? TryParseCondition()
         ?? TryParseLoop()
@@ -65,16 +67,41 @@ public class LanguageParser
 
     private IStatement? TryParseAssign()
     {
-        if (_tokenBuffer.Current.Type is not TokenType.Identifier || _tokenBuffer.Next.Type is not (TokenType.OperatorAssign or TokenType.OperatorNullAssign))
+        if (_tokenBuffer.Current.Type is not TokenType.Identifier || _tokenBuffer.Next.Type is not TokenType.OperatorAssign)
         {
             return null;
         }
         var position = _tokenBuffer.Current.Position;
-        var identifierToken = TakeTokenOrThrow(TokenType.Identifier, "Assigment requires a name.");
-        var nullAssign = _tokenBuffer.Current.Type is TokenType.OperatorNullAssign;
+        var identifierToken = _tokenBuffer.Take();
         _tokenBuffer.Take();
         var statement = ParseStatement("Assigment require value");
-        return new Assign((string)(StringFactor)identifierToken.Value, statement, nullAssign, position);
+        return new Assign((string)(StringFactor)identifierToken.Value, statement, position);
+    }
+    
+    private IStatement? TryParseNullAssign()
+    {
+        if (_tokenBuffer.Current.Type is not TokenType.Identifier || _tokenBuffer.Next.Type is not TokenType.OperatorNullAssign)
+        {
+            return null;
+        }
+        var position = _tokenBuffer.Current.Position;
+        var identifierToken = _tokenBuffer.Take();
+        _tokenBuffer.Take();
+        var statement = ParseStatement("Assigment require value");
+        return new NullAssign((string)(StringFactor)identifierToken.Value, statement, position);
+    }
+    
+    private IStatement? TryParseDeclaration()
+    {
+        if (_tokenBuffer.Current.Type is not TokenType.Identifier || _tokenBuffer.Next.Type is not TokenType.OperatorDeclaration)
+        {
+            return null;
+        }
+        var position = _tokenBuffer.Current.Position;
+        var identifierToken = _tokenBuffer.Take();
+        _tokenBuffer.Take();
+        var statement = ParseStatement("Declaration require value");
+        return new Declaration((string)(StringFactor)identifierToken.Value, statement, position);
     }
     
     private IStatement? TryParseLambda()

@@ -89,6 +89,7 @@ public class InterpreterTests
     {
         // Arrange
         List<IStatement> program = [
+            new Declaration("myVar", ConstFactor()),
             new Assign("myVar", ConstFactor(69)),
         ];
         
@@ -96,7 +97,7 @@ public class InterpreterTests
         var result = ExecuteProgram(program);
         
         // Assert
-        result.Should().BeOfType<IntFactor>().Which.Value.Should().Be(69);
+        result.Should().BeEquivalentTo(new IntFactor(69));
     }
     
     [Fact]
@@ -104,8 +105,10 @@ public class InterpreterTests
     {
         // Arrange
         List<IStatement> program = [
-            new Assign("myVar", ConstFactor(69)),
-            new Assign("another", ConstFactor(42)),
+            new Declaration("myVar", ConstFactor(1)),
+            new Assign("myVar", ConstFactor(2)),
+            new Assign("myVar", ConstFactor(3)),
+            new Declaration("another", ConstFactor(4)),
             new VariableFactor("myVar"),
         ];
         
@@ -113,59 +116,23 @@ public class InterpreterTests
         var result = ExecuteProgram(program);
         
         // Assert
-        result.Should().BeOfType<IntFactor>().Which.Value.Should().Be(69);
+        result.Should().BeEquivalentTo(new IntFactor(3));
     }
     
     [Fact]
-    public void Interpreter_ShouldExecuteAssign_WhenVariableAlreadyDefined()
+    public void Interpreter_ShouldThrow_WhenExecuteAssign_AndVariableIsNotDefined()
     {
         // Arrange
         List<IStatement> program = [
             new Assign("myVar", ConstFactor(69)),
-            new Assign("myVar", ConstFactor(42)),
-            new VariableFactor("myVar"),
         ];
         
         // Act
-        var result = ExecuteProgram(program);
+        var act = () => ExecuteProgram(program);
         
         // Assert
-        result.Should().BeOfType<IntFactor>().Which.Value.Should().Be(42);
-    }
-    
-    [Fact]
-    public void Interpreter_ShouldExecuteNullAssign()
-    {
-        // Arrange
-        List<IStatement> program = [
-            new Assign("myVar", ConstFactor(69), true),
-            new Assign("another", ConstFactor(42)),
-            new VariableFactor("myVar"),
-        ];
-        
-        // Act
-        var result = ExecuteProgram(program);
-        
-        // Assert
-        result.Should().BeOfType<IntFactor>().Which.Value.Should().Be(69);
-    }
-    
-    [Fact]
-    public void Interpreter_ShouldExecuteNullAssign_WhenVariableAlreadyDefined()
-    {
-        // Arrange
-        List<IStatement> program = [
-            new Assign("myVar", ConstFactor(1), true),
-            new Assign("myVar", ConstFactor(2), true),
-            new Assign("another", ConstFactor(3)),
-            new VariableFactor("myVar"),
-        ];
-        
-        // Act
-        var result = ExecuteProgram(program);
-        
-        // Assert
-        result.Should().BeOfType<IntFactor>().Which.Value.Should().Be(1);
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*Variable of name myVar was not defined*");
     }
     
     [Fact]
@@ -193,7 +160,7 @@ public class InterpreterTests
     {
         // Arrange
         List<IStatement> program = [
-            new Assign("myVar", ConstFactor(1)),
+            new Declaration("myVar", ConstFactor(1)),
             new Block([
                 new Assign("myVar", ConstFactor(2)),
             ]),
@@ -207,6 +174,152 @@ public class InterpreterTests
         act.Should().BeEquivalentTo(new IntFactor(2));
     }
     
+    #endregion
+
+    #region NullAssign
+
+    [Fact]
+    public void Interpreter_ShouldExecuteNullAssign()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new Declaration("myVar", ConstFactor()),
+            new NullAssign("myVar", ConstFactor(69)),
+            new VariableFactor("myVar"),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().BeEquivalentTo(new IntFactor(69));
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldThrow_WhenExecuteNullAssign_AndVariableIsNotDefined()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new NullAssign("myVar", ConstFactor(69)),
+        ];
+        
+        // Act
+        var act = () => ExecuteProgram(program);
+        
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*Variable of name myVar was not defined*");
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldExecuteNullAssign_WhenVariableExistAndHasNullValue()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new Assign("myVar", ConstFactor()),
+            new NullAssign("myVar", ConstFactor(69)),
+            new VariableFactor("myVar"),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().BeEquivalentTo(new IntFactor(69));
+    }
+    
+    #endregion
+    
+    #region Declaration
+
+    [Fact]
+    public void Interpreter_ShouldExecuteDeclaration()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new Declaration("myVar", ConstFactor(69)),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().BeEquivalentTo(new IntFactor(69));
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldExecuteDeclarationAndBeAssign()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new Declaration("myVar", ConstFactor(69)),
+            new Declaration("another", ConstFactor(42)),
+            new VariableFactor("myVar"),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().BeEquivalentTo(new IntFactor(69));
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldExecuteDeclaration_AndOverrideLastValue_WhenVariableAlreadyDefined()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new Declaration("myVar", ConstFactor(69)),
+            new Declaration("myVar", ConstFactor(42)),
+            new VariableFactor("myVar"),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().BeEquivalentTo(new IntFactor(42));
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldExecuteDeclaration_AndBeAssignOnlyInGivenContext()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new Declaration("myVar", ConstFactor(1)),
+            new Block([
+                new Declaration("inner", ConstFactor(2)),
+            ]),
+            new VariableFactor("inner"),
+        ];
+        
+        // Act
+        var act = () => ExecuteProgram(program);
+        
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage($"*Variable of name inner was not defined!*");
+    }
+
+    [Fact]
+    public void Interpreter_ShouldExecuteDeclaration_AndNotOverrideValue_WhenDeclarationFromInnerContext()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new Declaration("myVar", ConstFactor(1)),
+            new Block([
+                new Declaration("myVar", ConstFactor(2)),
+            ]),
+            new VariableFactor("myVar"),
+        ];
+        
+        // Act
+        var act = ExecuteProgram(program);
+        
+        // Assert
+        act.Should().BeEquivalentTo(new IntFactor(1));
+    }
+
     #endregion
 
     #region Lambda
@@ -329,7 +442,7 @@ public class InterpreterTests
     {
         // Arrange
         List<IStatement> program = [
-            new Assign("x", new Lambda([], ConstFactor(1)), false),
+            new Declaration("x", new Lambda([], ConstFactor(1))),
             new FunctionCall("y", []),
         ];
         
@@ -346,7 +459,7 @@ public class InterpreterTests
     {
         // Arrange
         List<IStatement> program = [
-            new Assign("x", new Lambda(["a1", "a2"], new VariableFactor("a2")), false),
+            new Declaration("x", new Lambda(["a1", "a2"], new VariableFactor("a2"))),
             new FunctionCall("x", [ConstFactor(1), ConstFactor(2)]),
         ];
         
@@ -362,7 +475,7 @@ public class InterpreterTests
     {
         // Arrange
         List<IStatement> program = [
-            new Assign("x", new Lambda(["a1"], ConstFactor(1)), false),
+            new Declaration("x", new Lambda(["a1"], ConstFactor(1))),
             new FunctionCall("x", []),
         ];
         
@@ -379,7 +492,7 @@ public class InterpreterTests
     {
         // Arrange
         List<IStatement> program = [
-            new Assign("x", ConstFactor(1), false),
+            new Declaration("x", ConstFactor(1)),
             new FunctionCall("x", []),
         ];
         
@@ -430,16 +543,16 @@ public class InterpreterTests
         // Arrange
         var output = new List<IFactorValue>();
         List<IStatement> program = [
-            new Assign("f", new Lambda([], new Block([
-                new Assign("a", ConstFactor(2)),
-                new Assign("ff", new Lambda([], new Assign("a", new ArithmeticalExpression(new VariableFactor("a"), ConstFactor(1), TokenType.OperatorAdd)))),
+            new Declaration("f", new Lambda([], new Block([
+                new Declaration("a", ConstFactor(2)),
+                new Declaration("ff", new Lambda([], new Assign("a", new ArithmeticalExpression(new VariableFactor("a"), ConstFactor(1), TokenType.OperatorAdd)))),
                 new Assign("a", ConstFactor(3)),
                 new VariableFactor("ff"),
             ]))),
             
-            new Assign("fc", new FunctionCall("f", [])),
+            new Declaration("fc", new FunctionCall("f", [])),
             new FunctionCall(TestMethod.IDENTIFIER, [new FunctionCall("fc", [])]),  // should add 4 to output
-            new Assign("fc", new FunctionCall("f", [])),
+            new Declaration("fc", new FunctionCall("f", [])),
             new FunctionCall(TestMethod.IDENTIFIER, [new FunctionCall("fc", [])]),  // should add 4 to output
             new FunctionCall(TestMethod.IDENTIFIER, [new FunctionCall("fc", [])]),  // should add 5 to output
             new FunctionCall(TestMethod.IDENTIFIER, [new FunctionCall("fc", [])]),  // should add 6 to output
@@ -457,7 +570,7 @@ public class InterpreterTests
     {
         // Arrange
         List<IStatement> program = [
-            new Assign("x", new Lambda([], new FunctionCall("x", [])), false),
+            new Declaration("x", new Lambda([], new FunctionCall("x", []))),
             new FunctionCall("x", []),
         ];
         
