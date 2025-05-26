@@ -49,7 +49,9 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
             LogicOrExpression s => Execute(s),
             LogicAndExpression s => Execute(s),
             CompereExpression s => Execute(s),
+            NullCoalescingExpression s => Execute(s),
             ArithmeticalExpression s => Execute(s),
+            NotExpression s => Execute(s),
             
             // factors
             VariableFactor s => Execute(s),
@@ -233,6 +235,12 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         };
         return new BoolFactor(result);
     }
+
+    private IFactorValue Execute(NullCoalescingExpression nullCoalescingExpression)
+    {
+        var left = Execute(nullCoalescingExpression.Lhs);
+        return left is not NullFactor ? left : Execute(nullCoalescingExpression.Rhs);
+    }
     
     private IFactorValue Execute(ArithmeticalExpression arithmeticalExpression)
     {
@@ -266,6 +274,17 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
             }
             return dividend / divisor;
         }
+    }
+
+    private IFactorValue Execute(NotExpression notExpression)
+    {
+        var value = Execute(notExpression.Factor);
+        return value switch
+        {
+            IntFactor intFact => new IntFactor(-intFact.Value),
+            BoolFactor intFact => new BoolFactor(!intFact.Value),
+            _ => throw new RuntimeException(notExpression.Position, $"Negation of {notExpression.Factor} is not defined!"),
+        };
     }
 
     #endregion

@@ -885,7 +885,7 @@ public class InterpreterTests
     } 
     
     #endregion
-
+    
     #region Compere
 
     [Theory]
@@ -957,6 +957,106 @@ public class InterpreterTests
 
     #endregion
 
+    #region Null Coalescing
+
+    [Fact]
+    private void Interpreter_ShouldExecuteNullCheckExpression_AndNotAssign_WhenValueIsNotNull()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new NullCoalescingExpression(ConstFactor(1), ConstFactor(2)),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().Be(new IntFactor(1));
+    }
+    
+    [Fact]
+    private void Interpreter_ShouldExecuteNullCheckExpression_AndAssign_WhenValueIsNull()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new NullCoalescingExpression(ConstFactor(), ConstFactor(2)),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().Be(new IntFactor(2));
+    }
+
+    [Fact]
+    private void Interpreter_ShouldExecuteNullCheckExpression_AndNotExecuteRightSide_WhenValueIsNotNull()
+    {
+        // Arrange
+        var debug = new List<IFactorValue>();
+        List<IStatement> program = [
+            new NullCoalescingExpression(ConstFactor(1), 
+                new FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(2)]))
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program, [new DebugMethod(debug)]);
+        
+        // Assert
+        result.Should().Be(new IntFactor(1));
+        debug.Should().BeEmpty();
+    }
+    
+    #endregion
+    
+    #region Arythmetical
+
+    
+
+    #endregion
+    
+    #region Not
+
+    [Theory]
+    [InlineData(1, -1)]
+    [InlineData(0, 0)]
+    [InlineData(-2, 2)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    private void Interpreter_ShouldExecuteNotExpression(object value, object expected)
+    {
+        // Arrange
+        List<IStatement> program = [
+            new NotExpression(ConstFactor(value)),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().Be(ConstFactor(expected).Value);
+    }
+    
+    [Theory]
+    [InlineData(null)]
+    [InlineData("as")]
+    private void Interpreter_ShouldThrow_WhenFactorIsNotSupportedByNotExpression(object? value)
+    {
+        // Arrange
+        List<IStatement> program = [
+            new NotExpression(ConstFactor(value)),
+        ];
+        
+        // Act
+        var act = () => ExecuteProgram(program);
+        
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*not defined*");
+    }
+
+    #endregion
+    
     #endregion
 
     private static IFactorValue ExecuteProgram(List<IStatement> statements, List<BuildInMethod>? methods = null)
