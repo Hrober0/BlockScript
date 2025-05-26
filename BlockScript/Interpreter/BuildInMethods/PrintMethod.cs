@@ -4,16 +4,14 @@ using BlockScript.Reader;
 
 namespace BlockScript.Interpreter.BuildInMethods
 {
-    public class Print : BuildInMethod
+    public class PrintMethod : BuildInMethod
     {
-        private const string PARAMETER_NAME = "__printMessage";
-
         public override string Identifier => "print";
-        public override List<string> Arguments => [PARAMETER_NAME];
+        public override List<string> Arguments => ["__printInput"];
 
         public override IFactorValue Execute(Func<IStatement, IFactorValue> execute, Context context)
         {
-            var value = context.GetContextData(PARAMETER_NAME, Position.Default);
+            var value = context.GetContextData("__printInput", Position.Default);
             Console.WriteLine(value);
             return value;
         }

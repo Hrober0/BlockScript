@@ -29,7 +29,7 @@ try
 
     var buildInMethods = new List<BuildInMethod>()
     {
-        new Print(),
+        new PrintMethod(),
     };
     var interpreter = new LanguageInterpreter(buildInMethods);
     var returnValue = interpreter.ExecuteProgram(program);

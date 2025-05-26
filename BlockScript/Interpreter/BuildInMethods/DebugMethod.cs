@@ -1,13 +1,11 @@
-﻿using BlockScript.Interpreter;
-using BlockScript.Interpreter.BuildInMethods;
-using BlockScript.Lexer.FactorValues;
+﻿using BlockScript.Lexer.FactorValues;
 using BlockScript.Parser.Statements;
 
-namespace BlockScript.Tests.InterpreterTests;
+namespace BlockScript.Interpreter.BuildInMethods;
 
-public class TestMethod(List<IFactorValue> stack) : BuildInMethod
+public class DebugMethod(List<IFactorValue> stack) : BuildInMethod
 {
-    public const string IDENTIFIER = "testMethod";
+    public const string IDENTIFIER = "debug";
     
     public override string Identifier => IDENTIFIER;
     public override List<string> Arguments => ["__input"];

@@ -1,6 +1,8 @@
 ﻿using BlockScript.Interpreter;
+using BlockScript.Interpreter.BuildInMethods;
 using BlockScript.Lexer.FactorValues;
 using BlockScript.Parser;
+using BlockScript.Tests.InterpreterTests;
 using FluentAssertions;
 using Xunit;
 
@@ -9,20 +11,148 @@ namespace BlockScript.Tests;
 public class IntegrationTests
 {
     [Fact]
-    public void Integration_ShouldCalculateFinocchi()
+    public void Integration_ShouldCalculateFibonacci()
     {
         // Arrange
-        var input = "fib = (i) => if i <= 1 1 else fib(i-1) + fib(i-2); fib(6);";
+        // 1 2 3 5 8 13 21 34 55 
+        // 1 2 3 4 5  6  7  8  9
+        var input = """
+                    fib = (i) => if i <= 1 1 else fib(i-1) + fib(i-2);
+                    
+                    debug(fib(1));
+                    debug(fib(6));
+                    debug(fib(9));
+                    """;
         
         // Act
+        var (returnValue, debug) = Execute(input);
+        
+        // Assert
+        returnValue.Should().BeEquivalentTo(new IntFactor(55));
+        debug.Should().BeEquivalentTo([
+            new IntFactor(1),
+            new IntFactor(13),
+            new IntFactor(55),
+        ]);
+    }
+
+    [Fact]
+    public void Integration_ShouldExecuteBubbleSort()
+    {
+        // Arrange
+        var input = """
+                    
+                    # list implementation
+                    lNode = (lCurrent, lNext) => {
+                    	(selector) => if selector {lCurrent} else {lNext};
+                    };
+                    
+                    lCurrent	= (list) => list(true);
+                    lNext		= (list) => list(false);
+                    isEmpty		= (list) => list == null;
+                    
+                    getElement = (list, index) => {
+                        loop -isEmpty(list) {
+                            if index == 0 {
+                    			lCurrent(list)		# Found element
+                    		}
+                    		else {
+                    			list = lNext(list);
+                    			index = index - 1;
+                    		}
+                        }
+                    };
+                    
+                    setElement = (list, index, value) => {
+                        if -isEmpty(list) {
+                    		if index == 0 {
+                    			lNode(value, lNext(list))  									# Found element, so set its value
+                    		}
+                    		else {
+                    			lNode(lCurrent(list), setElement(lNext(list), index - 1))	# Recursive call for next element, and construct new node
+                    		}
+                    	}
+                    };
+                    
+                    getLength = (list) => {
+                    	count = 0;
+                    	loop -isEmpty(lst) {
+                    		lst = lNext(lst);
+                    		count = count + 1;
+                    	}
+                    };
+                    
+                    # bubble sort
+                    bubbleSort = (list) => {
+                        swapped = true;
+                        length = getLength(list);
+                        
+                        loop swapped {
+                            swapped = false;
+                            i = 0;
+                            loop i < length - 1 {
+                                if getElement(list, i) > getElement(list, i + 1) {
+                                    temp = getElement(list, i);
+                                    list = setElement(list, i, getElement(list, i + 1));
+                                    list = setElement(list, i + 1, temp);
+                                    swapped = true;
+                                };
+                                i = i + 1;
+                            }
+                        };
+                        list;
+                    };
+                    
+                    list = lNode(3, null);
+                    list = lNode(1, list);
+                    list = lNode(4, list);
+                    list = lNode(2, list);
+                    list = lNode(5, list);
+                    
+                    il = list;
+                    loop -isEmpty(il) {
+                        debug(lCurrent(il));
+                        il := lNext(il);
+                    };
+                    
+                    bubbleSort(list);
+                    
+                    il = list;
+                    loop -isEmpty(il) {
+                        debug(lCurrent(il));
+                        il := lNext(il);
+                    };
+                    
+                    """;
+        
+        var (returnValue, debug) = Execute(input);
+        
+        // Assert
+        returnValue.Should().BeOfType<ContextLambda>();
+        debug.Should().BeEquivalentTo([
+            new IntFactor(5),
+            new IntFactor(2),
+            new IntFactor(4),
+            new IntFactor(1),
+            new IntFactor(3),
+            
+            new IntFactor(1),
+            new IntFactor(2),
+            new IntFactor(3),
+            new IntFactor(4),
+            new IntFactor(5),
+        ]);
+    }
+    
+    private static (IFactorValue result, List<IFactorValue> debug) Execute(string input)
+    {
+        var debug = new List<IFactorValue>();
         using TextReader reader = new StringReader(input);
         var lexer = new Lexer.Lexer(reader);
         var parser = new LanguageParser(lexer.GetToken);
         var program = parser.ParserProgram();
-        var interpreter = new LanguageInterpreter([]);
+        var interpreter = new LanguageInterpreter([new DebugMethod(debug)]);
         var returnValue = interpreter.ExecuteProgram(program);
-        
-        // Assert
-        returnValue.Should().BeOfType<IntFactor>().Which.Value.Should().Be(13);
+        return (returnValue, debug);
     }
 }

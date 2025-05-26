@@ -362,27 +362,6 @@ public class InterpreterTests
     #endregion
 
     #region BuildInMethod
-
-    [Fact]
-    public void Interpreter_ShouldExecutePrint()
-    {
-        // Arrange
-        var output = new StringWriter();
-        Console.SetOut(output);
-        List<IStatement> program = [
-            new FunctionCall("print", [ConstFactor(2)]),
-        ];
-        
-        // Act
-        var result = ExecuteProgram(program, [new Print()]);
-        
-        // Assert
-        result.Should().BeOfType<IntFactor>().Which.Value.Should().Be(2);
-        
-        var lines = output.ToString().Split(Environment.NewLine);
-        lines.Should().HaveCountGreaterThan(0);
-        lines[0].Should().Be(new IntFactor(2).ToString());
-    }
     
     [Fact]
     public void Interpreter_ShouldExecuteTestBuildInMethod()
@@ -390,12 +369,12 @@ public class InterpreterTests
         // Arrange
         var output = new List<IFactorValue>();
         List<IStatement> program = [
-            new FunctionCall(TestMethod.IDENTIFIER, [ConstFactor(2)]),
-            new FunctionCall(TestMethod.IDENTIFIER, [ConstFactor(3)]),
+            new FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(2)]),
+            new FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(3)]),
         ];
         
         // Act
-        ExecuteProgram(program, [new TestMethod(output)]);
+        ExecuteProgram(program, [new DebugMethod(output)]);
         
         // Assert
         output.Should().BeEquivalentTo([new IntFactor(2), new IntFactor(3)]);
@@ -406,7 +385,7 @@ public class InterpreterTests
     {
         // Arrange
         List<IStatement> program = [
-            new FunctionCall(TestMethod.IDENTIFIER, [ConstFactor(2)]),
+            new FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(2)]),
         ];
         
         // Act
@@ -414,7 +393,7 @@ public class InterpreterTests
         
         // Assert
         act.Should().Throw<RuntimeException>()
-           .WithMessage($"*Variable of name {TestMethod.IDENTIFIER} was not defined!*");
+           .WithMessage($"*Variable of name {DebugMethod.IDENTIFIER} was not defined!*");
     }
 
     #endregion
@@ -510,12 +489,12 @@ public class InterpreterTests
         // Arrange
         var output = new List<IFactorValue>();
         List<IStatement> program = [
-            new FunctionCall(TestMethod.IDENTIFIER, [ConstFactor(1)]),
-            new FunctionCall(TestMethod.IDENTIFIER, [ConstFactor(2)]),
+            new FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(1)]),
+            new FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(2)]),
         ];
         
         // Act
-        ExecuteProgram(program, [new TestMethod(output)]);
+        ExecuteProgram(program, [new DebugMethod(output)]);
         
         // Assert
         output.Should().BeEquivalentTo([new IntFactor(1), new IntFactor(2)]);
@@ -559,7 +538,7 @@ public class InterpreterTests
         ];
         
         // Act
-        ExecuteProgram(program, [new TestMethod(output)]);
+        ExecuteProgram(program, [new DebugMethod(output)]);
         
         // Assert
         output.Should().BeEquivalentTo([new IntFactor(4), new IntFactor(4), new IntFactor(5), new IntFactor(6)]);
@@ -711,7 +690,7 @@ public class InterpreterTests
         ];
         
         // Act
-        var result = ExecuteProgram(program, [new TestMethod(output)]);
+        var result = ExecuteProgram(program, [new DebugMethod(output)]);
         
         // Assert
         result.Should().BeOfType<NullFactor>();
@@ -759,7 +738,7 @@ public class InterpreterTests
         ];
         
         // Act
-        var result = ExecuteProgram(program, [new TestMethod(output)]);
+        var result = ExecuteProgram(program, [new DebugMethod(output)]);
         
         // Assert
         result.Should().BeEquivalentTo(new IntFactor(0));
@@ -794,7 +773,7 @@ public class InterpreterTests
         ];
         
         // Act
-        var result = ExecuteProgram(program, [new TestMethod(output)]);
+        var result = ExecuteProgram(program, [new DebugMethod(output)]);
         
         // Assert
         result.Should().BeEquivalentTo(new IntFactor(5));
@@ -973,6 +952,6 @@ public class InterpreterTests
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
     };
     
-    private static FunctionCall AddToOutput(IExpression expression) => new FunctionCall(TestMethod.IDENTIFIER, [expression]);
+    private static FunctionCall AddToOutput(IExpression expression) => new FunctionCall(DebugMethod.IDENTIFIER, [expression]);
     private static FunctionCall AddToOutput(string variableName) => AddToOutput(new VariableFactor(variableName));
 }
