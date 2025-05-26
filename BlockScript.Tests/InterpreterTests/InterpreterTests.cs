@@ -524,7 +524,7 @@ public class InterpreterTests
         List<IStatement> program = [
             new Declaration("f", new Lambda([], new Block([
                 new Declaration("a", ConstFactor(2)),
-                new Declaration("ff", new Lambda([], new Assign("a", new ArithmeticalExpression(new VariableFactor("a"), ConstFactor(1), TokenType.OperatorAdd)))),
+                new Declaration("ff", new Lambda([], new Assign("a", new ArithmeticalAddExpression(new VariableFactor("a"), ConstFactor(1))))),
                 new Assign("a", ConstFactor(3)),
                 new VariableFactor("ff"),
             ]))),
@@ -731,7 +731,7 @@ public class InterpreterTests
             new Declaration("i", ConstFactor(5)),
             new Loop(new VariableFactor("i"),
                 new Block([
-                    new Assign("i", new ArithmeticalExpression(new VariableFactor("i"), ConstFactor(1), TokenType.OperatorSubtract)),
+                    new Assign("i", new ArithmeticalSubtractExpression(new VariableFactor("i"), ConstFactor(1))),
                     AddToOutput("i"),
                 ])
             ),
@@ -765,7 +765,7 @@ public class InterpreterTests
             new Declaration("i", ConstFactor(2)),
             new Loop(
                 new Block([
-                    new Assign("i", new ArithmeticalExpression(new VariableFactor("i"), ConstFactor(1), TokenType.OperatorAdd)),
+                    new Assign("i", new ArithmeticalAddExpression(new VariableFactor("i"), ConstFactor(1))),
                     new CompereExpression(new VariableFactor("i"), ConstFactor(6), TokenType.OperatorLess) ,
                 ]),
             AddToOutput("i")

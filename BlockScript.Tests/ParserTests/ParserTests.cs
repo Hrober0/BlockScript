@@ -201,8 +201,7 @@ public class ParserTests
                                .Which.Should().BeOfType<Assign>().Subject;
 
         assignment.Identifier.Should().Be("x");
-        assignment.Value.Should().BeOfType<ArithmeticalExpression>()
-                  .Which.Operator.Should().Be(TokenType.OperatorAdd);
+        assignment.Value.Should().BeOfType<ArithmeticalAddExpression>();
     }
     
     [Fact]
@@ -247,8 +246,7 @@ public class ParserTests
                                .Which.Should().BeOfType<NullAssign>().Subject;
 
         assignment.Identifier.Should().Be("x");
-        assignment.Value.Should().BeOfType<ArithmeticalExpression>()
-                  .Which.Operator.Should().Be(TokenType.OperatorAdd);
+        assignment.Value.Should().BeOfType<ArithmeticalAddExpression>();
     }
     
     [Fact]
@@ -293,8 +291,7 @@ public class ParserTests
                                .Which.Should().BeOfType<Declaration>().Subject;
 
         assignment.Identifier.Should().Be("x");
-        assignment.Value.Should().BeOfType<ArithmeticalExpression>()
-                  .Which.Operator.Should().Be(TokenType.OperatorAdd);
+        assignment.Value.Should().BeOfType<ArithmeticalAddExpression>();
     }
 
     [Theory]
@@ -395,10 +392,9 @@ public class ParserTests
             .Which.Should().BeOfType<Lambda>().Subject;
         lambda.Arguments.Should().BeEquivalentTo(["x", "y"]);
 
-        var body = lambda.Body.Should().BeOfType<ArithmeticalExpression>().Subject;
+        var body = lambda.Body.Should().BeOfType<ArithmeticalAddExpression>().Subject;
         body.Lhs.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("z");
         body.Rhs.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("k");
-        body.Operator.Should().Be(TokenType.OperatorAdd);
     }
 
     [Fact]
@@ -551,15 +547,13 @@ public class ParserTests
         condition.ConditionaryItems.Should().HaveCount(1);
         condition.ElseBody.Should().BeNull();
         
-        var conditionExpression = condition.ConditionaryItems[0].condition.Should().BeOfType<ArithmeticalExpression>().Subject;
+        var conditionExpression = condition.ConditionaryItems[0].condition.Should().BeOfType<ArithmeticalSubtractExpression>().Subject;
         conditionExpression.Lhs.ShouldBeConstFactor(true);
         conditionExpression.Rhs.ShouldBeConstFactor(1);
-        conditionExpression.Operator.Should().Be(TokenType.OperatorSubtract);
         
-        var conditionBody = condition.ConditionaryItems[0].body.Should().BeOfType<ArithmeticalExpression>().Subject;
+        var conditionBody = condition.ConditionaryItems[0].body.Should().BeOfType<ArithmeticalDivideExpression>().Subject;
         conditionBody.Lhs.ShouldBeConstFactor(false);
         conditionBody.Rhs.ShouldBeConstFactor(2);
-        conditionBody.Operator.Should().Be(TokenType.OperatorDivide);
     }
     
     [Fact]
@@ -998,8 +992,7 @@ public class ParserTests
         functionCall.Identifier.Should().Be("negate");
         functionCall.Arguments.Should().ContainSingle();
 
-        var expr = functionCall.Arguments[0].Should().BeOfType<ArithmeticalExpression>().Subject;
-        expr.Operator.Should().Be(TokenType.OperatorAdd);
+        var expr = functionCall.Arguments[0].Should().BeOfType<ArithmeticalAddExpression>().Subject;
         expr.Lhs.ShouldBeConstFactor(69);
         expr.Rhs.ShouldBeConstFactor(42);
     }
@@ -1040,20 +1033,16 @@ public class ParserTests
     #endregion
     
     #region Expressions
-
-    [Theory]
-    [InlineData(TokenType.OperatorMultiply)]
-    [InlineData(TokenType.OperatorDivide)]
-    [InlineData(TokenType.OperatorAdd)]
-    [InlineData(TokenType.OperatorSubtract)]
-    public void Parser_ShouldParseArithmeticalExpression(TokenType tokenType)
+    
+    [Fact]
+    public void Parser_ShouldParseArithmeticalAddExpression()
     {
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
-            new TokenData { Type = tokenType },
+            new TokenData { Type = TokenType.OperatorAdd },
             new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
-            new TokenData { Type = tokenType },
+            new TokenData { Type = TokenType.OperatorAdd },
             new TokenData { Type = TokenType.Integer, Value = new IntFactor(3)},
             new TokenData { Type = TokenType.EndOfStatement }
         );
@@ -1063,14 +1052,90 @@ public class ParserTests
 
         // Assert
         var topExpression = result.Statements.Should().ContainSingle()
-              .Which.Should().BeOfType<ArithmeticalExpression>().Subject;
+                                  .Which.Should().BeOfType<ArithmeticalAddExpression>().Subject;
         topExpression.Lhs.ShouldBeConstFactor(1);
-        topExpression.Operator.Should().Be(tokenType);
         
-        var innerExpression = topExpression.Rhs.Should().BeOfType<ArithmeticalExpression>().Subject;
+        var innerExpression = topExpression.Rhs.Should().BeOfType<ArithmeticalAddExpression>().Subject;
         innerExpression.Lhs.ShouldBeConstFactor(2);
         innerExpression.Rhs.ShouldBeConstFactor(3);
-        innerExpression.Operator.Should().Be(tokenType);
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseArithmeticalSubtractExpression()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
+            new TokenData { Type = TokenType.OperatorSubtract },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
+            new TokenData { Type = TokenType.OperatorSubtract },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(3)},
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        var topExpression = result.Statements.Should().ContainSingle()
+                                  .Which.Should().BeOfType<ArithmeticalSubtractExpression>().Subject;
+        topExpression.Lhs.ShouldBeConstFactor(1);
+        
+        var innerExpression = topExpression.Rhs.Should().BeOfType<ArithmeticalSubtractExpression>().Subject;
+        innerExpression.Lhs.ShouldBeConstFactor(2);
+        innerExpression.Rhs.ShouldBeConstFactor(3);
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseArithmeticalMultiplyExpression()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
+            new TokenData { Type = TokenType.OperatorMultiply },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
+            new TokenData { Type = TokenType.OperatorMultiply },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(3)},
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        var topExpression = result.Statements.Should().ContainSingle()
+              .Which.Should().BeOfType<ArithmeticalMultiplyExpression>().Subject;
+        topExpression.Lhs.ShouldBeConstFactor(1);
+        
+        var innerExpression = topExpression.Rhs.Should().BeOfType<ArithmeticalMultiplyExpression>().Subject;
+        innerExpression.Lhs.ShouldBeConstFactor(2);
+        innerExpression.Rhs.ShouldBeConstFactor(3);
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseArithmeticalDivideExpression()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
+            new TokenData { Type = TokenType.OperatorDivide },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
+            new TokenData { Type = TokenType.OperatorDivide },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(3)},
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        var topExpression = result.Statements.Should().ContainSingle()
+                                  .Which.Should().BeOfType<ArithmeticalDivideExpression>().Subject;
+        topExpression.Lhs.ShouldBeConstFactor(1);
+        
+        var innerExpression = topExpression.Rhs.Should().BeOfType<ArithmeticalDivideExpression>().Subject;
+        innerExpression.Lhs.ShouldBeConstFactor(2);
+        innerExpression.Rhs.ShouldBeConstFactor(3);
     }
     
     [Theory]
@@ -1247,14 +1312,12 @@ public class ParserTests
 
         var result = parser.ParserProgram();
         
-        var multiplyExpression = result.Statements.Should().ContainSingle().Which.Should().BeOfType<ArithmeticalExpression>().Subject;
-        multiplyExpression.Operator.Should().Be(TokenType.OperatorMultiply);
+        var multiplyExpression = result.Statements.Should().ContainSingle().Which.Should().BeOfType<ArithmeticalMultiplyExpression>().Subject;
         multiplyExpression.Lhs.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("a");
         
         var block = multiplyExpression.Rhs.Should().BeOfType<Block>().Subject;
         
-        var addExpression = block.Statements.Should().ContainSingle().Which.Should().BeOfType<ArithmeticalExpression>().Subject;
-        addExpression.Operator.Should().Be(TokenType.OperatorAdd);
+        var addExpression = block.Statements.Should().ContainSingle().Which.Should().BeOfType<ArithmeticalAddExpression>().Subject;
         addExpression.Lhs.ShouldBeConstFactor(1);
         addExpression.Rhs.ShouldBeConstFactor(2);
     }
@@ -1300,17 +1363,15 @@ public class ParserTests
 
         // LogicLeft: CompLeft > new IntFactor(5)| (-2 +new IntFactor(3)* 4) > (5)
         logicLeft.Operator.Should().Be(TokenType.OperatorGreater);
-        var compLeft = logicLeft.Lhs.Should().BeOfType<ArithmeticalExpression>().Subject;
+        var compLeft = logicLeft.Lhs.Should().BeOfType<ArithmeticalAddExpression>().Subject;
         logicLeft.Rhs.ShouldBeConstFactor(5);
 
         // CompLeft: -2 + ArithmeticRight | (-2) + (3 * 4)
-        compLeft.Operator.Should().Be(TokenType.OperatorAdd);
         compLeft.Lhs.Should().BeOfType<NotExpression>().Which.Factor
             .ShouldBeConstFactor(2);
-        var arithmeticRight = compLeft.Rhs.Should().BeOfType<ArithmeticalExpression>().Subject;
+        var arithmeticRight = compLeft.Rhs.Should().BeOfType<ArithmeticalMultiplyExpression>().Subject;
         
         // ArithmeticRight:new IntFactor(3)* 4
-        arithmeticRight.Operator.Should().Be(TokenType.OperatorMultiply);
         arithmeticRight.Lhs.ShouldBeConstFactor(3);
         arithmeticRight.Rhs.ShouldBeConstFactor(4);
         

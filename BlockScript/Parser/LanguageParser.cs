@@ -219,11 +219,21 @@ public class LanguageParser
         TryParseAddExpression);
     
     private IExpression? TryParseAddExpression() => TryParseMultipleExpression([TokenType.OperatorAdd, TokenType.OperatorSubtract],
-        (lhs, rhs, operatorToken) => new ArithmeticalExpression(lhs, rhs, operatorToken.Type, operatorToken.Position),
+        (lhs, rhs, operatorToken) => operatorToken.Type switch
+        {
+            TokenType.OperatorAdd => new ArithmeticalAddExpression(lhs, rhs, operatorToken.Position),
+            TokenType.OperatorSubtract => new ArithmeticalSubtractExpression(lhs, rhs, operatorToken.Position),
+            _ => throw new ArgumentOutOfRangeException()
+        },
         TryParseMultiplicationExpression);
     
     private IExpression? TryParseMultiplicationExpression() => TryParseMultipleExpression([TokenType.OperatorMultiply, TokenType.OperatorDivide],
-        (lhs, rhs, operatorToken) => new ArithmeticalExpression(lhs, rhs, operatorToken.Type, operatorToken.Position),
+        (lhs, rhs, operatorToken) => operatorToken.Type switch
+        {
+            TokenType.OperatorMultiply => new ArithmeticalMultiplyExpression(lhs, rhs, operatorToken.Position),
+            TokenType.OperatorDivide => new ArithmeticalDivideExpression(lhs, rhs, operatorToken.Position),
+            _ => throw new ArgumentOutOfRangeException()
+        },
         TryParseNotExpression);
     
     private IExpression? TryParseNotExpression()

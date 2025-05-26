@@ -50,7 +50,10 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
             LogicAndExpression s => Execute(s),
             CompereExpression s => Execute(s),
             NullCoalescingExpression s => Execute(s),
-            ArithmeticalExpression s => Execute(s),
+            ArithmeticalAddExpression s => Execute(s),
+            ArithmeticalSubtractExpression s => Execute(s),
+            ArithmeticalMultiplyExpression s => Execute(s),
+            ArithmeticalDivideExpression s => Execute(s),
             NotExpression s => Execute(s),
             
             // factors
@@ -242,38 +245,55 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         return left is not NullFactor ? left : Execute(nullCoalescingExpression.Rhs);
     }
     
-    private IFactorValue Execute(ArithmeticalExpression arithmeticalExpression)
+    private IFactorValue Execute(ArithmeticalAddExpression arithmeticalAddExpression)
     {
-        var left = Execute(arithmeticalExpression.Lhs);
-        var right = Execute(arithmeticalExpression.Rhs);
-
-        if (arithmeticalExpression.Operator is TokenType.OperatorAdd && left is StringFactor || right is StringFactor)
+        var left = Execute(arithmeticalAddExpression.Lhs);
+        var right = Execute(arithmeticalAddExpression.Rhs);
+     
+        if (left is StringFactor || right is StringFactor)
         {
-            var leftString = ParseString(left, arithmeticalExpression.Lhs.Position);
-            var rightString = ParseString(right, arithmeticalExpression.Rhs.Position);
+            var leftString = ParseString(left, arithmeticalAddExpression.Lhs.Position);
+            var rightString = ParseString(right, arithmeticalAddExpression.Rhs.Position);
             return new StringFactor(leftString + rightString);
         }
         
-        var leftNumber = ParseInt(left, arithmeticalExpression.Lhs.Position);
-        var rightNumber = ParseInt(right, arithmeticalExpression.Rhs.Position);
-        int result = arithmeticalExpression.Operator switch
+        var leftNumber = ParseInt(left, arithmeticalAddExpression.Lhs.Position);
+        var rightNumber = ParseInt(right, arithmeticalAddExpression.Rhs.Position);
+        return new IntFactor(leftNumber + rightNumber);
+    }
+    
+    private IntFactor Execute(ArithmeticalSubtractExpression arithmeticalSubtractExpression)
+    {
+        var left = Execute(arithmeticalSubtractExpression.Lhs);
+        var right = Execute(arithmeticalSubtractExpression.Rhs);
+        
+        var leftNumber = ParseInt(left, arithmeticalSubtractExpression.Lhs.Position);
+        var rightNumber = ParseInt(right, arithmeticalSubtractExpression.Rhs.Position);
+        return new IntFactor(leftNumber - rightNumber);
+    }
+    
+    private IntFactor Execute(ArithmeticalMultiplyExpression arithmeticalMultiplyExpression)
+    {
+        var left = Execute(arithmeticalMultiplyExpression.Lhs);
+        var right = Execute(arithmeticalMultiplyExpression.Rhs);
+        
+        var leftNumber = ParseInt(left, arithmeticalMultiplyExpression.Lhs.Position);
+        var rightNumber = ParseInt(right, arithmeticalMultiplyExpression.Rhs.Position);
+        return new IntFactor(leftNumber + rightNumber);
+    }
+    
+    private IntFactor Execute(ArithmeticalDivideExpression arithmeticalDivideExpression)
+    {
+        var left = Execute(arithmeticalDivideExpression.Lhs);
+        var right = Execute(arithmeticalDivideExpression.Rhs);
+        
+        var leftNumber = ParseInt(left, arithmeticalDivideExpression.Lhs.Position);
+        var rightNumber = ParseInt(right, arithmeticalDivideExpression.Rhs.Position);
+        if (rightNumber == 0)
         {
-            TokenType.OperatorAdd => leftNumber + rightNumber,
-            TokenType.OperatorSubtract => leftNumber - rightNumber,
-            TokenType.OperatorMultiply => leftNumber * rightNumber,
-            TokenType.OperatorDivide => DivideSave(leftNumber, rightNumber),
-            _ => throw new RuntimeException(arithmeticalExpression.Position, $"Unexpected {arithmeticalExpression.Operator.TextValue()} operator in compere expression!")
-        };
-        return new IntFactor(result);
-
-        int DivideSave(int dividend, int divisor)
-        {
-            if (divisor == 0)
-            {
-                throw new RuntimeException(arithmeticalExpression.Position, $"Cannot divide by zero!");
-            }
-            return dividend / divisor;
+            throw new RuntimeException(arithmeticalDivideExpression.Position, $"Cannot divide by zero!");
         }
+        return new IntFactor(leftNumber / rightNumber);
     }
 
     private IFactorValue Execute(NotExpression notExpression)
