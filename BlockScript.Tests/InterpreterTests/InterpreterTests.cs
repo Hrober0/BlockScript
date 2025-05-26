@@ -797,11 +797,11 @@ public class InterpreterTests
     [InlineData(true, false, false)]
     [InlineData(false, true, false)]
     [InlineData(false, false, false)]
-    public void Interpreter_ShouldExecuteLogicExpression_WhenAndTwoBooleans(bool left, bool right, bool expected)
+    public void Interpreter_ShouldExecuteLogicAndExpression_ForBooleans(bool left, bool right, bool expected)
     {
         // Arrange
         List<IStatement> program = [
-            new LogicExpression(ConstFactor(left), ConstFactor(right), TokenType.OperatorAnd),
+            new LogicAndExpression(ConstFactor(left), ConstFactor(right)),
         ];
         
         // Act
@@ -816,11 +816,11 @@ public class InterpreterTests
     [InlineData(true, false, true)]
     [InlineData(false, true, true)]
     [InlineData(false, false, false)]
-    public void Interpreter_ShouldExecuteLogicExpression_WhenOrTwoBooleans(bool left, bool right, bool expected)
+    public void Interpreter_ShouldExecuteLogicOrExpression_ForBooleans(bool left, bool right, bool expected)
     {
         // Arrange
         List<IStatement> program = [
-            new LogicExpression(ConstFactor(left), ConstFactor(right), TokenType.OperatorOr),
+            new LogicOrExpression(ConstFactor(left), ConstFactor(right)),
         ];
         
         // Act
@@ -843,11 +843,38 @@ public class InterpreterTests
     [InlineData("asd", "asd", true)]
     [InlineData(true, null, false)]
     [InlineData(null, true,false)]
-    public void Interpreter_ShouldExecuteLogicExpression_WhenFactorsAreNotBooleans(object? left, object? right, bool expected)
+    public void Interpreter_ShouldExecuteLogicAndExpression_WhenFactorsAreNotBooleans(object? left, object? right, bool expected)
     {
         // Arrange
         List<IStatement> program = [
-            new LogicExpression(ConstFactor(left), ConstFactor(right), TokenType.OperatorAnd),
+            new LogicAndExpression(ConstFactor(left), ConstFactor(right)),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().BeEquivalentTo(new BoolFactor(expected));
+    }
+    
+    [Theory]
+    [InlineData(0, false, false)]
+    [InlineData(1, false, true)]
+    [InlineData(false, 0, false)]
+    [InlineData(false, 1, true)]
+    [InlineData(1, 1, true)]
+    [InlineData("", false, false)]
+    [InlineData("asd", false, true)]
+    [InlineData(false, "", false)]
+    [InlineData(false, "asd", true)]
+    [InlineData("asd", "asd", true)]
+    [InlineData(true, null, true)]
+    [InlineData(null, true,true)]
+    public void Interpreter_ShouldExecuteLogicOrExpression_WhenFactorsAreNotBooleans(object? left, object? right, bool expected)
+    {
+        // Arrange
+        List<IStatement> program = [
+            new LogicAndExpression(ConstFactor(left), ConstFactor(right)),
         ];
         
         // Act

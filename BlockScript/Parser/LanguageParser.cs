@@ -203,11 +203,11 @@ public class LanguageParser
     private IExpression? TryParseExpression() => TryParseOrExpression();
     
     private IExpression? TryParseOrExpression() => TryParseMultipleExpression([TokenType.OperatorOr],
-        (lhs, rhs, operatorToken) => new LogicExpression(lhs, rhs, operatorToken.Type, operatorToken.Position),
+        (lhs, rhs, operatorToken) => new LogicOrExpression(lhs, rhs, operatorToken.Position),
         TryParseAndExpression);
 
     private IExpression? TryParseAndExpression() => TryParseMultipleExpression([TokenType.OperatorAnd],
-        (lhs, rhs, operatorToken) => new LogicExpression(lhs, rhs, operatorToken.Type, operatorToken.Position),
+        (lhs, rhs, operatorToken) => new LogicAndExpression(lhs, rhs, operatorToken.Position),
         TryParseCompereExpression);
 
     private IExpression? TryParseCompereExpression() => TryParseSingleExpression([TokenType.OperatorEqual, TokenType.OperatorNotEqual, TokenType.OperatorLess,  TokenType.OperatorLessEqual, TokenType.OperatorGreater, TokenType.OperatorGreaterEqual],

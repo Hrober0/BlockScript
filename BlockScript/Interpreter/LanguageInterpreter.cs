@@ -46,7 +46,8 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
             Loop s => Execute(s),
             
             // expressions
-            LogicExpression s => Execute(s),
+            LogicOrExpression s => Execute(s),
+            LogicAndExpression s => Execute(s),
             CompereExpression s => Execute(s),
             ArithmeticalExpression s => Execute(s),
             
@@ -108,7 +109,7 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         return newValue;
     }
     
-    private IFactorValue Execute(Lambda lambda) => new ContextLambda(lambda, CurrentContext);
+    private ContextLambda Execute(Lambda lambda) => new(lambda, CurrentContext);
     
     private IFactorValue Execute(BuildInMethod buildInMethod) => buildInMethod.Execute(Execute, CurrentContext);
 
@@ -192,20 +193,21 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
 
     #region Expressions
 
-    private IFactorValue Execute(LogicExpression logicExpression)
+    private BoolFactor Execute(LogicOrExpression logicOrExpression)
     {
-        var left = ParseBool(Execute(logicExpression.Lhs), logicExpression.Lhs.Position);
-        var right = ParseBool(Execute(logicExpression.Rhs), logicExpression.Rhs.Position);
-        var result = logicExpression.Operator switch
-        {
-            TokenType.OperatorAnd => left && right,
-            TokenType.OperatorOr => left || right,
-            _ => throw new RuntimeException(logicExpression.Position, $"Unexpected {logicExpression.Operator.TextValue()} operator in logic expression!")
-        };
-        return new BoolFactor(result);
+        var left = ParseBool(Execute(logicOrExpression.Lhs), logicOrExpression.Lhs.Position);
+        var right = ParseBool(Execute(logicOrExpression.Rhs), logicOrExpression.Rhs.Position);
+        return new BoolFactor(left || right);
     }
     
-    private IFactorValue Execute(CompereExpression compereExpression)
+    private BoolFactor Execute(LogicAndExpression logicAndExpression)
+    {
+        var left = ParseBool(Execute(logicAndExpression.Lhs), logicAndExpression.Lhs.Position);
+        var right = ParseBool(Execute(logicAndExpression.Rhs), logicAndExpression.Rhs.Position);
+        return new BoolFactor(left && right);
+    }
+    
+    private BoolFactor Execute(CompereExpression compereExpression)
     {
         var left = Execute(compereExpression.Lhs);
         var right = Execute(compereExpression.Rhs);

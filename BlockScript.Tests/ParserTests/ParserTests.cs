@@ -1101,17 +1101,15 @@ public class ParserTests
         expression.Operator.Should().Be(tokenType);
     }
     
-    [Theory]
-    [InlineData(TokenType.OperatorAnd)]
-    [InlineData(TokenType.OperatorOr)]
-    public void Parser_ShouldParseLogicalExpression(TokenType tokenType)
+    [Fact]
+    public void Parser_ShouldParseLogicalOrExpression()
     {
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Integer, Value = new IntFactor(1) },
-            new TokenData { Type = tokenType },
+            new TokenData { Type = TokenType.OperatorOr },
             new TokenData { Type = TokenType.Integer, Value = new IntFactor(2) },
-            new TokenData { Type = tokenType },
+            new TokenData { Type = TokenType.OperatorOr },
             new TokenData { Type = TokenType.Integer, Value = new IntFactor(3) },
             new TokenData { Type = TokenType.EndOfStatement }
         );
@@ -1121,14 +1119,38 @@ public class ParserTests
 
         // Assert
         var topExpression = result.Statements.Should().ContainSingle()
-                                  .Which.Should().BeOfType<LogicExpression>().Subject;
+                                  .Which.Should().BeOfType<LogicOrExpression>().Subject;
         topExpression.Lhs.ShouldBeConstFactor(1);
-        topExpression.Operator.Should().Be(tokenType);
         
-        var innerExpression = topExpression.Rhs.Should().BeOfType<LogicExpression>().Subject;
+        var innerExpression = topExpression.Rhs.Should().BeOfType<LogicOrExpression>().Subject;
         innerExpression.Lhs.ShouldBeConstFactor(2);
         innerExpression.Rhs.ShouldBeConstFactor(3);
-        innerExpression.Operator.Should().Be(tokenType);
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseLogicalAndExpression()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1) },
+            new TokenData { Type = TokenType.OperatorAnd },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2) },
+            new TokenData { Type = TokenType.OperatorAnd },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(3) },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        var topExpression = result.Statements.Should().ContainSingle()
+                                  .Which.Should().BeOfType<LogicAndExpression>().Subject;
+        topExpression.Lhs.ShouldBeConstFactor(1);
+        
+        var innerExpression = topExpression.Rhs.Should().BeOfType<LogicAndExpression>().Subject;
+        innerExpression.Lhs.ShouldBeConstFactor(2);
+        innerExpression.Rhs.ShouldBeConstFactor(3);
     }
     
     [Fact]
@@ -1157,24 +1179,19 @@ public class ParserTests
 
         // Assert
         var orExpression1 = result.Statements.Should().ContainSingle()
-                               .Which.Should().BeOfType<LogicExpression>().Subject;
-        orExpression1.Operator.Should().Be(TokenType.OperatorOr);
+                               .Which.Should().BeOfType<LogicOrExpression>().Subject;
         orExpression1.Lhs.ShouldBeConstFactor(1);
-        var orExpression2 = orExpression1.Rhs.Should().BeOfType<LogicExpression>().Subject;
+        var orExpression2 = orExpression1.Rhs.Should().BeOfType<LogicOrExpression>().Subject;
         
-        orExpression2.Operator.Should().Be(TokenType.OperatorOr);
         orExpression2.Lhs.ShouldBeConstFactor(2);
-        var orExpression3 = orExpression2.Rhs.Should().BeOfType<LogicExpression>().Subject;
+        var orExpression3 = orExpression2.Rhs.Should().BeOfType<LogicOrExpression>().Subject;
         
-        orExpression3.Operator.Should().Be(TokenType.OperatorOr);
-        var andExpression1 = orExpression3.Lhs.Should().BeOfType<LogicExpression>().Subject;
+        var andExpression1 = orExpression3.Lhs.Should().BeOfType<LogicAndExpression>().Subject;
         orExpression3.Rhs.ShouldBeConstFactor(6);
         
-        andExpression1.Operator.Should().Be(TokenType.OperatorAnd);
         andExpression1.Lhs.ShouldBeConstFactor(3);
-        var andExpression2 = andExpression1.Rhs.Should().BeOfType<LogicExpression>().Subject;
+        var andExpression2 = andExpression1.Rhs.Should().BeOfType<LogicAndExpression>().Subject;
         
-        andExpression2.Operator.Should().Be(TokenType.OperatorAnd);
         andExpression2.Lhs.ShouldBeConstFactor(4);
         andExpression2.Rhs.ShouldBeConstFactor(5);
     }
@@ -1275,10 +1292,9 @@ public class ParserTests
 
         // Assert
         var logicExpr = result.Statements.Should().ContainSingle().Which
-            .Should().BeOfType<LogicExpression>().Subject;
+            .Should().BeOfType<LogicOrExpression>().Subject;
 
         // LogicLeft || LogicRight | (-2 +new IntFactor(3)*new IntFactor(4)> 5) || ({ if 6 > 7 { 8 } } ?? a);
-        logicExpr.Operator.Should().Be(TokenType.OperatorOr);
         var logicLeft = logicExpr.Lhs.Should().BeOfType<CompereExpression>().Subject;
         var logicRight = logicExpr.Rhs.Should().BeOfType<NullCoalescingExpression>().Subject;
 
