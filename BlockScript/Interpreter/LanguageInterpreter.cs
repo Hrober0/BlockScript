@@ -60,7 +60,7 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
             VariableFactor s => Execute(s),
             ConstFactor s => Execute(s),
             
-            _ => throw new Exception($"Unknown statement type of {statement.GetType()}")
+            _ => throw new RuntimeException(statement.Position, $"Unknown statement type of {statement.GetType()}")
         };
     }
 
@@ -279,7 +279,7 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         
         var leftNumber = ParseInt(left, arithmeticalMultiplyExpression.Lhs.Position);
         var rightNumber = ParseInt(right, arithmeticalMultiplyExpression.Rhs.Position);
-        return new IntFactor(leftNumber + rightNumber);
+        return new IntFactor(leftNumber * rightNumber);
     }
     
     private IntFactor Execute(ArithmeticalDivideExpression arithmeticalDivideExpression)
@@ -336,7 +336,6 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         return value switch
         {
             IntFactor v => v.Value,
-            StringFactor v => v.Value.Length,
             BoolFactor v => v.Value ? 1 : 0,
             NullFactor => 0,
             _ => throw new RuntimeException(position, $"{value} can not be parsed to int value!")

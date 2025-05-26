@@ -874,7 +874,7 @@ public class InterpreterTests
     {
         // Arrange
         List<IStatement> program = [
-            new LogicAndExpression(ConstFactor(left), ConstFactor(right)),
+            new LogicOrExpression(ConstFactor(left), ConstFactor(right)),
         ];
         
         // Act
@@ -882,8 +882,42 @@ public class InterpreterTests
         
         // Assert
         result.Should().BeEquivalentTo(new BoolFactor(expected));
-    } 
+    }
+
+    [Fact]
+    public void Interpreter_ShouldThrow_WhenLogicAndExpression_EncounterUnsupportedFactor()
+    {
+        // Arrange
+        List<IStatement> program =
+        [
+            new LogicAndExpression(ReturnDummyLambda(), ConstFactor(1)),
+        ];
+
+        // Act
+        var act = () => ExecuteProgram(program);
+
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*can not be parsed*");
+    }
     
+    [Fact]
+    public void Interpreter_ShouldThrow_WhenLogicOrExpression_EncounterUnsupportedFactor()
+    {
+        // Arrange
+        List<IStatement> program =
+        [
+            new LogicOrExpression(ReturnDummyLambda(), ConstFactor(1)),
+        ];
+
+        // Act
+        var act = () => ExecuteProgram(program);
+
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*can not be parsed*");
+    }
+
     #endregion
     
     #region Compere
@@ -1009,10 +1043,246 @@ public class InterpreterTests
     
     #endregion
     
-    #region Arythmetical
+    #region Arithmetical
 
+    [Theory]
+    // strings
+    [InlineData("ab", "cd", "abcd")]
+    [InlineData("abcd", null, "abcd")]
+    [InlineData(null, "abcd","abcd")]
+    [InlineData("abcd", 1, "abcd1")]
+    [InlineData(3, "abcd","3abcd")]
+    [InlineData("abcd", true, "abcdtrue")]
+    [InlineData(false, "abcd", "falseabcd")]
+    // ints
+    [InlineData(2, 2, 4)]
+    [InlineData(2, -4, -2)]
+    [InlineData(2, 40000, 40002)]
+    [InlineData(2, true, 3)]
+    [InlineData(true, 2, 3)]
+    [InlineData(2, false, 2)]
+    [InlineData(false, 2, 2)]
+    [InlineData(2, null, 2)]
+    [InlineData(null, 2, 2)]
+    public void Interpreter_ShouldExecuteArithmeticalAddExpression(object? left, object? right, object expected)
+    {
+        // Arrange
+        List<IStatement> program = [
+            new ArithmeticalAddExpression(ConstFactor(left), ConstFactor(right)),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().Be(ConstFactor(expected).Value);
+    }
+
+    [Fact]
+    public void Interpreter_ShouldThrow_WhenArithmeticalAddExpression_EncounterUnsupportedFactor()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new ArithmeticalAddExpression(ReturnDummyLambda(), ConstFactor(1)),
+        ];
+        
+        // Act
+        var act = () => ExecuteProgram(program);
+        
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*can not be parsed*");
+    }
+
+    [Theory]
+    [InlineData(2, 2, 0)]
+    [InlineData(2, -4, 6)]
+    [InlineData(2, 40000, -39998)]
+    [InlineData(2, true, 1)]
+    [InlineData(true, 2, -1)]
+    [InlineData(2, false, 2)]
+    [InlineData(false, 2, -2)]
+    [InlineData(2, null, 2)]
+    [InlineData(null, 2, -2)]
+    public void Interpreter_ShouldExecuteArithmeticalSubtractExpression(object? left, object? right, object expected)
+    {
+        // Arrange
+        List<IStatement> program = [
+            new ArithmeticalSubtractExpression(ConstFactor(left), ConstFactor(right)),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().Be(ConstFactor(expected).Value);
+    }
+
+    [Fact]
+    public void Interpreter_ShouldThrow_WhenArithmeticalSubtractExpression_EncounterUnsupportedStringFactor()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new ArithmeticalSubtractExpression(ConstFactor("a"), ConstFactor(1)),
+        ];
+        
+        // Act
+        var act = () => ExecuteProgram(program);
+        
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*can not be parsed*");
+    }
     
+    [Fact]
+    public void Interpreter_ShouldThrow_WhenArithmeticalSubtractExpression_EncounterUnsupportedFactor()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new ArithmeticalSubtractExpression(ReturnDummyLambda(), ConstFactor(1)),
+        ];
+        
+        // Act
+        var act = () => ExecuteProgram(program);
+        
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*can not be parsed*");
+    }
+    
+    [Theory]
+    [InlineData(2, 2, 4)]
+    [InlineData(2, -4, -8)]
+    [InlineData(2, 40000, 80000)]
+    [InlineData(2, true, 2)]
+    [InlineData(true, 2, 2)]
+    [InlineData(2, false, 0)]
+    [InlineData(false, 2, 0)]
+    [InlineData(2, null, 0)]
+    [InlineData(null, 2, 0)]
+    public void Interpreter_ShouldExecuteArithmeticalMultiplyExpression(object? left, object? right, object expected)
+    {
+        // Arrange
+        List<IStatement> program = [
+            new ArithmeticalMultiplyExpression(ConstFactor(left), ConstFactor(right)),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().Be(ConstFactor(expected).Value);
+    }
 
+    [Fact]
+    public void Interpreter_ShouldThrow_WhenArithmeticalMultiplyExpression_EncounterUnsupportedStringFactor()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new ArithmeticalMultiplyExpression(ConstFactor("a"), ConstFactor(1)),
+        ];
+        
+        // Act
+        var act = () => ExecuteProgram(program);
+        
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*can not be parsed*");
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldThrow_WhenArithmeticalMultiplyExpression_EncounterUnsupportedFactor()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new ArithmeticalMultiplyExpression(ReturnDummyLambda(), ConstFactor(1)),
+        ];
+        
+        // Act
+        var act = () => ExecuteProgram(program);
+        
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*can not be parsed*");
+    }
+    
+    [Theory]
+    [InlineData(2, 2, 1)]
+    [InlineData(6, -3, -2)]
+    [InlineData(40000, 2, 20000)]
+    [InlineData(7, 3, 2)]
+    [InlineData(8, 3, 2)]
+    [InlineData(1, 2, 0)]
+    [InlineData(0, 2, 0)]
+    [InlineData(2, true, 2)]
+    [InlineData(true, 2, 0)]
+    [InlineData(false, 2, 0)]
+    [InlineData(null, 2, 0)]
+    public void Interpreter_ShouldExecuteArithmeticalDivideExpression(object? left, object? right, object expected)
+    {
+        // Arrange
+        List<IStatement> program = [
+            new ArithmeticalDivideExpression(ConstFactor(left), ConstFactor(right)),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().Be(ConstFactor(expected).Value);
+    }
+
+    [Fact]
+    public void Interpreter_ShouldThrow_WhenArithmeticalDivideExpression_EncounterUnsupportedStringFactor()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new ArithmeticalDivideExpression(ConstFactor("a"), ConstFactor(1)),
+        ];
+        
+        // Act
+        var act = () => ExecuteProgram(program);
+        
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*can not be parsed*");
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldThrow_WhenArithmeticalDivideExpression_EncounterUnsupportedFactor()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new ArithmeticalDivideExpression(ReturnDummyLambda(), ConstFactor(1)),
+        ];
+        
+        // Act
+        var act = () => ExecuteProgram(program);
+        
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*can not be parsed*");
+    }
+    
+    [Theory]
+    [InlineData(0)]
+    [InlineData(null)]
+    [InlineData(false)]
+    public void Interpreter_ShouldThrow_WhenArithmeticalDivideExpression_EncounterDividedByZero(object? divider)
+    {
+        // Arrange
+        List<IStatement> program = [
+            new ArithmeticalDivideExpression(ConstFactor(1), ConstFactor(divider)),
+        ];
+        
+        // Act
+        var act = () => ExecuteProgram(program);
+        
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*divide by zero*");
+    }
+    
     #endregion
     
     #region Not
@@ -1081,4 +1351,6 @@ public class InterpreterTests
     
     private static FunctionCall AddToOutput(IExpression expression) => new FunctionCall(DebugMethod.IDENTIFIER, [expression]);
     private static FunctionCall AddToOutput(string variableName) => AddToOutput(new VariableFactor(variableName));
+
+    private static Block ReturnDummyLambda() => new Block([new Lambda([], ConstFactor())]);
 }
