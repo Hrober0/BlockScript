@@ -39,8 +39,9 @@ _(Ułożone malejąco według priorytetu)_
 <br><br>_(Dla innych typów program zwróci błąd)_
 
 ### Operatory przypisania
-- `=`  – przypisanie  
-- `?=` – przypisanie warunkowe  
+- `=`  – deklaracja  
+- `?=` – przypisanie warunkowe
+- `:=` - przypisanie
 
 ## Zmienne
 - Zmienna ma określony typ, ale może się on zmieniać w czasie.  
@@ -51,9 +52,25 @@ _(Ułożone malejąco według priorytetu)_
 a = 4;
 a = "a";		# a zmieni typ z int na string
 
+b = null;
 b ?= 3;			# b zostanie ustawione na 3, bo jest nullem
-
 b ?= 4;			# b pozostanie 3
+
+c = 2;
+f = () => c = 3;
+print(c);       # wypisze 2
+f();
+print(c);       # wypisze 2, ponieważ c zostanie zadlekarowane w loklanym kontekście
+
+d = 2;
+f = () => d := 3;
+print(d);       # wypisze 2
+f();
+print(d);       # wypisze 3, ponieważ c zostanie nadpisane
+
+e := 2;         # błąd e nie istnieje
+e ?= 2;         # błąd e nie istnieje
+e = 2;          # ok
 
 b = a ?? 5;		# b zostanie ustawione na 4
 ```
