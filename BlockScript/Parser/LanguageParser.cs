@@ -210,8 +210,24 @@ public class LanguageParser
         (lhs, rhs, operatorToken) => new LogicAndExpression(lhs, rhs, operatorToken.Position),
         TryParseCompereExpression);
 
-    private IExpression? TryParseCompereExpression() => TryParseSingleExpression([TokenType.OperatorEqual, TokenType.OperatorNotEqual, TokenType.OperatorLess,  TokenType.OperatorLessEqual, TokenType.OperatorGreater, TokenType.OperatorGreaterEqual],
-        (lhs, rhs, operatorToken) => new CompereExpression(lhs, rhs, operatorToken.Type, operatorToken.Position),
+    private IExpression? TryParseCompereExpression() => TryParseSingleExpression([
+            TokenType.OperatorEqual,
+            TokenType.OperatorNotEqual,
+            TokenType.OperatorLess,
+            TokenType.OperatorLessEqual,
+            TokenType.OperatorGreater,
+            TokenType.OperatorGreaterEqual
+        ],
+        (lhs, rhs, operatorToken) => operatorToken.Type switch
+        {
+            TokenType.OperatorEqual => new CompereEqualsExpression(lhs, rhs, operatorToken.Position),
+            TokenType.OperatorNotEqual => new CompereNotEqualsExpression(lhs, rhs, operatorToken.Position),
+            TokenType.OperatorLess => new CompereLessExpression(lhs, rhs, operatorToken.Position),
+            TokenType.OperatorLessEqual => new CompereLessEqualExpression(lhs, rhs, operatorToken.Position),
+            TokenType.OperatorGreater => new CompereGreaterExpression(lhs, rhs, operatorToken.Position),
+            TokenType.OperatorGreaterEqual => new CompereGreaterEqualExpression(lhs, rhs, operatorToken.Position),
+            _ => throw new ArgumentOutOfRangeException()
+        },
         TryParseNullColExpression);
     
     private IExpression? TryParseNullColExpression() => TryParseMultipleExpression([TokenType.OperatorNullCoalescing],

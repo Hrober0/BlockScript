@@ -1,7 +1,6 @@
 ﻿using BlockScript.Exceptions;
 using BlockScript.Interpreter;
 using BlockScript.Interpreter.BuildInMethods;
-using BlockScript.Lexer;
 using BlockScript.Lexer.FactorValues;
 using BlockScript.Parser.Expressions;
 using BlockScript.Parser.Factors;
@@ -59,7 +58,7 @@ public class InterpreterTests
         var result = ExecuteProgram(program);
         
         // Assert
-        result.Should().BeEquivalentTo(new NullFactor());
+        result.Should().Be(new NullFactor());
     }
     
     [Fact]
@@ -216,7 +215,7 @@ public class InterpreterTests
     {
         // Arrange
         List<IStatement> program = [
-            new Assign("myVar", ConstFactor()),
+            new Declaration("myVar", ConstFactor()),
             new NullAssign("myVar", ConstFactor(69)),
             new VariableFactor("myVar"),
         ];
@@ -354,9 +353,10 @@ public class InterpreterTests
         var result = ExecuteProgram(program);
         
         // Assert
-        var lambda = result.Should().BeOfType<Lambda>().Subject;
+        var (lambda, context) = result.Should().BeOfType<ContextLambda>().Subject;
         lambda.Arguments.Should().BeEquivalentTo(["a1"]);
         lambda.Body.Should().BeOfType<VariableFactor>();
+        context.Should().NotBeNull();
     }
 
     #endregion
@@ -766,7 +766,7 @@ public class InterpreterTests
             new Loop(
                 new Block([
                     new Assign("i", new ArithmeticalAddExpression(new VariableFactor("i"), ConstFactor(1))),
-                    new CompereExpression(new VariableFactor("i"), ConstFactor(6), TokenType.OperatorLess) ,
+                    new CompereLessExpression(new VariableFactor("i"), ConstFactor(6)),
                 ]),
             AddToOutput("i")
             ),
@@ -921,41 +921,37 @@ public class InterpreterTests
     #endregion
     
     #region Compere
-
+    
     [Theory]
-    // ==
-    [InlineData(TokenType.OperatorEqual,         2, 2, true)]
-    [InlineData(TokenType.OperatorEqual,         2, 1, false)]
-    [InlineData(TokenType.OperatorEqual,         1, 3, false)]
-    // <=
-    [InlineData(TokenType.OperatorLessEqual,     2, 2, true)]
-    [InlineData(TokenType.OperatorLessEqual,     1, 2, true)]
-    [InlineData(TokenType.OperatorLessEqual,     3, 2, false)]
-
-    // <
-    [InlineData(TokenType.OperatorLess,          1, 2, true)]
-    [InlineData(TokenType.OperatorLess,          2, 2, false)]
-    [InlineData(TokenType.OperatorLess,          3, 2, false)]
-
-    // >=
-    [InlineData(TokenType.OperatorGreaterEqual,  2, 2, true)]
-    [InlineData(TokenType.OperatorGreaterEqual,  3, 2, true)]
-    [InlineData(TokenType.OperatorGreaterEqual,  1, 2, false)]
-
-    // >
-    [InlineData(TokenType.OperatorGreater,       3, 2, true)]
-    [InlineData(TokenType.OperatorGreater,       2, 2, false)]
-    [InlineData(TokenType.OperatorGreater,       1, 2, false)]
-
-    // !=
-    [InlineData(TokenType.OperatorNotEqual,      2, 1, true)]
-    [InlineData(TokenType.OperatorNotEqual,      2, 2, false)]
-    [InlineData(TokenType.OperatorNotEqual,      1, 2, true)]
-    public void Interpreter_ShouldExecuteCompereExpression_WhenTwoFactorsAreInts(TokenType tokenType, int left, int right, bool expected)
+    [InlineData(2, 2, true)]
+    [InlineData(2, 1, false)]
+    [InlineData(1, 3, false)]
+    [InlineData(1, true, true)]
+    [InlineData(0, true, false)]
+    [InlineData(1, false, false)]
+    [InlineData(0, false, true)]
+    [InlineData(1, null, false)]
+    [InlineData(0, null, true)]
+    [InlineData(12, "12", true)]
+    [InlineData(0, "0", true)]
+    [InlineData(-1, "-1", true)]
+    [InlineData(2, "00", false)]
+    [InlineData(true,  true, true)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, false)]
+    [InlineData(true,  "true", true)]
+    [InlineData(false, "false", true)]
+    [InlineData(true, "s", false)]
+    [InlineData(null, "", true)]
+    [InlineData(null, "s", false)]
+    [InlineData("", "", true)]
+    [InlineData("asd", "asd", true)]
+    [InlineData("qwe", "qwr", false)]
+    public void Interpreter_ShouldExecuteCompereEqualsExpression(object? left, object? right, bool expected)
     {
         // Arrange
         List<IStatement> program = [
-            new CompereExpression(ConstFactor(left), ConstFactor(right), tokenType),
+            new CompereEqualsExpression(ConstFactor(left), ConstFactor(right)),
         ];
         
         // Act
@@ -966,20 +962,35 @@ public class InterpreterTests
     }
     
     [Theory]
-    [InlineData("foo",    "foo",    true)]
-    [InlineData("foo",    "bar",    false)]
-    [InlineData(true,     true,     true)]
-    [InlineData(true,     false,    false)]
-    [InlineData(null,     null,     true)]
-    [InlineData(null,     "text",   false)]
-    [InlineData("text",   null,     false)]
-    [InlineData(0,        true,     false)]
-    [InlineData(0,        false,     true)]
-    public void Interpreter_ShouldExecuteCompereExpression_WhenTwoFactorsAreNotInt(object? left, object? right, bool expected)
+    [InlineData(2, 2, false)]
+    [InlineData(2, 1, true)]
+    [InlineData(1, 3, true)]
+    [InlineData(1, true, false)]
+    [InlineData(0, true, true)]
+    [InlineData(1, false, true)]
+    [InlineData(0, false, false)]
+    [InlineData(1, null, true)]
+    [InlineData(0, null, false)]
+    [InlineData(12, "12", false)]
+    [InlineData(0, "0", false)]
+    [InlineData(-1, "-1", false)]
+    [InlineData(2, "00", true)]
+    [InlineData(true,  true, false)]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true,  "true", false)]
+    [InlineData(false, "false", false)]
+    [InlineData(true, "s", true)]
+    [InlineData(null, "", false)]
+    [InlineData(null, "s", true)]
+    [InlineData("", "", false)]
+    [InlineData("asd", "asd", false)]
+    [InlineData("qwe", "qwr", true)]
+    public void Interpreter_ShouldExecuteCompereNotEqualsExpression(object? left, object? right, bool expected)
     {
         // Arrange
         List<IStatement> program = [
-            new CompereExpression(ConstFactor(left), ConstFactor(right), TokenType.OperatorEqual),
+            new CompereNotEqualsExpression(ConstFactor(left), ConstFactor(right)),
         ];
         
         // Act
@@ -989,6 +1000,202 @@ public class InterpreterTests
         result.Should().BeEquivalentTo(new BoolFactor(expected));
     }
 
+    [Theory]
+    [InlineData(1, 2, true)]
+    [InlineData(2, 2, false)]
+    [InlineData(3, 2, false)]
+    [InlineData("a", "b", true)]
+    [InlineData("abc", "abz", true)]
+    [InlineData("z", "a", false)]
+    [InlineData("a", "a", false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, "true", false)]
+    [InlineData(false, "false", false)]
+    [InlineData(true, "s", false)]
+    [InlineData(null, "", false)]
+    [InlineData(null, "s", false)]
+    [InlineData("", "", false)]
+    [InlineData("asd", "asd", false)]
+    [InlineData("qwe", "qwr", true)]
+    public void Interpreter_ShouldExecuteCompereLessExpression(object? left, object? right, bool expected)
+    {
+        // Arrange
+        List<IStatement> program = [
+            new CompereLessExpression(ConstFactor(left), ConstFactor(right)),
+        ];
+
+        // Act
+        var result = ExecuteProgram(program);
+
+        // Assert
+        result.Should().BeEquivalentTo(new BoolFactor(expected));
+    }
+
+    [Fact]
+    public void Interpreter_ShouldThrow_CompereLessExpression_EncounterUnsupportedFactor()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new CompereLessExpression(ReturnDummyLambda(), ConstFactor(1)),
+        ];
+
+        // Act
+        var act = () => ExecuteProgram(program);
+
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*can not be parsed*");
+    }
+    
+    [Theory]
+    [InlineData(1, 2, true)]
+    [InlineData(2, 2, true)]
+    [InlineData(3, 2, false)]
+    [InlineData("a", "b", true)]
+    [InlineData("abc", "abz", true)]
+    [InlineData("z", "a", false)]
+    [InlineData("a", "a", true)]
+    [InlineData(true, true, true)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, "true", true)]
+    [InlineData(false, "false", true)]
+    [InlineData(true, "s", false)]
+    [InlineData(null, "", true)]
+    [InlineData(null, "s", true)]
+    [InlineData("", "", true)]
+    [InlineData("asd", "asd", true)]
+    [InlineData("qwe", "qwr", true)]
+    public void Interpreter_ShouldExecuteCompereLessEqualExpression(object? left, object? right, bool expected)
+    {
+        // Arrange
+        List<IStatement> program = [
+            new CompereLessEqualExpression(ConstFactor(left), ConstFactor(right)),
+        ];
+
+        // Act
+        var result = ExecuteProgram(program);
+
+        // Assert
+        result.Should().BeEquivalentTo(new BoolFactor(expected));
+    }
+
+    [Fact]
+    public void Interpreter_ShouldThrow_CompereLessEqualExpression_EncounterUnsupportedFactor()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new CompereLessEqualExpression(ReturnDummyLambda(), ConstFactor(1)),
+        ];
+
+        // Act
+        var act = () => ExecuteProgram(program);
+
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*can not be parsed*");
+    }
+    
+    [Theory]
+    [InlineData(1, 2, false)]
+    [InlineData(2, 2, false)]
+    [InlineData(3, 2, true)]
+    [InlineData("a", "b", false)]
+    [InlineData("abc", "abz", false)]
+    [InlineData("z", "a", true)]
+    [InlineData("a", "a", false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, "true", false)]
+    [InlineData(false, "false", false)]
+    [InlineData(true, "s", true)]
+    [InlineData(null, "", false)]
+    [InlineData(null, "s", false)]
+    [InlineData("", "", false)]
+    [InlineData("asd", "asd", false)]
+    [InlineData("qwe", "qwr", false)]
+    public void Interpreter_ShouldExecuteCompereGreaterExpression(object? left, object? right, bool expected)
+    {
+        // Arrange
+        List<IStatement> program = [
+            new CompereGreaterExpression(ConstFactor(left), ConstFactor(right)),
+        ];
+
+        // Act
+        var result = ExecuteProgram(program);
+
+        // Assert
+        result.Should().BeEquivalentTo(new BoolFactor(expected));
+    }
+
+    [Fact]
+    public void Interpreter_ShouldThrow_CompereGreaterExpression_EncounterUnsupportedFactor()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new CompereGreaterExpression(ReturnDummyLambda(), ConstFactor(1)),
+        ];
+
+        // Act
+        var act = () => ExecuteProgram(program);
+
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*can not be parsed*");
+    }
+    
+    [Theory]
+    [InlineData(1, 2, false)]
+    [InlineData(2, 2, true)]
+    [InlineData(3, 2, true)]
+    [InlineData("a", "b", false)]
+    [InlineData("abc", "abz", false)]
+    [InlineData("z", "a", true)]
+    [InlineData("a", "a", true)]
+    [InlineData(true, true, true)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, false)]
+    [InlineData(true, "true", true)]
+    [InlineData(false, "false", true)]
+    [InlineData(true, "s", true)]
+    [InlineData(null, "", true)]
+    [InlineData(null, "s", true)]
+    [InlineData("", "", true)]
+    [InlineData("asd", "asd", true)]
+    [InlineData("qwe", "qwr", false)]
+    public void Interpreter_ShouldExecuteCompereGreaterEqualExpression(object? left, object? right, bool expected)
+    {
+        // Arrange
+        List<IStatement> program = [
+            new CompereGreaterEqualExpression(ConstFactor(left), ConstFactor(right)),
+        ];
+
+        // Act
+        var result = ExecuteProgram(program);
+
+        // Assert
+        result.Should().BeEquivalentTo(new BoolFactor(expected));
+    }
+
+    [Fact]
+    public void Interpreter_ShouldThrow_CompereGreaterEqualExpression_EncounterUnsupportedFactor()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new CompereGreaterEqualExpression(ReturnDummyLambda(), ConstFactor(1)),
+        ];
+
+        // Act
+        var act = () => ExecuteProgram(program);
+
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*can not be parsed*");
+    }
+    
     #endregion
 
     #region Null Coalescing

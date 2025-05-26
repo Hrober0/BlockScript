@@ -48,7 +48,12 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
             // expressions
             LogicOrExpression s => Execute(s),
             LogicAndExpression s => Execute(s),
-            CompereExpression s => Execute(s),
+            CompereEqualsExpression s => Execute(s),
+            CompereNotEqualsExpression s => Execute(s),
+            CompereGreaterExpression s => Execute(s),
+            CompereGreaterEqualExpression s => Execute(s),
+            CompereLessExpression s => Execute(s),
+            CompereLessEqualExpression s => Execute(s),
             NullCoalescingExpression s => Execute(s),
             ArithmeticalAddExpression s => Execute(s),
             ArithmeticalSubtractExpression s => Execute(s),
@@ -204,7 +209,6 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         var right = ParseBool(Execute(logicOrExpression.Rhs), logicOrExpression.Rhs.Position);
         return new BoolFactor(left || right);
     }
-    
     private BoolFactor Execute(LogicAndExpression logicAndExpression)
     {
         var left = ParseBool(Execute(logicAndExpression.Lhs), logicAndExpression.Lhs.Position);
@@ -212,33 +216,49 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         return new BoolFactor(left && right);
     }
     
-    private BoolFactor Execute(CompereExpression compereExpression)
+    private BoolFactor Execute(CompereEqualsExpression compereEqualsExpression)
     {
-        var left = Execute(compereExpression.Lhs);
-        var right = Execute(compereExpression.Rhs);
-        
-        if (compereExpression.Operator == TokenType.OperatorEqual 
-            && left is StringFactor lString
-            && right is StringFactor rString)
-        {
-            return new BoolFactor(lString.Value == rString.Value);
-        }
-        
-        var leftValue = ParseInt(left, compereExpression.Lhs.Position);
-        var rightValue = ParseInt(right, compereExpression.Rhs.Position);
-        var result = compereExpression.Operator switch
-        {
-            TokenType.OperatorEqual => leftValue == rightValue,
-            TokenType.OperatorLessEqual => leftValue <= rightValue,
-            TokenType.OperatorLess => leftValue < rightValue,
-            TokenType.OperatorGreaterEqual => leftValue >= rightValue,
-            TokenType.OperatorGreater => leftValue > rightValue,
-            TokenType.OperatorNotEqual => leftValue != rightValue,
-            _ => throw new RuntimeException(compereExpression.Position, $"Unexpected {compereExpression.Operator.TextValue()} operator in compere expression!")
-        };
-        return new BoolFactor(result);
+        var left = Execute(compereEqualsExpression.Lhs);
+        var right = Execute(compereEqualsExpression.Rhs);
+        var equals = AreEqual(left, compereEqualsExpression.Lhs.Position, right, compereEqualsExpression.Rhs.Position);
+        return new BoolFactor(equals);
     }
-
+    private BoolFactor Execute(CompereNotEqualsExpression compereNotEqualsExpression)
+    {
+        var left = Execute(compereNotEqualsExpression.Lhs);
+        var right = Execute(compereNotEqualsExpression.Rhs);
+        var equals = AreEqual(left, compereNotEqualsExpression.Lhs.Position, right, compereNotEqualsExpression.Rhs.Position);
+        return new BoolFactor(!equals);
+    }
+    private BoolFactor Execute(CompereGreaterExpression compereGreaterExpression)
+    {
+        var left = Execute(compereGreaterExpression.Lhs);
+        var right = Execute(compereGreaterExpression.Rhs);
+        var grater = IsLeftGreater(left, compereGreaterExpression.Lhs.Position, right, compereGreaterExpression.Rhs.Position);
+        return new BoolFactor(grater);
+    }
+    private BoolFactor Execute(CompereGreaterEqualExpression compereGreaterEqualExpression)
+    {
+        var left = Execute(compereGreaterEqualExpression.Lhs);
+        var right = Execute(compereGreaterEqualExpression.Rhs);
+        var less = IsLeftGreater(right, compereGreaterEqualExpression.Rhs.Position, left, compereGreaterEqualExpression.Lhs.Position);
+        return new BoolFactor(!less);
+    }
+    private BoolFactor Execute(CompereLessExpression compereLessExpression)
+    {
+        var left = Execute(compereLessExpression.Lhs);
+        var right = Execute(compereLessExpression.Rhs);
+        var less = IsLeftGreater(right, compereLessExpression.Rhs.Position, left, compereLessExpression.Lhs.Position);
+        return new BoolFactor(less);
+    }
+    private BoolFactor Execute(CompereLessEqualExpression compereLessEqualExpression)
+    {
+        var left = Execute(compereLessEqualExpression.Lhs);
+        var right = Execute(compereLessEqualExpression.Rhs);
+        var grater = IsLeftGreater(left, compereLessEqualExpression.Lhs.Position, right, compereLessEqualExpression.Rhs.Position);
+        return new BoolFactor(!grater);
+    }
+    
     private IFactorValue Execute(NullCoalescingExpression nullCoalescingExpression)
     {
         var left = Execute(nullCoalescingExpression.Lhs);
@@ -271,7 +291,6 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         var rightNumber = ParseInt(right, arithmeticalSubtractExpression.Rhs.Position);
         return new IntFactor(leftNumber - rightNumber);
     }
-    
     private IntFactor Execute(ArithmeticalMultiplyExpression arithmeticalMultiplyExpression)
     {
         var left = Execute(arithmeticalMultiplyExpression.Lhs);
@@ -281,7 +300,6 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         var rightNumber = ParseInt(right, arithmeticalMultiplyExpression.Rhs.Position);
         return new IntFactor(leftNumber * rightNumber);
     }
-    
     private IntFactor Execute(ArithmeticalDivideExpression arithmeticalDivideExpression)
     {
         var left = Execute(arithmeticalDivideExpression.Lhs);
@@ -307,6 +325,50 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         };
     }
 
+    private static bool AreEqual(IFactorValue left, Position leftPosition, IFactorValue right, Position rightPosition)
+    {
+        if (left is StringFactor || right is StringFactor)
+        {
+            var leftString = ParseString(left, leftPosition);
+            var rightString = ParseString(right, rightPosition);
+            return leftString == rightString;
+        }
+        
+        if (left is ContextLambda leftLambda && right is ContextLambda rightLambda)
+        {
+            return leftLambda == rightLambda;
+        }
+
+        if (left is ContextLambda || right is ContextLambda)
+        {
+            return false;
+        }
+        
+        var leftInt = ParseInt(left, leftPosition);
+        var rightInt = ParseInt(right, rightPosition);
+        return leftInt == rightInt;
+    }
+    private static bool IsLeftGreater(IFactorValue left, Position leftPosition, IFactorValue right, Position rightPosition)
+    {
+        if (left is StringFactor || right is StringFactor)
+        {
+            var leftString = ParseString(left, leftPosition);
+            var rightString = ParseString(right, rightPosition);
+            for (int i = 0; i < Math.Min(leftString.Length, rightString.Length); i++)
+            {
+                if (leftString[i] > rightString[i])
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        var leftInt = ParseInt(left, leftPosition);
+        var rightInt = ParseInt(right, rightPosition);
+        return leftInt > rightInt;
+    }
+    
     #endregion
 
     #region Factor

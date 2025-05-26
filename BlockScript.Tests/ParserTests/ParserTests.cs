@@ -1138,19 +1138,13 @@ public class ParserTests
         innerExpression.Rhs.ShouldBeConstFactor(3);
     }
     
-    [Theory]
-    [InlineData(TokenType.OperatorEqual)]
-    [InlineData(TokenType.OperatorNotEqual)]
-    [InlineData(TokenType.OperatorGreater)]
-    [InlineData(TokenType.OperatorGreaterEqual)]
-    [InlineData(TokenType.OperatorLess)]
-    [InlineData(TokenType.OperatorLessEqual)]
-    public void Parser_ShouldParseCompereExpression(TokenType tokenType)
+    [Fact]
+    public void Parser_ShouldParseCompereEqualsExpression()
     {
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
-            new TokenData { Type = tokenType },
+            new TokenData { Type = TokenType.OperatorEqual },
             new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
             new TokenData { Type = TokenType.EndOfStatement }
         );
@@ -1160,10 +1154,114 @@ public class ParserTests
 
         // Assert
         var expression = result.Statements.Should().ContainSingle()
-                               .Which.Should().BeOfType<CompereExpression>().Subject;
+                               .Which.Should().BeOfType<CompereEqualsExpression>().Subject;
         expression.Lhs.ShouldBeConstFactor(1);
         expression.Rhs.ShouldBeConstFactor(2);
-        expression.Operator.Should().Be(tokenType);
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseCompereNotEqualsExpression()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
+            new TokenData { Type = TokenType.OperatorNotEqual },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        var expression = result.Statements.Should().ContainSingle()
+                               .Which.Should().BeOfType<CompereNotEqualsExpression>().Subject;
+        expression.Lhs.ShouldBeConstFactor(1);
+        expression.Rhs.ShouldBeConstFactor(2);
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseCompereGreaterExpression()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
+            new TokenData { Type = TokenType.OperatorGreater },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        var expression = result.Statements.Should().ContainSingle()
+                               .Which.Should().BeOfType<CompereGreaterExpression>().Subject;
+        expression.Lhs.ShouldBeConstFactor(1);
+        expression.Rhs.ShouldBeConstFactor(2);
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseCompereGreaterEqualsExpression()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
+            new TokenData { Type = TokenType.OperatorGreaterEqual },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        var expression = result.Statements.Should().ContainSingle()
+                               .Which.Should().BeOfType<CompereGreaterEqualExpression>().Subject;
+        expression.Lhs.ShouldBeConstFactor(1);
+        expression.Rhs.ShouldBeConstFactor(2);
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseCompereLessExpression()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
+            new TokenData { Type = TokenType.OperatorLess },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        var expression = result.Statements.Should().ContainSingle()
+                               .Which.Should().BeOfType<CompereLessExpression>().Subject;
+        expression.Lhs.ShouldBeConstFactor(1);
+        expression.Rhs.ShouldBeConstFactor(2);
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseCompereLessEqualsExpression()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(1)},
+            new TokenData { Type = TokenType.OperatorLessEqual },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(2)},
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        var expression = result.Statements.Should().ContainSingle()
+                               .Which.Should().BeOfType<CompereLessEqualExpression>().Subject;
+        expression.Lhs.ShouldBeConstFactor(1);
+        expression.Rhs.ShouldBeConstFactor(2);
     }
     
     [Fact]
@@ -1358,11 +1456,10 @@ public class ParserTests
             .Should().BeOfType<LogicOrExpression>().Subject;
 
         // LogicLeft || LogicRight | (-2 +new IntFactor(3)*new IntFactor(4)> 5) || ({ if 6 > 7 { 8 } } ?? a);
-        var logicLeft = logicExpr.Lhs.Should().BeOfType<CompereExpression>().Subject;
+        var logicLeft = logicExpr.Lhs.Should().BeOfType<CompereGreaterExpression>().Subject;
         var logicRight = logicExpr.Rhs.Should().BeOfType<NullCoalescingExpression>().Subject;
 
         // LogicLeft: CompLeft > new IntFactor(5)| (-2 +new IntFactor(3)* 4) > (5)
-        logicLeft.Operator.Should().Be(TokenType.OperatorGreater);
         var compLeft = logicLeft.Lhs.Should().BeOfType<ArithmeticalAddExpression>().Subject;
         logicLeft.Rhs.ShouldBeConstFactor(5);
 
