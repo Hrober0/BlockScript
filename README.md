@@ -1,64 +1,76 @@
 # BlockScript
 
-## Wstęp
-BlockScript to język ogólnego przeznaczenia, ukierunkowany na obsługę funkcji w zaawansowanym kontekście.  
-Jest dynamicznie typowany z domyślnie mutowalnymi zmiennymi oraz parametrami przekazywanymi przez kopię.  
-Wspiera funkcje wyższego rzędu, zagnieżdżanie funkcji oraz przekazywanie ich jako parametry.  
+## Introduction
+BlockScript is a general-purpose language focused on advanced function handling.
+It is dynamically typed with mutable variables by default and parameters passed by copy.
+It supports higher-order functions, function nesting, and passing functions as parameters.
 
-Język wyróżnia szerokie zastosowanie **bloku**, czyli części kodu, która może być użyta jako wartość warunkowa lub parametr.
+The language emphasizes the broad use of blocks, i.e., chunks of code that can be used as conditional values or parameters.
 
-## Zasady działania języka
+## Language principles
 
-### Typy danych
+### Data types
 - `int`
 - `bool`
 - `string`
 - `null`
 
-### Operatory arytmetyczno-logiczne
-_(Ułożone malejąco według priorytetu)_
-- `*`  – mnożenie  
-- `/`  – dzielenie  
-- `+`  – dodawanie  
-- `-`  – odejmowanie lub negacja 
-- `??` – wartość nie-null  
-- `>`  – większe  
-- `>=` – większe lub równe  
-- `<`  – mniejsze  
-- `<=` – mniejsze lub równe  
-- `==` – równe  
-- `!=` – nierówne  
-- `&&` – i  
-- `||` – lub
+### Arithmetic and Logical Operators
 
-### Wspierane typy danych dla operatorów
-- bool: `||`, `&&`, `-`
-- int: `+`, `-`, `*`, `/`, `>`, `>=`, `<`, `<=`
-- string: `+`
-- bool, int, string, null: `??`, `==`, `!=`
-<br><br>_(Dla innych typów program zwróci błąd)_
+*(Ordered by decreasing priority)*
 
-### Operatory przypisania
-- `=`  – przypisanie  
-- `?=` – przypisanie warunkowe  
+* `*`  – multiplication
+* `/`  – division
+* `+`  – addition
+* `-`  – subtraction or negation
+* `??` – non-null value
+* `>`  – greater than
+* `>=` – greater than or equal to
+* `<`  – less than
+* `<=` – less than or equal to
+* `==` – equals
+* `!=` – not equal
+* `&&` – and
+* `||` – or
 
-## Zmienne
-- Zmienna ma określony typ, ale może się on zmieniać w czasie.  
-- Operacje na zmiennych różnych typów nie wymagają jawnego rzutowania.  
+### Supported Data Types for Operators
 
-**Przykłady**:
+* bool: `||`, `&&`, `-`
+* int: `+`, `-`, `*`, `/`, `>`, `>=`, `<`, `<=`
+* string: `+`
+* bool, int, string, null: `??`, `==`, `!=`
+
+*(Other types will result in an error)*
+
+### Assignment Operators
+
+* `=`  – declaration
+* `?=` – conditional assignment
+* `:=` – assignment
+
+## Variables
+
+* A variable has a type, but it can change over time.
+* Operations on variables of different types do not require explicit casting.
+
+**Examples**:  
+
 ```py
 a = 4;
-a = "a";		# a zmieni typ z int na string
+a = "a";		# a changes the type to string
 
-b ?= 3;			# b zostanie ustawione na 3, bo jest nullem
+b = null;
+b ?= 3;			# b assign to 3, because it was null
 
-b ?= 4;			# b pozostanie 3
+b ?= 4;			# b ramians 3, because it was not null
 
-b = a ?? 5;		# b zostanie ustawione na 4
+b = a ?? 5;		# b assign to 4
+
+a = null;
+b = a ?? 5;		# b assign to 5
 ```
 
-**Konwwersje typów**:
+**Type conversion**:
 
 ```py
 # int + string => str(int) + string
@@ -80,86 +92,87 @@ true && 2		=> true
 2 && true		=> true
 ```
 
-### Komentarze
-\# komentarz
+### Comments
+\# this is a comment
 
 ### Blok
-Ważny do zrozumienia aspekt języka, blok stanowią kolejne linijki kodu, przypominjąc ciało funkcji.
-- Cały program stanowi blok.
-- Blok ma swój **kontekst** czyli własną lokalną pamięć, w któej znajdują się:
-	- wszystkie zadeklarowane zmienne (w tym funkcje)
- 	- referęcja na **kontekst** funkcji nadrzędnej
-- Bloki mogą być zagnieżdżane.
-- Każdy blok zwraca wartość równą wartości z ostaniej instrukcji w bloku.
-- Symbol ; jest użyty do odseparowania instrukcji od siebie, może ale nie musi występować na końcu bloku
-<br>**Przykłady**:
+An important aspect of the language to understand is that a **block** consists of consecutive lines of code, resembling the body of a function.
+
+- The entire program is a block.  
+- A block has its own **context**, meaning its own local memory, which contains:  
+  - all declared variables (including functions)  
+  - a reference to the **context** of the parent function  
+- Blocks can be nested.  
+- Each block returns a value equal to the value of the last instruction in the block.  
+- The `;` symbol is used to separate instructions from one another; it may or may not appear at the end of a block.  
+<br>**Examples**:
+
 ```py
 {
 a=3;
 b=4;
 }
-# powyższy blok zwróci: 4
+# blok returns: 4
 
 {
 a=3;
-b={4};		# to samo co b=4;
+b={4};		# the same as b=4;
 a+b;
 }
-# powyższy blok zwróci: 7
+# blok returns: 7
 
 {
 a=3;
 b=4;
-a>b		# ostatnie instrukcja nie wymaga ;
+a>b		# last statement doesn't reqire ;
 }
-# powyższy blok zwróci: false
+# blok returns: false
 
 {
 a=3;
 b=4;
 ()=>{a>b};
 }
-# powyższy blok zwróci: lambdę ()=>{a>b}
+# blok returns: lambda ()=>{a>b}
 
 {
 print("a");
 }
-# powyższy blok zwróci: "a"
+# blok returns: "a"
 
 {
 	a = 4;
 	c = {
-		a = a - 1;
+		a := a - 1;	# assign existing value
 		b = a - 1;
 	};
 	print(a);
 	print(c - 1);
 }
-# powyższy blok zwróci: 1
-# zmienna b nie będzie widoczna w zewnętrznym bloku
-# wypisze 3 1
+# blok returns: 1
+# varaible b is not accesibile form outside blok
+# prints: 3 1
 ```
 
-### Instrukcje warunkowe
-Instrulcje warunkowe przypominają ternary operator
+### Conditional Statements
+Conditional statements resemble the ternary operator.
 
-**Przykłady**:
+**Examples**:
 ```py
 if {a>3} {print(a)};
-# gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci null;
+# when a > 3, it prints a and returns a; otherwise, it returns null;
 
 if a>3 {print(a)};
-# po if może znaleźć się pojedyńcze wyrażenie, gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci null;
+# a single expression can follow `if`; when a > 3, it prints a and returns a; otherwise, it returns null;
 
 if a>3 print(a);
-# po warunku może znaleźć się pojedyńcze wyrażenie;
-
+# a single expression can follow the condition;
 
 if a>3 {print(a)} else {"no"};
-# gdy a>3 wypisze a i zwróci a w przeciwnym razie zwróci "no";
+# when a > 3, it prints a and returns a; otherwise, it returns "no";
 
 if a>3||a<2 {print(a); a+1};
-# gdy a>3 lub a<2 wypisze a i zwróci a+1 w przeciwnym razie zwróci null;
+# when a > 3 or a < 2, it prints a and returns a+1; otherwise, it returns null;
 
 2 + 2 * 2 > 7 || {if 3>2 {1}};
 # {2 + 4 > 7 || 1}
@@ -168,35 +181,35 @@ if a>3||a<2 {print(a); a+1};
 # true
 
 # true || false && true
-# zwróci false, operator && ma pierwszeństwo
+# returns false, because && has higher precedence
 
 a = 1;
 if 2 > a print("ok") else print("no");
-# wypisze ok
+# prints ok
 
 a = 1;
 print(if 2 > a "ok" else "no");
-# to samo co wyżej zapisane inaczej
+# same as above, written differently
 
 a = 3;
 print(if 2 > a "ok");
-# wypisze null
+# prints null
 
 a = "a";
 print(if a "ok" else "no");
-# wypisze ok - ponieważ string sparsowany będzie na bool dając true
+# prints ok – string parsed to boolean gives true
 
 a = "";
 print(if a "ok" else "no");
-# wypisze no - ponieważ string sparsowany będzie na bool dając false
+# prints no – empty string parsed to boolean gives false
 
 a = 3;
 print(if a "ok" else "no");
-# wypisze ok - ponieważ int sparsowany będzie na bool dając true
+# prints ok – integer parsed to boolean gives true
 
 a = 0;
 print(if a "ok" else "no");
-# wypisze no - ponieważ int sparsowany będzie na bool dając false
+# prints no – zero parsed to boolean gives false
 
 if a==1 {
 	1
@@ -207,27 +220,27 @@ else if a==2 {
 else {
 	"no"
 };
-# gdy a==1 zwróci 1, gdy a==2 zwróci 2, w przeciwnym wypadku zwróci "no"
+# if a==1, returns 1; if a==2, returns 2; otherwise, returns "no"
 ```
 
-### Funkcje
+### Functions
 
-**Przykłady**:
+**Examples**:
 ```py
 f=()=>{print("a")};
 f();
-# wypisze w konsoli "a"
+# prints: "a"
 
 
 f=()=>print("a");
 print("b");
 f();
-# wypisze w konsoli "b" "a"
+# prints: "b" "a"
 
 
 f=(a)=>print(a);
 f("b");
-# wypisze w konsoli "b"
+# prints: "b"
 
 
 f = () => {
@@ -238,83 +251,82 @@ f = () => {
 	print(ff());
 };
 f();
-# wypisze 2 3
-# funkcja "ff" ma dostęp do kontekstu nadrzędnej funkcji "f", dlatego skożysta z aktualnej wartości zmiennej "a"
+# prints: 2 3
+# function "ff" has access to the parent context "f", so it uses the current value of "a"
 
 
 f = () => {
 	a = 2;
-	ff = () => { a = a + 1 };
+	ff = () => { a := a + 1 };
 	a = 3;
 	ff;
 };
 fc = f();
-print(fc());	# wypisze 4
+print(fc());	# prints 4
 fc = f();
-print(fc());	# wypisze 4
-print(fc());	# wypisze 5
-print(fc());	# wypisze 6
-# funkcja "ff" ma dostęp do kontekstu nadrzędnej funkcji "f", mimo że funkcja zostało już wykonana
-# dlatego funkcja "ff" użyje ostatniej wartości zmiennej "a" czyli 3 i zwiększy ją o jeden
-# "print(f()())" tworzy nowy kontekst funkcji "f" dlatego ponowne wywołanie "print(f()())" zwrócić ponownie 4
-# natomiast wykonując "fc = f();" zapisujemy funkcję mającą referęcję na kontekst funkcji "f",
-# dlatego wykonując "fc()" wielokrotnie modyfikujemy ten sam kontekst co skutkuje wypisaniem kolejnych wartości
+print(fc());	# prints 4
+print(fc());	# prints 5
+print(fc());	# prints 6
+# function "ff" has access to the context of the parent function "f", even after "f" has finished executing
+# therefore "ff" uses the last value of "a", which is 3, and increments it
+# "print(f()())" creates a new context for "f", so each call resets to 3 and returns 4
+# assigning "fc = f();" stores a function with a reference to the context of "f",
+# so calling "fc()" repeatedly modifies the same context, resulting in incrementing values
 
 
 f = (n) => {
 	if n <= 0 {
 		n
 	}
-    else {
+    	else {
 		print(n);
 		f(n - 1);
 	}
 };
 f(3);
-# wypisze 3 2 1
+# prints: 3 2 1
 ```
 
-### Pętle
-Pętle również wspierają bloki jako jako warunek deyzyjny, jeśli wyrażenie za słowem kluczowym "loop" będzie prawdziwe blok będzie się wykonywał.
+### Loops
+Loops also support blocks as decision conditions. If the expression following the `loop` keyword evaluates to true, the block will execute.
 
-**Przykłady**:
+**Examples**:
 ```py
-
 a = 0;
 loop a<2 { a=a+1; print(a) };
-# wypisze 1 2
+# prints: 1 2
 
 loop {a<2} { a=a+1; print(a) };
-# wypisze 1 2
+# prints: 1 2
 
 a = 2;
 loop {a = a - 1; a >= 0} { print(a) };
-# wypisze 1 0
+# prints: 1 0
 
 a = 2;
 loop {a = a - 1; print(a); a >= 0} { };
-# wypisze 1 0
+# prints: 1 0
 
 a = -1;
 loop {a = a - 1; a >= 0} { print(a) };
-# nic nie wypisze
+# prints: null
 
 a = -1;
 loop {a = a - 1; print(a); a >= 0} { };
-# wypisze -2
+# prints: -2
 
 {
 	a = 0;
 	loop {a = a + 1; a <= 5} { a };
 }
-# zwróci 5 - ponieważ jest to ostatnia wartość z bloku
+# returns: 5 – because this is the last value of the block
 ```
 
-### Inne przykłady
+### Other Examples
 ```py
-# kolejnośc działań
-2 + 2 * 2		# 6
-{ 2 + 2 } * 2	# 8 - tutaj został użyty blok w któr wykonał się najpier zwracając 4
+# order of operations
+2 + 2 * 2       # 6
+{ 2 + 2 } * 2   # 8 – here a block was used, which executed first and returns: 4
 ```
 
 ```py
@@ -376,21 +388,21 @@ getLength = (list) => {
 list = lNode(10, null);
 list = lNode(20, list);
 list = lNode(30, list);
-# lista wygląda następująco 30 20 10
+# the list now looks like: 30 20 10
 
-print(lCurrent(list))  ;		# wypisze 30
+print(lCurrent(list))  ;		# prints: 30
 print(lCurrent(lNext(list)));  	# wypisze 20
 
-print(get(list, 1));			# wypisze 20
+print(get(list, 1));			# prints: 20
 
-print(getLength(list));			# wypisze 3
+print(getLength(list));			# prints: 3
 
 i = 0;
 loop i < 3 {
 	print(get(list, i));
 	i = i + 1;
 };
-# wypisze 30 20 10
+# prints 30 20 10
 
 setElement(list, 1, 69);
 i = 0;
@@ -398,7 +410,7 @@ loop i < 3 {
 	print(get(list, i));
 	i = i + 1;
 };
-# wypisze 30 69 10
+# prints 30 69 10
 ```
 
 
@@ -430,16 +442,16 @@ list = lNode(1, list);
 list = lNode(4, list);
 list = lNode(2, list);
 list = lNode(5, list);
-# list to 5 2 4 1 3
+# list: 5 2 4 1 3
 bubbleSort(list);
-# list to 1 2 3 4 5
+# list: 1 2 3 4 5
 ```
 
-### Notacja EBNF
-Dla przejrzystości w notacji EBNF pomijam znak spacji.
-Powstała gramatyka została przetestowana empirycznie za pomocą narzędzia [EBNF Tester](https://mdkrajnak.github.io/ebnftest/).
+### EBNF Notation
+For clarity, spaces are omitted in the EBNF notation.  
+The resulting grammar has been empirically tested using the [EBNF Tester](https://mdkrajnak.github.io/ebnftest/).
 
-#### Część składniowa
+#### Syntax Part
 ```ebnf
 program		= statements eos;
 
@@ -478,7 +490,7 @@ factor		= int
 			| block;
 
 ```
-#### Część leksykalna
+#### Lexical Part
 ```ebnf
 eos				= ";";
 int				= (no_zero_digit { digit }) | '0';
@@ -503,30 +515,30 @@ no_zero_digit	= #'[1-9]';
 letter			= #'[A-Za-z]';
 ```
 
-### Obsługa błędów
-Błędy przyjmują format: ERROR:line komuntikat
+### Error Handling
+Errors follow the format: ERROR:line message
 
-- Odwołanie się do nie zadeklarowanej wartości
+- Reference to an undeclared value
 	```py
 	1. b = a + 1;
 	ERROR[1, 5]: "a" was not defined
 	```
 	
-- Próba wywołania wyrażenia niebędącego funkcjią
+- Attempt to call an expression that is not a function  
 	```py
 	1. a = 3;
 	2. a();
 	ERROR[1, 1]: "a" is not callable
 	```
 
-- Nieprawidłowa ilość argumentów metody
+- Incorrect number of method arguments  
 	```py
 	1. f = (a){};
 	2. f();
 	ERROR[2,1]: "f" expected 1 arguments, but received 0
 	```
 	
-- Błąd składni
+- Syntax error  
 	```py
 	1. print = 2;
 	ERROR[1,3]: Syntax expected "(", but recived "="
@@ -535,9 +547,9 @@ Błędy przyjmują format: ERROR:line komuntikat
 	ERROR[3,1]: Syntax expected ";", "||"..., but recived "b"
 	```
 
-- Nieprawidłowy operator
+- Invalid operator
 	```py
-	1. "a" + (){};
+	1. "a" + ()=>{};
 	ERROR[1,5]: Operator '+' expected 'string', 'int', but recive callable
 	1. "a" * "b";
 	ERROR[1, 3]: Operator '*' expected 'int' but recived 'string'
