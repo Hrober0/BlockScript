@@ -23,6 +23,7 @@ public class Lexer
         { "loop",  TokenType.Loop },
         { "if",    TokenType.If },
         { "else",  TokenType.Else },
+        { "break",  TokenType.Break },
     };
 
     public Lexer(TextReader textReader)

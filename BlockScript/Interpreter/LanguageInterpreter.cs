@@ -1,5 +1,6 @@
 ﻿using BlockScript.Exceptions;
 using BlockScript.Interpreter.BuildInMethods;
+using BlockScript.Interpreter.InternalFactorValues;
 using BlockScript.Lexer.FactorValues;
 using BlockScript.Parser.Expressions;
 using BlockScript.Parser.Factors;
@@ -42,6 +43,7 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
             FunctionCall s => Execute(s),
             Condition s => Execute(s),
             Loop s => Execute(s),
+            Break s => Execute(s),
             
             // expressions
             LogicOrExpression s => Execute(s),
@@ -71,14 +73,39 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
 
     private IFactorValue Execute(Block block)
     {
-        IFactorValue? returnValue = null;
+        IFactorValue? lastValue = null;
         _contextStack.Push(new Context(CurrentContext));
         foreach (var statement in block.Statements)
         {
-            returnValue = Execute(statement);
+            var returnedValue = Execute(statement);
+            
+            if (returnedValue is BlockBreak blockBreak)
+            {
+                switch (blockBreak.BreakNumber)
+                {
+                    case < 1:
+                        // Ignore break statement
+                        continue;
+                    case 1:
+                        lastValue = blockBreak.LastValue ?? lastValue;
+                        break;
+                    case > 1:
+                        lastValue = new BlockBreak(blockBreak.BreakNumber - 1, blockBreak.LastValue ?? lastValue);
+                        break;
+                }
+                break;
+            }
+            
+            lastValue = returnedValue;
         }
         _contextStack.Pop();
-        return returnValue ?? new NullFactor();
+
+        if (lastValue is BlockBreak && _contextStack.Count <= 1)
+        {
+            throw new RuntimeException(block.Position, "Attempted to break from top level block");
+        }
+        
+        return lastValue ?? new NullFactor();
     }
 
     private IFactorValue Execute(Assign assign)
@@ -185,7 +212,18 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
             
             _contextStack.Push(new Context(CurrentContext));
             returnValue = Execute(loop.Body);
-            _contextStack.Pop();    
+            _contextStack.Pop();
+
+            if (returnValue is BlockBreak blockBreak)
+            {
+                switch (blockBreak.BreakNumber)
+                {
+                    case <= 1:
+                        return blockBreak.LastValue ?? new NullFactor();
+                    case > 1:
+                        return new BlockBreak(blockBreak.BreakNumber - 1, blockBreak.LastValue);
+                }
+            }
             
             iterations++;
             if (iterations > LOOP_COUNT_LIMIT)
@@ -195,6 +233,17 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         }
         
         return returnValue ?? new NullFactor();
+    }
+
+    private BlockBreak Execute(Break breakBlock)
+    {
+        var numberOfBreaks = 1;
+        if (breakBlock.BreakNumber != null)
+        {
+            var breaksValue = Execute(breakBlock.BreakNumber);
+            numberOfBreaks = ParseInt(breaksValue, breakBlock.Position);
+        }
+        return new BlockBreak(numberOfBreaks, null);
     }
 
     #endregion

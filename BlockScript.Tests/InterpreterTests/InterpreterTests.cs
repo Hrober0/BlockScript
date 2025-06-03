@@ -1,6 +1,7 @@
 ﻿using BlockScript.Exceptions;
 using BlockScript.Interpreter;
 using BlockScript.Interpreter.BuildInMethods;
+using BlockScript.Interpreter.InternalFactorValues;
 using BlockScript.Lexer.FactorValues;
 using BlockScript.Parser.Expressions;
 using BlockScript.Parser.Factors;
@@ -77,6 +78,133 @@ public class InterpreterTests
         
         // Assert
         result.Should().BeEquivalentTo(new IntFactor(69));
+    }
+
+    [Fact]
+    public void Interpreter_ShouldExecuteBreak_WithoutArgument_AndExitFromCurrentBlock()
+    {
+        // Arrange
+        List<IStatement> program = [
+            ConstFactor(1),
+            new Break(null),
+            ConstFactor(2),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().Be(new IntFactor(1));
+    }
+    
+    [Theory]
+    [InlineData(1)]
+    [InlineData(true)]
+    public void Interpreter_ShouldExecuteBreak_WithPositiveArgument_AndExitFromCurrentBlock(object value)
+    {
+        // Arrange
+        List<IStatement> program = [
+            ConstFactor(1),
+            new Break(ConstFactor(value)),
+            ConstFactor(2),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().Be(new IntFactor(1));
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldThrow_WhenAttemptedToBreakBlock_ThatIsTopLevelBlock()
+    {
+        // Arrange
+        List<IStatement> program = [
+            ConstFactor(1),
+            new Break(ConstFactor(2)),
+            ConstFactor(2),
+        ];
+        
+        // Act
+        var act = () => ExecuteProgram(program);
+        
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage("*Attempted to break from top level block*");
+    }
+    
+    [Theory]
+    [InlineData(1)]
+    [InlineData(0)]
+    [InlineData(true)]
+    [InlineData(false)]
+    [InlineData(null)]
+    [InlineData(-1000)]
+    public void Interpreter_ShouldExecuteBreak_NotOverrideLastValue(object? value)
+    {
+        // Arrange
+        List<IStatement> program = [
+            ConstFactor(69),
+            new Break(ConstFactor(value)),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().Be(new IntFactor(69));
+    }
+    
+    [Theory]
+    [InlineData(0)]
+    [InlineData(false)]
+    [InlineData(null)]
+    [InlineData(-1000)]
+    public void Interpreter_ShouldExecuteBreak_WithNotPositiveArgument_AndBeIgnored(object? value)
+    {
+        // Arrange
+        List<IStatement> program = [
+            ConstFactor(1),
+            new Break(ConstFactor(value)),
+            ConstFactor(2),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().Be(new IntFactor(2));
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldExecuteBreak_WithInt2Argument_AndExitFromTwoBlocks()
+    {
+        /*
+         1
+         {
+            11
+            break 2
+            12
+         }
+         2
+         */
+        // Arrange
+        List<IStatement> program = [
+            ConstFactor(1),
+            new Block([
+                ConstFactor(11),
+                new Break(ConstFactor(2)),
+                ConstFactor(12),
+            ]),
+            ConstFactor(2),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().Be(new IntFactor(11));
     }
 
     #endregion
@@ -828,6 +956,84 @@ public class InterpreterTests
             new IntFactor(4),
             new IntFactor(5),
         ]);
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldExecuteBreak_WithInt2Argument_AndExitFromLoop()
+    {
+        /*
+         1;
+         loop true {
+            11;
+            break 2;
+            12;
+         };
+         2;
+         */
+        // Arrange
+        List<IStatement> program = [
+            ConstFactor(1),
+            new Loop(ConstFactor(true), new Block([
+                ConstFactor(11),
+                new Break(ConstFactor(2)),
+                ConstFactor(12),
+            ])),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().Be(new IntFactor(11));
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldExecuteBreak_WithInt2Argument_AndSkipLoopBlock()
+    {
+        /*
+         a = true;
+         loop a {
+            a := false;
+            11;
+            break 1;
+            12;
+         };
+         2;
+         */
+        // Arrange
+        List<IStatement> program = [
+            new Declaration("a", ConstFactor(true)),
+            new Loop(new VariableFactor("a"), new Block([
+                new Assign("a", ConstFactor(false)),
+                ConstFactor(11),
+                new Break(ConstFactor(1)),
+                ConstFactor(12),
+            ])),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().Be(new IntFactor(11));
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldExecuteBreak_WithInt1Argument_AndExitFromLoop()
+    {
+        /*
+         loop true break;
+         */
+        // Arrange
+        List<IStatement> program = [
+            new Loop(ConstFactor(true), new Break(null)),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().Be(new NullFactor());
     }
     
     #endregion

@@ -120,39 +120,44 @@ An important aspect of the language to understand is that a **block** consists o
   - a reference to the **context** of the parent function  
 - Blocks can be nested.  
 - Each block returns a value equal to the value of the last instruction in the block.  
-- The `;` symbol is used to separate instructions from one another; it may or may not appear at the end of a block.  
-<br>**Examples**:
+- The `;` symbol is used to separate instructions from one another; it may or may not appear at the end of a block.
+- Code inside `{}` always makes a block, it is important in consideration of statements that using blocks, like `if` or `loop`
+    - `if a == 2 print(1)` <- there is not blocks
+    - `if { a == 2 } { print(1) }` <- there is two block
+    - `loop { a = a + 1; a < 2 } print(a)` <- there is one block
+
+**Examples**:
 
 ```py
 {
-a=3;
-b=4;
+    a=3;
+    b=4;
 }
 # blok returns: 4
 
 {
-a=3;
-b={4};		# the same as b=4;
-a+b;
+    a=3;
+    b={4};		# the same as b=4;
+    a+b;
 }
 # blok returns: 7
 
 {
-a=3;
-b=4;
-a>b		# last statement doesn't reqire ;
+    a=3;
+    b=4;
+    a>b		# last statement doesn't reqire ;
 }
 # blok returns: false
 
 {
-a=3;
-b=4;
-()=>{a>b};
+    a=3;
+    b=4;
+    ()=>{a>b};
 }
 # blok returns: function call ()=>{a>b}
 
 {
-print("a");
+    print("a");
 }
 # blok returns: "a"
 
@@ -168,6 +173,49 @@ print("a");
 # blok returns: 1
 # varaible b is not accesibile form outside blok
 # prints: 3 1
+
+{
+    print(1);
+    break; 
+    print(2);
+}
+# blok returns: 1
+# prints: 1
+# break exits from block
+
+{
+    print(1);
+    {
+        print(2);    
+        break;
+        print(3); 
+    }
+    print(4);
+}
+# blok returns: 4
+# prints: 1 2 4
+
+{
+    print(1);
+    {
+        print(2);    
+        break 2;
+        print(3); 
+    }
+    print(4);
+}
+# blok returns: 2
+# prints: 1 2
+# break can accept one argument, that indicate with how many block break will exist
+# break without argument is equiwalent of `break 1`
+
+{
+    print(1);
+    break 0; 
+}
+# blok returns: 1
+# prints: 1
+# break with not positive value is ignored, as well as its value
 ```
 
 ### Conditional Statements
@@ -311,6 +359,15 @@ f(1)(2);
 # { (b, c) => { print(1); print(b); print(c) } }(2,3)
 # { print(1); print(2); print(3) }
 # prints: 1 2 3
+
+f = () => {
+    print(1);
+    break;
+    print(2);
+}
+f();
+# returns: 1
+# prints: 1
 ```
 
 ### Loops
@@ -346,6 +403,47 @@ loop {a := a - 1; print(a); a >= 0} { };
 	loop {a := a + 1; a <= 5} { a };
 }
 # returns: 5 – because this is the last value of the block
+
+{
+    a = true;
+    loop a {
+        a := false;
+        print(11);
+        break;
+        print(12);
+    };
+    print(2);
+}
+# prints: 11 12
+
+{
+	loop true { break };
+}
+# throws: Loop exceeded loop count limit
+# `break 1` exist only first block, so in this case it behavies like `continue` from C like languages
+
+{
+	loop true break;
+}
+# returns: null
+# break is not in block so it will exit loop
+
+{
+	loop true { print(1); break 2; print(2); };
+	print(3);
+}
+# prints: 1 3
+# block returns: 1
+# `break 2` exits from block, and exits from loop
+
+{
+	loop true { print(1); break 3; print(2); };
+	print(3);
+}
+# prints: 1
+# block returns: 1
+# `break 2` exits from block, and exits from loop, and exits from block, so print(3) is not executed
+ 
 ```
 
 ### Other Examples
@@ -487,6 +585,7 @@ statement	= assign
 			| lambda
 			| condition
 			| loop
+			| break
 			| expr;
 
 assign		= identifier op_asign statement;
@@ -494,6 +593,7 @@ lambda		= "(" args ")" "=>" statement;
 func_call	= identifier "(" args ") { "(" args ")" } | block "(" args ") { "(" args ")" };
 condition	= "if" expr statement { "else" "if" expr statement } ["else" statement];
 loop		= "loop" expr statement;
+break		= "break" [ statement ];
 
 args		= [{ expr "," } expr];
 

@@ -15,6 +15,7 @@ public enum TokenType
     Loop,
     If,
     Else,
+    Break,
     
     // Data
     Integer,

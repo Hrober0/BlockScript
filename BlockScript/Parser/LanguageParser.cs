@@ -63,6 +63,7 @@ public class LanguageParser
         ?? TryParseLambda()
         ?? TryParseCondition()
         ?? TryParseLoop()
+        ?? TryParseBreak()
         ?? TryParseExpression() as IStatement;
 
     private Assign? TryParseAssign()
@@ -183,6 +184,18 @@ public class LanguageParser
         var body = ParseStatement(errorMessage);
         
         return new Loop(condition, body, startToken.Position);
+    }
+
+    private Break? TryParseBreak()
+    {
+        if (!TryTakeToken(TokenType.Break, out var startToken))
+        {
+            return null;
+        }
+
+        var breakNumber = TryParseStatement();
+        
+        return new Break(breakNumber, startToken.Position);
     }
     
     #endregion

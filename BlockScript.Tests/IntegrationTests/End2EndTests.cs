@@ -31,11 +31,11 @@ public class End2EndTests
                                 setElement = (list, index, value) => {
                                     if -isEmpty(list) {
                                 		if index == 0 {
-                                			lNode(value, lNext(list));  									# Found element, so set its value
+                                			lNode(value, lNext(list));  							# Found element, so set its value
                                 		}
                                 		else {
                                 		    newEnd = setElement(lNext(list), index - 1, value);
-                                			lNode(lCurrent(list), newEnd);	# Recursive call for next element, and construct new node
+                                			lNode(lCurrent(list), newEnd);	                        # Recursive call for next element, and construct new node
                                 		}
                                 	}
                                 };
@@ -232,7 +232,7 @@ public class End2EndTests
     }
     
     [Fact]
-    public void Integration_ShouldCallChainedMethods()
+    public void Integration_ShouldExecuteChainedMethodsCalls()
     {
         // Arrange
         var input = """
@@ -248,6 +248,47 @@ public class End2EndTests
             new IntFactor(1),
             new IntFactor(2),
             new IntFactor(3),
+        ]);
+    }
+    
+    [Fact]
+    public void Integration_ShouldExecuteMultipleBreak()
+    {
+        // Arrange
+        var input = """
+                    counter = 0;
+                    loop true {
+                        counter := counter + 1;
+                        if counter == 5 {
+                            break 3;
+                        };
+                        debug(counter);
+                    };
+                    
+                    counter = 0;
+                    loop true {
+                        counter := counter + 1;
+                        if counter == 5 break 3;
+                        debug(counter);
+                    };
+                    
+                    debug("end");
+                    """;
+        
+        // Act
+        var (returnValue, debug) = Execute(input);
+        
+        // Assert
+        returnValue.Should().BeEquivalentTo(new IntFactor(5));
+        debug.Should().BeEquivalentTo([
+            new IntFactor(1),
+            new IntFactor(2),
+            new IntFactor(3),
+            new IntFactor(4),
+            new IntFactor(1),
+            new IntFactor(2),
+            new IntFactor(3),
+            new IntFactor(4),
         ]);
     }
     

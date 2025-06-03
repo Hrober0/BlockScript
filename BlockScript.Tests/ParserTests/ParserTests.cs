@@ -110,7 +110,7 @@ public class ParserTests
     }
     
     [Fact]
-    public void Parser_ShouldParseEmptyBock()
+    public void Parser_ShouldParseEmptyBlock()
     {
         // Arrange
         var parser = CreateParserFromTokens(
@@ -1187,6 +1187,66 @@ public class ParserTests
         call.Arguments.Should().HaveCount(2);
         call.Arguments[0].Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("arg1");
         call.Arguments[1].Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("arg2");
+    }
+
+    #endregion
+
+    #region Break
+
+    [Fact]
+    public void Parser_ShouldParseBreak()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Break },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        result.Statements.Should().ContainSingle()
+              .Which.Should().BeOfType<Break>()
+              .Which.BreakNumber.Should().BeNull();
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseBreak_WithBreakNumber()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Break },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(3) },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var result = parser.ParserProgram();
+
+        // Assert
+        result.Statements.Should().ContainSingle()
+              .Which.Should().BeOfType<Break>()
+              .Which.BreakNumber.ShouldBeConstFactor(3);
+    }
+    
+    [Fact]
+    public void Parser_ShouldThrow_WhenAfterBreakTooManyStatements()
+    {
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Break },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(3) },
+            new TokenData { Type = TokenType.Integer, Value = new IntFactor(3) },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+
+        // Act
+        var act = () => parser.ParserProgram();
+
+        // Assert
+        act.Should().Throw<TokenException>()
+           .WithMessage("*Expected*");
     }
 
     #endregion
