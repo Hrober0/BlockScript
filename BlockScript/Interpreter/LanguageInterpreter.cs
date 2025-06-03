@@ -1,7 +1,5 @@
-﻿using System.Linq.Expressions;
-using BlockScript.Exceptions;
+﻿using BlockScript.Exceptions;
 using BlockScript.Interpreter.BuildInMethods;
-using BlockScript.Lexer;
 using BlockScript.Lexer.FactorValues;
 using BlockScript.Parser.Expressions;
 using BlockScript.Parser.Factors;
@@ -24,7 +22,7 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         var startContext = new Context(null);
         foreach (var method in buildInMethods)
         {
-            startContext.AddData(method.Identifier, new FunctionCall(new Lambda(method.Arguments, method, method.Position), startContext));
+            startContext.AddData(method.Identifier, new FunctionContext(new Lambda(method.Arguments, method, method.Position), startContext));
         }
         _contextStack.Push(startContext);
         return Execute(block);
@@ -41,7 +39,7 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
             Declaration s => Execute(s),
             Lambda s => Execute(s),
             BuildInMethod s => Execute(s),
-            Parser.Factors.FunctionCall s => Execute(s),
+            FunctionCall s => Execute(s),
             Condition s => Execute(s),
             Loop s => Execute(s),
             
@@ -119,24 +117,24 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
         return newValue;
     }
     
-    private FunctionCall Execute(Lambda lambda) => new(lambda, CurrentContext);
+    private FunctionContext Execute(Lambda lambda) => new(lambda, CurrentContext);
     
     private IFactorValue Execute(BuildInMethod buildInMethod) => buildInMethod.Execute(Execute, CurrentContext);
 
-    private IFactorValue Execute(Parser.Factors.FunctionCall functionCall)
+    private IFactorValue Execute(FunctionCall functionCall)
     {
-        var dataValue = CurrentContext.GetContextData(functionCall.Identifier, functionCall.Position);
+        var dataValue = Execute(functionCall.Callable);
 
-        if (dataValue is not FunctionCall contextLambda)
+        if (dataValue is not FunctionContext functionContext)
         {
             throw new RuntimeException(functionCall.Position, $"{dataValue} is not callable!");
         }
         
-        var (lambda, localContext) = contextLambda;
+        var (lambda, localContext) = functionContext;
 
         if (lambda.Arguments.Count != functionCall.Arguments.Count)
         {
-            throw new RuntimeException(functionCall.Position, $"Function {functionCall.Identifier} requires {lambda.Arguments.Count} arguments, but given {functionCall.Arguments.Count} arguments!");
+            throw new RuntimeException(functionCall.Position, $"Function {functionCall.Callable} requires {lambda.Arguments.Count} arguments, but given {functionCall.Arguments.Count} arguments!");
         }
 
         if (_contextStack.Count == RECURSION_LIMIT)
@@ -342,12 +340,12 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
             return leftString == rightString;
         }
         
-        if (left is FunctionCall leftLambda && right is FunctionCall rightLambda)
+        if (left is FunctionContext leftLambda && right is FunctionContext rightLambda)
         {
             return leftLambda == rightLambda;
         }
 
-        if (left is FunctionCall || right is FunctionCall)
+        if (left is FunctionContext || right is FunctionContext)
         {
             return false;
         }

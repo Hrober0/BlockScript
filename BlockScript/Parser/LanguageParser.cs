@@ -334,7 +334,7 @@ public class LanguageParser
     private IFactor? TryParseFactor() => 
         TryParseConstFactor() 
         ?? TryParseBlock()
-        ?? TryParseFunctionCall()
+        ?? TryParseVariableFunctionCall()
         ?? TryParseVariableFactor();
 
     private IFactor? TryParseConstFactor()
@@ -376,7 +376,7 @@ public class LanguageParser
         return new Block(statements, startToken.Position);
     }
 
-    private IFactor? TryParseFunctionCall()
+    private IFactor? TryParseVariableFunctionCall()
     {
         if (_tokenBuffer.Current.Type != TokenType.Identifier || _tokenBuffer.Next.Type != TokenType.ParenthesesOpen)
         {
@@ -406,7 +406,7 @@ public class LanguageParser
         
         TakeTokenOrThrow(TokenType.ParenthesesClose, errorMessage);
         
-        return new FunctionCall((string)(StringFactor)identifierToken.Value, arguments, identifierToken.Position);
+        return new FunctionCall(new VariableFactor((string)(StringFactor)identifierToken.Value, identifierToken.Position), arguments, identifierToken.Position);
     }
 
     private IFactor? TryParseVariableFactor()

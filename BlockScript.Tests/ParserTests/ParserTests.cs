@@ -814,7 +814,7 @@ public class ParserTests
         var functionCall = result.Statements.Should().ContainSingle()
               .Which.Should().BeOfType<FunctionCall>().Subject;
         
-        functionCall.Identifier.Should().Be("x");
+        functionCall.Callable.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("x");
         functionCall.Arguments.Should().BeEmpty();
     }
 
@@ -837,7 +837,7 @@ public class ParserTests
         var functionCall = result.Statements.Should().ContainSingle()
             .Which.Should().BeOfType<FunctionCall>().Subject;
 
-        functionCall.Identifier.Should().Be("foo");
+        functionCall.Callable.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("foo");
         functionCall.Arguments.Should().ContainSingle()
             .Which.ShouldBeConstFactor(1);
     }
@@ -865,7 +865,7 @@ public class ParserTests
         var functionCall = result.Statements.Should().ContainSingle()
             .Which.Should().BeOfType<FunctionCall>().Subject;
 
-        functionCall.Identifier.Should().Be("sum");
+        functionCall.Callable.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("sum");
         functionCall.Arguments.Should().HaveCount(3);
         functionCall.Arguments[0].ShouldBeConstFactor(1);
         functionCall.Arguments[1].ShouldBeConstFactor(2);
@@ -892,7 +892,7 @@ public class ParserTests
         var functionCall = result.Statements.Should().ContainSingle()
             .Which.Should().BeOfType<FunctionCall>().Subject;
 
-        functionCall.Identifier.Should().Be("sum");
+        functionCall.Callable.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("sum");
         functionCall.Arguments.Should().ContainSingle().
             Which.ShouldBeConstFactor(1);
     }
@@ -989,7 +989,7 @@ public class ParserTests
         var functionCall = result.Statements.Should().ContainSingle()
             .Which.Should().BeOfType<FunctionCall>().Subject;
 
-        functionCall.Identifier.Should().Be("negate");
+        functionCall.Callable.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("negate");
         functionCall.Arguments.Should().ContainSingle();
 
         var expr = functionCall.Arguments[0].Should().BeOfType<ArithmeticalAddExpression>().Subject;
@@ -1016,17 +1016,48 @@ public class ParserTests
         var result = parser.ParserProgram();
 
         // Assert
-        var printCall = result.Statements.Should().ContainSingle()
+        var outsideCall = result.Statements.Should().ContainSingle()
             .Which.Should().BeOfType<FunctionCall>().Subject;
 
-        printCall.Identifier.Should().Be("ff");
-        printCall.Arguments.Should().ContainSingle();
+        outsideCall.Callable.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("ff");
+        outsideCall.Arguments.Should().ContainSingle();
 
-        var innerCall = printCall.Arguments[0].Should().BeOfType<FunctionCall>().Subject;
-        innerCall.Identifier.Should().Be("getValue");
+        var innerCall = outsideCall.Arguments[0].Should().BeOfType<FunctionCall>().Subject;
+        innerCall.Callable.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("getValue");
         innerCall.Arguments.Should().ContainSingle()
             .Which.ShouldBeConstFactor(7);
     }
+    
+    // [Fact]
+    // public void Parser_ShouldParseChainedFunctionCalls()
+    // {
+    //     // Arrange
+    //     var parser = CreateParserFromTokens(
+    //         new TokenData { Type = TokenType.Identifier, Value = new StringFactor("f") },
+    //         new TokenData { Type = TokenType.ParenthesesOpen },
+    //         new TokenData { Type = TokenType.Identifier, Value = new StringFactor("getValue") },
+    //         new TokenData { Type = TokenType.ParenthesesClose },
+    //         new TokenData { Type = TokenType.ParenthesesOpen },
+    //         new TokenData { Type = TokenType.Integer, Value = new IntFactor(7) },
+    //         new TokenData { Type = TokenType.ParenthesesClose },
+    //         new TokenData { Type = TokenType.EndOfStatement }
+    //     );
+    //
+    //     // Act
+    //     var result = parser.ParserProgram();
+    //
+    //     // Assert
+    //     var secondCall = result.Statements.Should().ContainSingle()
+    //                           .Which.Should().BeOfType<FunctionCall>().Subject;
+    //
+    //     secondCall.C.Should().Be("ff");
+    //     secondCall.Arguments.Should().ContainSingle();
+    //
+    //     var innerCall = secondCall.Arguments[0].Should().BeOfType<FunctionCall>().Subject;
+    //     innerCall.Identifier.Should().Be("getValue");
+    //     innerCall.Arguments.Should().ContainSingle()
+    //              .Which.ShouldBeConstFactor(7);
+    // }
 
     #endregion
     

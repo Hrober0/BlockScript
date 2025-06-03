@@ -8,7 +8,6 @@ using BlockScript.Parser.Statements;
 using BlockScript.Reader;
 using FluentAssertions;
 using Xunit;
-using FunctionCall = BlockScript.Interpreter.FunctionCall;
 
 namespace BlockScript.Tests.InterpreterTests;
 
@@ -336,7 +335,7 @@ public class InterpreterTests
         var result = ExecuteProgram(program);
         
         // Assert
-        var contextLambda = result.Should().BeOfType<FunctionCall>().Subject;
+        var contextLambda = result.Should().BeOfType<FunctionContext>().Subject;
         contextLambda.Lambda.Arguments.Should().BeEquivalentTo(["a1"]);
         contextLambda.Lambda.Body.ShouldBeConstFactor(1);
         contextLambda.Context.Should().NotBeNull();
@@ -354,7 +353,7 @@ public class InterpreterTests
         var result = ExecuteProgram(program);
         
         // Assert
-        var (lambda, context) = result.Should().BeOfType<FunctionCall>().Subject;
+        var (lambda, context) = result.Should().BeOfType<FunctionContext>().Subject;
         lambda.Arguments.Should().BeEquivalentTo(["a1"]);
         lambda.Body.Should().BeOfType<VariableFactor>();
         context.Should().NotBeNull();
@@ -370,8 +369,8 @@ public class InterpreterTests
         // Arrange
         var output = new List<IFactorValue>();
         List<IStatement> program = [
-            new Parser.Factors.FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(2)]),
-            new Parser.Factors.FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(3)]),
+            new FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(2)]),
+            new FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(3)]),
         ];
         
         // Act
@@ -386,7 +385,7 @@ public class InterpreterTests
     {
         // Arrange
         List<IStatement> program = [
-            new Parser.Factors.FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(2)]),
+            new FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(2)]),
         ];
         
         // Act
@@ -407,7 +406,7 @@ public class InterpreterTests
         // Arrange
         List<IStatement> program = [
             new Declaration("x", new Lambda([], ConstFactor(1))),
-            new Parser.Factors.FunctionCall("x", []),
+            new FunctionCall("x", []),
         ];
         
         // Act
@@ -423,7 +422,7 @@ public class InterpreterTests
         // Arrange
         List<IStatement> program = [
             new Declaration("x", new Lambda([], ConstFactor(1))),
-            new Parser.Factors.FunctionCall("y", []),
+            new FunctionCall("y", []),
         ];
         
         // Act
@@ -440,7 +439,7 @@ public class InterpreterTests
         // Arrange
         List<IStatement> program = [
             new Declaration("x", new Lambda(["a1", "a2"], new VariableFactor("a2"))),
-            new Parser.Factors.FunctionCall("x", [ConstFactor(1), ConstFactor(2)]),
+            new FunctionCall("x", [ConstFactor(1), ConstFactor(2)]),
         ];
         
         // Act
@@ -456,7 +455,7 @@ public class InterpreterTests
         // Arrange
         List<IStatement> program = [
             new Declaration("x", new Lambda(["a1"], ConstFactor(1))),
-            new Parser.Factors.FunctionCall("x", []),
+            new FunctionCall("x", []),
         ];
         
         // Act
@@ -473,7 +472,7 @@ public class InterpreterTests
         // Arrange
         List<IStatement> program = [
             new Declaration("x", ConstFactor(1)),
-            new Parser.Factors.FunctionCall("x", []),
+            new FunctionCall("x", []),
         ];
         
         // Act
@@ -490,8 +489,8 @@ public class InterpreterTests
         // Arrange
         var output = new List<IFactorValue>();
         List<IStatement> program = [
-            new Parser.Factors.FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(1)]),
-            new Parser.Factors.FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(2)]),
+            new FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(1)]),
+            new FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(2)]),
         ];
         
         // Act
@@ -530,12 +529,12 @@ public class InterpreterTests
                 new VariableFactor("ff"),
             ]))),
             
-            new Declaration("fc", new Parser.Factors.FunctionCall("f", [])),
-            AddToOutput(new Parser.Factors.FunctionCall("fc", [])),                    // should add 4 to output
-            new Declaration("fc", new Parser.Factors.FunctionCall("f", [])),
-            AddToOutput(new Parser.Factors.FunctionCall("fc", [])),                    // should add 4 to output
-            AddToOutput(new Parser.Factors.FunctionCall("fc", [])),                    // should add 5 to output
-            AddToOutput(new Parser.Factors.FunctionCall("fc", [])),                    // should add 6 to output
+            new Declaration("fc", new FunctionCall("f", [])),
+            AddToOutput(new FunctionCall("fc", [])),                    // should add 4 to output
+            new Declaration("fc", new FunctionCall("f", [])),
+            AddToOutput(new FunctionCall("fc", [])),                    // should add 4 to output
+            AddToOutput(new FunctionCall("fc", [])),                    // should add 5 to output
+            AddToOutput(new FunctionCall("fc", [])),                    // should add 6 to output
         ];
         
         // Act
@@ -550,8 +549,8 @@ public class InterpreterTests
     {
         // Arrange
         List<IStatement> program = [
-            new Declaration("x", new Lambda([], new Parser.Factors.FunctionCall("x", []))),
-            new Parser.Factors.FunctionCall("x", []),
+            new Declaration("x", new Lambda([], new FunctionCall("x", []))),
+            new FunctionCall("x", []),
         ];
         
         // Act
@@ -1274,7 +1273,7 @@ public class InterpreterTests
         var debug = new List<IFactorValue>();
         List<IStatement> program = [
             new NullCoalescingExpression(ConstFactor(1), 
-                new Parser.Factors.FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(2)]))
+                new FunctionCall(DebugMethod.IDENTIFIER, [ConstFactor(2)]))
         ];
         
         // Act
@@ -1593,8 +1592,8 @@ public class InterpreterTests
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
     };
     
-    private static Parser.Factors.FunctionCall AddToOutput(IExpression expression) => new Parser.Factors.FunctionCall(DebugMethod.IDENTIFIER, [expression]);
-    private static Parser.Factors.FunctionCall AddToOutput(string variableName) => AddToOutput(new VariableFactor(variableName));
+    private static FunctionCall AddToOutput(IExpression expression) => new FunctionCall(DebugMethod.IDENTIFIER, [expression]);
+    private static FunctionCall AddToOutput(string variableName) => AddToOutput(new VariableFactor(variableName));
 
     private static Block ReturnDummyLambda() => new Block([new Lambda([], ConstFactor())]);
 }
