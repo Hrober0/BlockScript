@@ -2,11 +2,10 @@
 using BlockScript.Interpreter.BuildInMethods;
 using BlockScript.Lexer.FactorValues;
 using BlockScript.Parser;
-using BlockScript.Tests.InterpreterTests;
 using FluentAssertions;
 using Xunit;
 
-namespace BlockScript.Tests;
+namespace BlockScript.Tests.IntegrationTests;
 
 public class End2EndTests
 {
@@ -229,6 +228,26 @@ public class End2EndTests
             new IntFactor(3),
             new IntFactor(4),
             new IntFactor(5),
+        ]);
+    }
+    
+    [Fact]
+    public void Integration_ShouldCallChainedMethods()
+    {
+        // Arrange
+        var input = """
+                    { (a) => { () => (b, c) => { debug(a); debug(b); debug(c) } } }(1)()(2,3);
+                    """;
+        
+        // Act
+        var (returnValue, debug) = Execute(input);
+        
+        // Assert
+        returnValue.Should().BeEquivalentTo(new IntFactor(3));
+        debug.Should().BeEquivalentTo([
+            new IntFactor(1),
+            new IntFactor(2),
+            new IntFactor(3),
         ]);
     }
     

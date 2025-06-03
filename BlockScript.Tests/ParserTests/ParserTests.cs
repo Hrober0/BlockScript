@@ -1000,6 +1000,8 @@ public class ParserTests
     [Fact]
     public void Parser_ShouldParseNestedFunctionCalls_AsArguments()
     {
+        // ff(getValue(7));
+        
         // Arrange
         var parser = CreateParserFromTokens(
             new TokenData { Type = TokenType.Identifier, Value = new StringFactor("ff") },
@@ -1028,36 +1030,164 @@ public class ParserTests
             .Which.ShouldBeConstFactor(7);
     }
     
-    // [Fact]
-    // public void Parser_ShouldParseChainedFunctionCalls()
-    // {
-    //     // Arrange
-    //     var parser = CreateParserFromTokens(
-    //         new TokenData { Type = TokenType.Identifier, Value = new StringFactor("f") },
-    //         new TokenData { Type = TokenType.ParenthesesOpen },
-    //         new TokenData { Type = TokenType.Identifier, Value = new StringFactor("getValue") },
-    //         new TokenData { Type = TokenType.ParenthesesClose },
-    //         new TokenData { Type = TokenType.ParenthesesOpen },
-    //         new TokenData { Type = TokenType.Integer, Value = new IntFactor(7) },
-    //         new TokenData { Type = TokenType.ParenthesesClose },
-    //         new TokenData { Type = TokenType.EndOfStatement }
-    //     );
-    //
-    //     // Act
-    //     var result = parser.ParserProgram();
-    //
-    //     // Assert
-    //     var secondCall = result.Statements.Should().ContainSingle()
-    //                           .Which.Should().BeOfType<FunctionCall>().Subject;
-    //
-    //     secondCall.C.Should().Be("ff");
-    //     secondCall.Arguments.Should().ContainSingle();
-    //
-    //     var innerCall = secondCall.Arguments[0].Should().BeOfType<FunctionCall>().Subject;
-    //     innerCall.Identifier.Should().Be("getValue");
-    //     innerCall.Arguments.Should().ContainSingle()
-    //              .Which.ShouldBeConstFactor(7);
-    // }
+    [Fact]
+    public void Parser_ShouldParseChainedFunctionCalls()
+    {
+        // f()();
+        
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("f") },
+            new TokenData { Type = TokenType.ParenthesesOpen },
+            new TokenData { Type = TokenType.ParenthesesClose },
+            new TokenData { Type = TokenType.ParenthesesOpen },
+            new TokenData { Type = TokenType.ParenthesesClose },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+    
+        // Act
+        var result = parser.ParserProgram();
+    
+        // Assert
+        var outsideCall = result.Statements.Should().ContainSingle()
+                               .Which.Should().BeOfType<FunctionCall>().Subject;
+        
+        var innerCall = outsideCall.Callable.Should().BeOfType<FunctionCall>().Subject;
+        outsideCall.Arguments.Should().BeEmpty();
+        
+        innerCall.Callable.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("f");
+        innerCall.Arguments.Should().BeEmpty();
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseChainedFunctionCalls_WithManyCalls()
+    {
+        // f()()()()();
+        
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("f") },
+            new TokenData { Type = TokenType.ParenthesesOpen },
+            new TokenData { Type = TokenType.ParenthesesClose },    // 1s call
+            new TokenData { Type = TokenType.ParenthesesOpen },
+            new TokenData { Type = TokenType.ParenthesesClose },    // 2s call
+            new TokenData { Type = TokenType.ParenthesesOpen },
+            new TokenData { Type = TokenType.ParenthesesClose },    // 3s call
+            new TokenData { Type = TokenType.ParenthesesOpen },
+            new TokenData { Type = TokenType.ParenthesesClose },    // 4s call
+            new TokenData { Type = TokenType.ParenthesesOpen },
+            new TokenData { Type = TokenType.ParenthesesClose },    // 5s call
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+    
+        // Act
+        var result = parser.ParserProgram();
+    
+        // Assert
+        var call = result.Statements.Should().ContainSingle().Which.Should().BeOfType<FunctionCall>().Subject;
+        for (int i = 0; i < 4; i++)
+        {
+            call.Arguments.Should().BeEmpty();
+            call = call.Callable.Should().BeOfType<FunctionCall>().Subject;
+        }
+        call.Arguments.Should().BeEmpty();
+        call.Callable.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("f");
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseChainedFunctionCalls_WithArguments()
+    {
+        // f(arg1, arg2)(arg3);
+        
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("f") },
+            new TokenData { Type = TokenType.ParenthesesOpen },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("arg1") },
+            new TokenData { Type = TokenType.Comma },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("arg2") },
+            new TokenData { Type = TokenType.ParenthesesClose },
+            new TokenData { Type = TokenType.ParenthesesOpen },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("arg3") },
+            new TokenData { Type = TokenType.ParenthesesClose },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+    
+        // Act
+        var result = parser.ParserProgram();
+    
+        // Assert
+        var secondCall = result.Statements.Should().ContainSingle()
+                              .Which.Should().BeOfType<FunctionCall>().Subject;
+
+        var innerCall = secondCall.Callable.Should().BeOfType<FunctionCall>().Subject;
+        secondCall.Arguments.Should().HaveCount(1);
+        secondCall.Arguments[0].Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("arg3");
+        
+        innerCall.Callable.Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("f");
+        innerCall.Arguments.Should().HaveCount(2);
+        innerCall.Arguments[0].Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("arg1");
+        innerCall.Arguments[1].Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("arg2");
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseFunctionCall_WhenCallingBlock()
+    {
+        // {}();
+        
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.BraceOpen },
+            new TokenData { Type = TokenType.BraceClose },
+            new TokenData { Type = TokenType.ParenthesesOpen },
+            new TokenData { Type = TokenType.ParenthesesClose },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+    
+        // Act
+        var result = parser.ParserProgram();
+    
+        // Assert
+        var outsideCall = result.Statements.Should().ContainSingle()
+                                .Which.Should().BeOfType<FunctionCall>().Subject;
+        
+        outsideCall.Callable.Should().BeOfType<Block>().Which.Statements.Should().BeEmpty();
+        outsideCall.Arguments.Should().BeEmpty();
+    }
+    
+    [Fact]
+    public void Parser_ShouldParseFunctionCall_WhenCallingBlock_WithArguments()
+    {
+        // {"blockContent"}(arg1, arg2);
+        
+        // Arrange
+        var parser = CreateParserFromTokens(
+            new TokenData { Type = TokenType.BraceOpen },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("blockContent") },
+            new TokenData { Type = TokenType.BraceClose },
+            new TokenData { Type = TokenType.ParenthesesOpen },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("arg1") },
+            new TokenData { Type = TokenType.Comma },
+            new TokenData { Type = TokenType.Identifier, Value = new StringFactor("arg2") },
+            new TokenData { Type = TokenType.ParenthesesClose },
+            new TokenData { Type = TokenType.EndOfStatement }
+        );
+    
+        // Act
+        var result = parser.ParserProgram();
+    
+        // Assert
+        var call = result.Statements.Should().ContainSingle()
+                                .Which.Should().BeOfType<FunctionCall>().Subject;
+        
+        call.Callable.Should().BeOfType<Block>()
+                   .Which.Statements.Should().ContainSingle()
+                   .Which.Should().BeOfType<VariableFactor>()
+                   .Which.Identifier.Should().Be("blockContent");
+        call.Arguments.Should().HaveCount(2);
+        call.Arguments[0].Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("arg1");
+        call.Arguments[1].Should().BeOfType<VariableFactor>().Which.Identifier.Should().Be("arg2");
+    }
 
     #endregion
     

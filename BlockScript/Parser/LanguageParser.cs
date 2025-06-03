@@ -63,9 +63,9 @@ public class LanguageParser
         ?? TryParseLambda()
         ?? TryParseCondition()
         ?? TryParseLoop()
-        ??  TryParseExpression();
+        ?? TryParseExpression() as IStatement;
 
-    private IStatement? TryParseAssign()
+    private Assign? TryParseAssign()
     {
         if (_tokenBuffer.Current.Type is not TokenType.Identifier || _tokenBuffer.Next.Type is not TokenType.OperatorAssign)
         {
@@ -78,7 +78,7 @@ public class LanguageParser
         return new Assign((string)(StringFactor)identifierToken.Value, statement, position);
     }
     
-    private IStatement? TryParseNullAssign()
+    private NullAssign? TryParseNullAssign()
     {
         if (_tokenBuffer.Current.Type is not TokenType.Identifier || _tokenBuffer.Next.Type is not TokenType.OperatorNullAssign)
         {
@@ -91,7 +91,7 @@ public class LanguageParser
         return new NullAssign((string)(StringFactor)identifierToken.Value, statement, position);
     }
     
-    private IStatement? TryParseDeclaration()
+    private Declaration? TryParseDeclaration()
     {
         if (_tokenBuffer.Current.Type is not TokenType.Identifier || _tokenBuffer.Next.Type is not TokenType.OperatorDeclaration)
         {
@@ -104,7 +104,7 @@ public class LanguageParser
         return new Declaration((string)(StringFactor)identifierToken.Value, statement, position);
     }
     
-    private IStatement? TryParseLambda()
+    private Lambda? TryParseLambda()
     {
         if (!TryTakeToken(TokenType.ParenthesesOpen, out var startToken))
         {
@@ -135,7 +135,7 @@ public class LanguageParser
         return new Lambda(arguments, body, startToken.Position);
     }
 
-    private IStatement? TryParseCondition()
+    private Condition? TryParseCondition()
     {
         if (!TryTakeToken(TokenType.If, out var startToken))
         {
@@ -170,7 +170,7 @@ public class LanguageParser
         return new Condition(conditionaryItems, null, startToken.Position);
     }
     
-    private IStatement? TryParseLoop()
+    private Loop? TryParseLoop()
     {
         if (!TryTakeToken(TokenType.Loop, out var startToken))
         {
@@ -335,9 +335,9 @@ public class LanguageParser
         TryParseConstFactor() 
         ?? TryParseBlock()
         ?? TryParseVariableFunctionCall()
-        ?? TryParseVariableFactor();
+        ?? TryParseVariableFactor() as IFactor;
 
-    private IFactor? TryParseConstFactor()
+    private ConstFactor? TryParseConstFactor()
     {
         if (_tokenBuffer.Current.Type is not (TokenType.String or TokenType.Boolean or TokenType.Null or TokenType.Integer))
         {
@@ -373,10 +373,12 @@ public class LanguageParser
 
         TakeTokenOrThrow(TokenType.BraceClose, "Block should be closed.");
         
-        return new Block(statements, startToken.Position);
+        var block = new Block(statements, startToken.Position);
+        
+        return TryParseStatementCall(block) ?? block as IFactor;
     }
 
-    private IFactor? TryParseVariableFunctionCall()
+    private FunctionCall? TryParseVariableFunctionCall()
     {
         if (_tokenBuffer.Current.Type != TokenType.Identifier || _tokenBuffer.Next.Type != TokenType.ParenthesesOpen)
         {
@@ -385,31 +387,27 @@ public class LanguageParser
         
         var errorMessage = "Function call should have \"name(args)\" syntax";
         var identifierToken = TakeTokenOrThrow(TokenType.Identifier, errorMessage);
+
+        var arguments = ParseCall();
+        var functionCall = new FunctionCall(new VariableFactor((string)(StringFactor)identifierToken.Value, identifierToken.Position),
+            arguments, identifierToken.Position);
         
-        TakeTokenOrThrow(TokenType.ParenthesesOpen, errorMessage);
-        
-        var arguments = new List<IExpression>();
-        while (true)
+        return TryParseStatementCall(functionCall) ?? functionCall;
+    }
+    
+    private FunctionCall? TryParseStatementCall(IStatement statement)
+    {
+        if (_tokenBuffer.Current.Type != TokenType.ParenthesesOpen)
         {
-            var expression = TryParseExpression();
-            if (expression == null)
-            {
-                break;
-            }
-            arguments.Add(expression);
-            
-            if (!TryTakeToken(TokenType.Comma, out _))
-            {
-                break;
-            }
+            return null;
         }
-        
-        TakeTokenOrThrow(TokenType.ParenthesesClose, errorMessage);
-        
-        return new FunctionCall(new VariableFactor((string)(StringFactor)identifierToken.Value, identifierToken.Position), arguments, identifierToken.Position);
+        var position = _tokenBuffer.Current.Position;
+        var arguments = ParseCall();
+        var functionCall = new FunctionCall(statement, arguments, position);
+        return TryParseStatementCall(functionCall) ?? functionCall;
     }
 
-    private IFactor? TryParseVariableFactor()
+    private VariableFactor? TryParseVariableFactor()
     {
         if (!TryTakeToken(TokenType.Identifier, out var token))
         {
@@ -438,5 +436,32 @@ public class LanguageParser
 
         token = _tokenBuffer.Take();
         return true;
+    }
+
+    private List<IExpression> ParseCall()
+    {
+        var errorMessage = "Calls arguments should be in Parentheses and be separated by comma \"(arg1, arg2)\" syntax";
+        
+        TakeTokenOrThrow(TokenType.ParenthesesOpen, errorMessage);
+        
+        var arguments = new List<IExpression>();
+        while (true)
+        {
+            var expression = TryParseExpression();
+            if (expression == null)
+            {
+                break;
+            }
+            arguments.Add(expression);
+            
+            if (!TryTakeToken(TokenType.Comma, out _))
+            {
+                break;
+            }
+        }
+        
+        TakeTokenOrThrow(TokenType.ParenthesesClose, errorMessage);
+        
+        return arguments;
     }
 }

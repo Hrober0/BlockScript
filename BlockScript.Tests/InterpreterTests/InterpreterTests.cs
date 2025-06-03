@@ -405,8 +405,38 @@ public class InterpreterTests
     {
         // Arrange
         List<IStatement> program = [
+            new FunctionCall(new Lambda([], ConstFactor(1)), []),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().BeEquivalentTo(new IntFactor(1));
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldExecuteFunctionCall_FromVariable()
+    {
+        // Arrange
+        List<IStatement> program = [
             new Declaration("x", new Lambda([], ConstFactor(1))),
             new FunctionCall("x", []),
+        ];
+        
+        // Act
+        var result = ExecuteProgram(program);
+        
+        // Assert
+        result.Should().BeEquivalentTo(new IntFactor(1));
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldExecuteFunctionCall_FromBlock()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new FunctionCall(new Block([new Lambda([], ConstFactor(1))]), []),
         ];
         
         // Act
@@ -473,6 +503,22 @@ public class InterpreterTests
         List<IStatement> program = [
             new Declaration("x", ConstFactor(1)),
             new FunctionCall("x", []),
+        ];
+        
+        // Act
+        var act = () => ExecuteProgram(program);
+        
+        // Assert
+        act.Should().Throw<RuntimeException>()
+           .WithMessage($"*is not callable*");
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldThrow_WhenExecuteFunctionCall_IsNotCallableBlock()
+    {
+        // Arrange
+        List<IStatement> program = [
+            new FunctionCall(new Block([]), []),
         ];
         
         // Act
