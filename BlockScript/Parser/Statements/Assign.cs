@@ -1,9 +1,10 @@
-﻿using BlockScript.Lexer;
+﻿using BlockScript.Reader;
 
-namespace BlockScript.Parser.Statements
+namespace BlockScript.Parser.Statements;
+
+public record Assign(string Identifier, IStatement Value, Position Position) : IStatement
 {
-    public record Assign(string Identifier, IStatement Value, bool NullAssign, Position Position) : IStatement
-    {
-        public override string ToString() => $"${Identifier} {(NullAssign ? "?=" : "=")} {Value}";
-    }
+    public Assign(string identifier, IStatement value) : this(identifier, value, Position.Default) {}
+        
+    public override string ToString() => $"${Identifier} := {Value}";
 }

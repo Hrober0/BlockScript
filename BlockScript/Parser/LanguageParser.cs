@@ -1,5 +1,6 @@
 ﻿using BlockScript.Exceptions;
 using BlockScript.Lexer;
+using BlockScript.Lexer.FactorValues;
 using BlockScript.Parser.Expressions;
 using BlockScript.Parser.Factors;
 using BlockScript.Parser.Statements;
@@ -57,6 +58,8 @@ public class LanguageParser
     
     private IStatement? TryParseStatement() =>
         TryParseAssign()
+        ?? TryParseNullAssign()
+        ?? TryParseDeclaration()
         ?? TryParseLambda()
         ?? TryParseCondition()
         ?? TryParseLoop()
@@ -64,16 +67,41 @@ public class LanguageParser
 
     private IStatement? TryParseAssign()
     {
-        if (_tokenBuffer.Current.Type is not TokenType.Identifier || _tokenBuffer.Next.Type is not (TokenType.OperatorAssign or TokenType.OperatorNullAssign))
+        if (_tokenBuffer.Current.Type is not TokenType.Identifier || _tokenBuffer.Next.Type is not TokenType.OperatorAssign)
         {
             return null;
         }
         var position = _tokenBuffer.Current.Position;
-        var identifierToken = TakeTokenOrThrow(TokenType.Identifier, "Assigment requires a name.");
-        var nullAssign = _tokenBuffer.Current.Type is TokenType.OperatorNullAssign;
+        var identifierToken = _tokenBuffer.Take();
         _tokenBuffer.Take();
         var statement = ParseStatement("Assigment require value");
-        return new Assign((string)identifierToken.Value, statement, nullAssign, position);
+        return new Assign((string)(StringFactor)identifierToken.Value, statement, position);
+    }
+    
+    private IStatement? TryParseNullAssign()
+    {
+        if (_tokenBuffer.Current.Type is not TokenType.Identifier || _tokenBuffer.Next.Type is not TokenType.OperatorNullAssign)
+        {
+            return null;
+        }
+        var position = _tokenBuffer.Current.Position;
+        var identifierToken = _tokenBuffer.Take();
+        _tokenBuffer.Take();
+        var statement = ParseStatement("Assigment require value");
+        return new NullAssign((string)(StringFactor)identifierToken.Value, statement, position);
+    }
+    
+    private IStatement? TryParseDeclaration()
+    {
+        if (_tokenBuffer.Current.Type is not TokenType.Identifier || _tokenBuffer.Next.Type is not TokenType.OperatorDeclaration)
+        {
+            return null;
+        }
+        var position = _tokenBuffer.Current.Position;
+        var identifierToken = _tokenBuffer.Take();
+        _tokenBuffer.Take();
+        var statement = ParseStatement("Declaration require value");
+        return new Declaration((string)(StringFactor)identifierToken.Value, statement, position);
     }
     
     private IStatement? TryParseLambda()
@@ -83,14 +111,14 @@ public class LanguageParser
             return null;
         }
 
-        var paramaters = new List<string>();
+        var arguments = new List<string>();
         while (true)
         {
             if (!TryTakeToken(TokenType.Identifier, out var identifierToken))
             {
                 break;
             }
-            paramaters.Add((string)identifierToken.Value);
+            arguments.Add((string)(StringFactor)identifierToken.Value);
             if (!TryTakeToken(TokenType.Comma, out _))
             {
                 break;
@@ -104,7 +132,7 @@ public class LanguageParser
 
         var body = ParseStatement(errorMessage);
         
-        return new Lambda(paramaters, body, startToken.Position);
+        return new Lambda(arguments, body, startToken.Position);
     }
 
     private IStatement? TryParseCondition()
@@ -174,28 +202,54 @@ public class LanguageParser
     
     private IExpression? TryParseExpression() => TryParseOrExpression();
     
-    private IExpression? TryParseOrExpression() => TryParseExpression([TokenType.OperatorOr],
-        (expressions, _) => new LogicExpression(expressions, TokenType.OperatorOr),
+    private IExpression? TryParseOrExpression() => TryParseMultipleExpression([TokenType.OperatorOr],
+        (lhs, rhs, operatorToken) => new LogicOrExpression(lhs, rhs, operatorToken.Position),
         TryParseAndExpression);
 
-    private IExpression? TryParseAndExpression() => TryParseExpression([TokenType.OperatorAnd],
-        (expressions, _) => new LogicExpression(expressions, TokenType.OperatorAnd),
+    private IExpression? TryParseAndExpression() => TryParseMultipleExpression([TokenType.OperatorAnd],
+        (lhs, rhs, operatorToken) => new LogicAndExpression(lhs, rhs, operatorToken.Position),
         TryParseCompereExpression);
 
-    private IExpression? TryParseCompereExpression() => TryParseExpression([TokenType.OperatorEqual, TokenType.OperatorNotEqual, TokenType.OperatorLess,  TokenType.OperatorLessEqual, TokenType.OperatorGreater, TokenType.OperatorGreaterEqual],
-        (leftExpression, rightExpression, operatorType) => new CompereExpression(leftExpression, rightExpression, operatorType),
+    private IExpression? TryParseCompereExpression() => TryParseSingleExpression([
+            TokenType.OperatorEqual,
+            TokenType.OperatorNotEqual,
+            TokenType.OperatorLess,
+            TokenType.OperatorLessEqual,
+            TokenType.OperatorGreater,
+            TokenType.OperatorGreaterEqual
+        ],
+        (lhs, rhs, operatorToken) => operatorToken.Type switch
+        {
+            TokenType.OperatorEqual => new CompereEqualsExpression(lhs, rhs, operatorToken.Position),
+            TokenType.OperatorNotEqual => new CompereNotEqualsExpression(lhs, rhs, operatorToken.Position),
+            TokenType.OperatorLess => new CompereLessExpression(lhs, rhs, operatorToken.Position),
+            TokenType.OperatorLessEqual => new CompereLessEqualExpression(lhs, rhs, operatorToken.Position),
+            TokenType.OperatorGreater => new CompereGreaterExpression(lhs, rhs, operatorToken.Position),
+            TokenType.OperatorGreaterEqual => new CompereGreaterEqualExpression(lhs, rhs, operatorToken.Position),
+            _ => throw new ArgumentOutOfRangeException()
+        },
         TryParseNullColExpression);
     
-    private IExpression? TryParseNullColExpression() => TryParseExpression([TokenType.OperatorNullCoalescing],
-        (expressions, _) => new NullCoalescingExpression(expressions),
+    private IExpression? TryParseNullColExpression() => TryParseMultipleExpression([TokenType.OperatorNullCoalescing],
+        (lhs, rhs, operatorToken) => new NullCoalescingExpression(lhs, rhs, operatorToken.Position),
         TryParseAddExpression);
     
-    private IExpression? TryParseAddExpression() => TryParseExpression([TokenType.OperatorAdd, TokenType.OperatorSubtract],
-        (expressions, operators) => new ArithmeticalExpression(expressions, operators),
+    private IExpression? TryParseAddExpression() => TryParseMultipleExpression([TokenType.OperatorAdd, TokenType.OperatorSubtract],
+        (lhs, rhs, operatorToken) => operatorToken.Type switch
+        {
+            TokenType.OperatorAdd => new ArithmeticalAddExpression(lhs, rhs, operatorToken.Position),
+            TokenType.OperatorSubtract => new ArithmeticalSubtractExpression(lhs, rhs, operatorToken.Position),
+            _ => throw new ArgumentOutOfRangeException()
+        },
         TryParseMultiplicationExpression);
     
-    private IExpression? TryParseMultiplicationExpression() => TryParseExpression([TokenType.OperatorMultiply, TokenType.OperatorDivide],
-        (expressions, operators) => new ArithmeticalExpression(expressions, operators),
+    private IExpression? TryParseMultiplicationExpression() => TryParseMultipleExpression([TokenType.OperatorMultiply, TokenType.OperatorDivide],
+        (lhs, rhs, operatorToken) => operatorToken.Type switch
+        {
+            TokenType.OperatorMultiply => new ArithmeticalMultiplyExpression(lhs, rhs, operatorToken.Position),
+            TokenType.OperatorDivide => new ArithmeticalDivideExpression(lhs, rhs, operatorToken.Position),
+            _ => throw new ArgumentOutOfRangeException()
+        },
         TryParseNotExpression);
     
     private IExpression? TryParseNotExpression()
@@ -213,8 +267,8 @@ public class LanguageParser
         return new NotExpression(factor);
     }
 
-    private delegate IExpression CreateMultipleExpression(List<IExpression> expressions, List<TokenType> operators);
-    private IExpression? TryParseExpression(TokenType[] acceptableOperators, CreateMultipleExpression multipleExpressionConstructor, Func<IExpression?> childExpressionParser)
+    private delegate IExpression CreateExpression(IExpression lhs, IExpression rhs, TokenData operatorToken);
+    private IExpression? TryParseMultipleExpression(TokenType[] acceptableOperators, CreateExpression expressionConstructor, Func<IExpression?> childExpressionParser)
     {
         var expression = childExpressionParser();
         if (expression == null)
@@ -222,11 +276,11 @@ public class LanguageParser
             return null;
         }
         var expressions = new List<IExpression>();
-        var operators = new List<TokenType>();
+        var operators = new List<TokenData>();
         expressions.Add(expression);
         while (acceptableOperators.Contains(_tokenBuffer.Current.Type))
         {
-            operators.Add(_tokenBuffer.Take().Type);
+            operators.Add(_tokenBuffer.Take());
             expression = childExpressionParser();
             if (expression == null)
             {
@@ -239,12 +293,18 @@ public class LanguageParser
         {
             return expressions[0];
         }
-        
-        return multipleExpressionConstructor(expressions, operators);
+
+        return CreateExpression(0);
+
+        IExpression CreateExpression(int index)
+        {
+            var nextExpression = index < operators.Count - 1
+                ? CreateExpression(index + 1)
+                : expressions[index + 1];
+            return expressionConstructor(expressions[index], nextExpression, operators[index]);
+        }
     }
-    
-    private delegate IExpression CreateSingleExpression(IExpression leftExpression, IExpression rightExpression, TokenType operatorType);
-    private IExpression? TryParseExpression(TokenType[] acceptableOperators, CreateSingleExpression expressionConstructor, Func<IExpression?> childExpressionParser)
+    private IExpression? TryParseSingleExpression(TokenType[] acceptableOperators, CreateExpression expressionConstructor, Func<IExpression?> childExpressionParser)
     {
         var leftExpression = childExpressionParser();
         if (leftExpression == null)
@@ -256,7 +316,7 @@ public class LanguageParser
         {
             return leftExpression;
         }
-        var operatorType = _tokenBuffer.Take().Type;
+        var operatorToken = _tokenBuffer.Take();
         
         var rightExpression = childExpressionParser();
         if (rightExpression == null)
@@ -264,7 +324,7 @@ public class LanguageParser
             throw new TokenException(_tokenBuffer.Current.Position, $"Expected factor, but received, {_tokenBuffer.Current.Value}");
         }
         
-        return expressionConstructor(leftExpression, rightExpression, operatorType);
+        return expressionConstructor(leftExpression, rightExpression, operatorToken);
     }
     
     #endregion
@@ -346,7 +406,7 @@ public class LanguageParser
         
         TakeTokenOrThrow(TokenType.ParenthesesClose, errorMessage);
         
-        return new FunctionCall((string)identifierToken.Value, arguments, identifierToken.Position);
+        return new FunctionCall((string)(StringFactor)identifierToken.Value, arguments, identifierToken.Position);
     }
 
     private IFactor? TryParseVariableFactor()
@@ -355,7 +415,7 @@ public class LanguageParser
         {
             return null;
         }
-        return new VariableFactor((string)token.Value, token.Position);
+        return new VariableFactor((string)(StringFactor)token.Value, token.Position);
     }
     
     #endregion

@@ -27,8 +27,6 @@ public enum TokenType
 
     // Logical Operators
     OperatorEqual,
-    OperatorArrow,
-    OperatorAssign,
     OperatorLessEqual,
     OperatorLess,
     OperatorGreaterEqual,
@@ -37,7 +35,10 @@ public enum TokenType
     OperatorOr,
     OperatorAnd,
     OperatorNullCoalescing,
+    OperatorArrow,
+    OperatorAssign,
     OperatorNullAssign,
+    OperatorDeclaration,
 
     // Arithmetical Operators
     OperatorAdd,

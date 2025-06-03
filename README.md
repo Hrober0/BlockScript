@@ -68,6 +68,22 @@ b = a ?? 5;		# b assign to 4
 
 a = null;
 b = a ?? 5;		# b assign to 5
+
+c = 2;
+f = () => c = 3;
+print(c);       # prints 2
+f();
+print(c);       # prints 2, because new c was declared in local context
+
+d = 2;
+f = () => d := 3;
+print(d);       # prints 2
+f();
+print(d);       # prints 3, because c value was overided
+
+e := 2;         # error e was not defined
+e ?= 2;         # error e was not defined
+e = 2;          # works
 ```
 
 **Type conversion**:
@@ -95,7 +111,7 @@ true && 2		=> true
 ### Comments
 \# this is a comment
 
-### Blok
+### Block
 An important aspect of the language to understand is that a **block** consists of consecutive lines of code, resembling the body of a function.
 
 - The entire program is a block.  
@@ -461,7 +477,6 @@ statement	= assign
 			| lambda
 			| condition
 			| loop
-			| print
 			| expr;
 
 assign		= identifier op_asign statement;
@@ -469,7 +484,6 @@ lambda		= "(" args ")" "=>" statement;
 func_call	= identifier "(" args ")";
 condition	= "if" expr statement { "else" "if" expr statement } ["else" statement];
 loop		= "loop" expr statement;
-print		= "print" "(" statement ")";
 
 args		= [{ expr "," } expr];
 
@@ -505,7 +519,7 @@ op_check		= "??"
 op_add			= "+" | "-";
 op_mul			= "*" | "/";
 
-op_asign		= "=" | "?=";
+op_asign		= "=" | "?=" | ":=";
 
 identifier		= letter { letter | digit };
 

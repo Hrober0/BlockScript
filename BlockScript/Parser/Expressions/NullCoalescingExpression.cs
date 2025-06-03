@@ -1,9 +1,11 @@
 ﻿using BlockScript.Lexer;
-using BlockScript.Utilities;
+using BlockScript.Reader;
 
 namespace BlockScript.Parser.Expressions;
 
-public record NullCoalescingExpression(List<IExpression> Expressions) : IExpression
+public record NullCoalescingExpression(IExpression Lhs, IExpression Rhs, Position Position) : IExpression
 {
-    public override string ToString() => $"{Expressions.Stringify(" ?? ")}";
+    public NullCoalescingExpression(IExpression Lhs, IExpression Rhs) : this(Lhs, Rhs, Position.Default) { }
+    
+    public override string ToString() => $"{Lhs} {TokenType.OperatorNullCoalescing.TextValue()} {Rhs}";
 }

@@ -17,8 +17,6 @@ namespace BlockScript.Lexer
 
             // Logical operators
             ("==", TokenType.OperatorEqual),
-            ("=>", TokenType.OperatorArrow),
-            ("=",  TokenType.OperatorAssign),
             ("<=", TokenType.OperatorLessEqual),
             ("<",  TokenType.OperatorLess),
             (">=", TokenType.OperatorGreaterEqual),
@@ -27,7 +25,10 @@ namespace BlockScript.Lexer
             ("||", TokenType.OperatorOr),
             ("&&", TokenType.OperatorAnd),
             ("??", TokenType.OperatorNullCoalescing),
+            ("=>", TokenType.OperatorArrow),
+            (":=",  TokenType.OperatorAssign),
             ("?=", TokenType.OperatorNullAssign),
+            ("=",  TokenType.OperatorDeclaration),
 
             // Arithmetical operators
             ("+", TokenType.OperatorAdd),

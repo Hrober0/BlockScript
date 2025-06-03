@@ -1,29 +1,30 @@
+using BlockScript.Interpreter;
+using BlockScript.Interpreter.BuildInMethods;
 using BlockScript.Lexer;
 using BlockScript.Parser;
 
-using TextReader reader = new StreamReader("CodeExamples/Test.txt");
+var codePath = args.Length > 0 ? args[0] : "CodeExamples/Test.txt"; 
+
+if (!File.Exists(codePath))
+{
+    Console.WriteLine($"Error: File '{codePath}' does not exist.");
+    return;
+}
+
+using TextReader reader = new StreamReader(codePath);
 
 var lexer = new Lexer(reader);
-
-Console.WriteLine("Start");
 try
 {
-     // while (true)
-     // {
-     //     var tokenData = lexer.GetToken();
-     //     if (tokenData.Type == TokenType.EndOfText)
-     //     {
-     //         break;
-     //     }
-     //
-     //     Console.WriteLine(tokenData);
-     // }
-     //
-     // Console.WriteLine($"EOT");
-    
     var parser = new LanguageParser(lexer.GetToken);
     var program = parser.ParserProgram();
-    Console.WriteLine(program);
+    var buildInMethods = new List<BuildInMethod>()
+    {
+        new PrintMethod(),
+    };
+    var interpreter = new LanguageInterpreter(buildInMethods);
+    var returnValue = interpreter.ExecuteProgram(program);
+    Console.WriteLine($"Execution result: {returnValue}");
 }
 catch (Exception e)
 {
