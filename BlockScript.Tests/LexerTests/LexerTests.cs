@@ -40,7 +40,7 @@ public class LexerTests
         token.Value.Should().Be(new StringFactor("loop"));
     }
     
-    #region comment
+    #region Comment
     
     [Fact]
     public void GetToken_ShouldReturnCommentToken_WhenCommentIsEncountered()
@@ -118,7 +118,7 @@ public class LexerTests
     
     #endregion
     
-    #region number
+    #region Number
     
     [Fact]
     public void GetToken_ShouldReturnIntegerToken_WhenIntegerIsEncountered()
@@ -210,7 +210,7 @@ public class LexerTests
     
     #endregion
     
-    #region string
+    #region String
     
     [Fact]
     public void GetToken_ShouldReturnStringToken_WhenStringIsEncountered()
@@ -371,7 +371,7 @@ public class LexerTests
     
     #endregion
     
-    #region keywords
+    #region Keywords
     
     [Theory]
     [InlineData("null", TokenType.Null)]
@@ -416,7 +416,7 @@ public class LexerTests
     
     #endregion
     
-    #region operators
+    #region Operators
     
     [Theory]
     [InlineData("==", TokenType.OperatorEqual)]
@@ -472,7 +472,7 @@ public class LexerTests
     
     #endregion
     
-    #region identifier
+    #region Identifier
     
     [Fact]
     public void GetToken_ShouldNotThrowException_WhenIdentifierIsNotFullyParsedBeforeEndOfFile()
