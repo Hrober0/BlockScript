@@ -414,7 +414,7 @@ loop {a := a - 1; print(a); a >= 0} { };
     };
     print(2);
 }
-# prints: 11 12
+# prints: 11 2
 
 {
 	loop true { break };
@@ -426,7 +426,7 @@ loop {a := a - 1; print(a); a >= 0} { };
 	loop true break;
 }
 # returns: null
-# break is not in block so it will exit loop
+# break is not in block, so it will exit loop
 
 {
 	loop true { print(1); break 2; print(2); };
