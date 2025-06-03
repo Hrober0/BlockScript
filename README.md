@@ -112,12 +112,12 @@ true && 2		=> true
 \# this is a comment
 
 ### Block
-An important aspect of the language to understand is that a **block** consists of consecutive lines of code, resembling the body of a function.
+An important aspect of the language to understand is that a **block** consists of consecutive lines of code.
 
 - The entire program is a block.  
 - A block has its own **context**, meaning its own local memory, which contains:  
-  - all declared variables (including functions)  
-  - a reference to the **context** of the parent function  
+  - all declared variables (including functions).  
+  - a reference to the **context** of the parent block.  
 - Blocks can be nested.  
 - Each block returns a value equal to the value of the last instruction in the block.  
 - The `;` symbol is used to separate instructions from one another; it may or may not appear at the end of a block.
