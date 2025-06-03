@@ -149,7 +149,7 @@ a=3;
 b=4;
 ()=>{a>b};
 }
-# blok returns: lambda ()=>{a>b}
+# blok returns: function call ()=>{a>b}
 
 {
 print("a");
@@ -227,15 +227,9 @@ a = 0;
 print(if a "ok" else "no");
 # prints no – zero parsed to boolean gives false
 
-if a==1 {
-	1
-}
-else if a==2 {
-	2
-}
-else {
-	"no"
-};
+if a==1 1
+else if a==2 2
+else "no";
 # if a==1, returns 1; if a==2, returns 2; otherwise, returns "no"
 ```
 
@@ -568,3 +562,202 @@ Errors follow the format: ERROR:line message
 	1. "a" * "b";
 	ERROR[1, 3]: Operator '*' expected 'int' but recived 'string'
 	```
+
+## Running the Program
+
+The program reads from the stream, interprets the code contained within it, and executes it.
+<br>The result of the program's execution is printed to the standard output (console).
+
+### Simple run
+In root directory `dotnet run FILE_PATH`.
+<br>When path not specified program will use `CodeExamples\Test.txt`
+
+### Build and run
+Interpreter can be built by `dotnet build`.
+<br>It will create an executable file, that can be run by `dotnet .\BlockScript.dll FILE_PATH`.
+
+### Advance usages
+The main program is located in the `Program.cs` file.
+In `Program.cs`, a `StreamReader` is declared using the statement `using TextReader reader =`, which can be assigned any type of stream.
+By default, it is set to `new StreamReader("CodeExamples/Test.txt");`, which means it reads from the specified file.
+
+### Example:
+input:
+```py
+print("hello world");
+2 + 2;
+```
+output:
+```
+hello world
+Execution result: 4 
+```
+
+## Project Structure
+
+The project consists 3 main modules:
+
+- **Lexer**
+- **Parser**
+- **Interpreter**
+
+They depend on each other hierarchically:
+
+- The **Lexer** does **not** depend on the Parser or Interpreter.
+- The **Parser** depends only on the data structures of the Lexer.
+- The **Interpreter** depends only on the data structures of the Lexer and Parser.
+
+Corresponding to these project files, the second solution `BlockScript.Tests` contains tests:
+
+- `LexerTests`
+- `ParserTests`
+- `InterpreterTests`
+- `UtilitiesTest`
+- `IntegrationTests`
+
+---
+
+## Lexer
+
+Lazily converts a text stream into tokens.
+
+**Input**: a text stream
+<br>**Provides**: a `GetToken` method that returns the next token.
+
+Each **Token** consists of:
+
+- `Type` (`TokenType`) — an enum containing token types, e.g. `EndOfText`, `OperatorEqual`, `String`.
+- `Value` (`IFactorValue`) — a properly parsed value (`IntFactor`, `StringFactor`, `BoolFactor`, `NullFactor`).
+- `Position` (`Position`) — line and column number where the token begins.
+
+---
+
+## Parser
+
+Builds a program tree from tokens.
+
+**Input**: a method returning the next token.
+<br>**Provides**: a `ParserProgram` method that returns the program tree as a `Block` record.
+
+Defines 3 categories of data types:
+
+### Statement
+
+- `Assign`
+- `NullAssign`
+- `Declaration`
+- `Condition`
+- `Lambda`
+- `Loop`
+
+### Expression
+
+#### Arithmetical
+
+- `Add`
+- `Subtract`
+- `Multiply`
+- `Divide`
+
+#### Comparison
+
+- `Equals`
+- `NotEquals`
+- `Greater`
+- `GreaterEquals`
+- `Less`
+- `LessEquals`
+
+#### Logical
+
+- `Not`
+- `NullCoalescing`
+
+### Factor
+
+- `ConstFactor`
+- `VariableFactor`
+- `FunctionCall`
+- `Block`
+
+---
+
+## Interpreter
+
+Executes the program tree.
+
+**Input**: the root of the tree as a `Block`, and a list of `built-in functions`.
+<br>**Provides**: the `ExecuteProgram` function which returns the result of the program.
+
+A `built-in function` is a predefined method that can be supplied to the interpreter, enabling programs to invoke it during execution.
+<br>Users can define their own built-in functions by creating a class that inherits from the `BuildInMethod` base class and implementing its behavior.
+<br>The **Interpreter** module includes two such functions:
+
+- `PrintMethod` – prints a single argument to the console.
+- `DebugMethod` – adds a single argument to a configurable debug list.
+
+## Testing
+
+The project uses **xUnit** and **FluentAssertions** as testing libraries.
+Test coverage: 91%
+
+### Unit Tests
+
+Unit tests cover individual methods in each core component (Lexer, Parser, Interpreter).  
+<br>They verify edge cases, exceptions, and sample inputs to ensure correct method behavior in isolation.
+- **Lexer tests** – validate that a given text stream is correctly tokenized into the expected sequence of tokens.
+- **Parser tests** – verify that a sequence of tokens is accurately transformed into the corresponding abstract syntax tree (program structure).
+- **Interpreter tests** – ensure that executing a program tree produces the correct output.
+<br>e.g.
+```csharp
+[Fact]
+public void Interpreter_ShouldExecuteLogicOrExpression_AndNotExecuteRightExpression_WhenLeftIsTrue()
+{
+    // Arrange
+    var output = new List<IFactorValue>();
+    List<IStatement> program =
+    [
+        new LogicOrExpression(ConstFactor(true), AddToOutput(ConstFactor(false))),
+    ];
+
+    // Act
+    var result = ExecuteProgram(program, [new DebugMethod(output)]);
+
+    // Assert
+    result .Should().Be(new BoolFactor(true));
+    output.Should().BeEmpty();
+}
+```
+
+### Integration Tests
+
+Integration tests verify the interaction between different components of the project.
+<br>Project includes End-To-End (`End2End`) tests, that takes a text stream as input and assert the expected output produced by executing the program.
+<br>e.g.
+```csharp
+[Fact]
+public void Integration_ShouldCalculateFibonacci()
+{
+    // Arrange
+    // 1 2 3 5 8 13 21 34 55 
+    // 1 2 3 4 5  6  7  8  9
+    var input = """
+                fib = (i) => if i <= 1 1 else fib(i-1) + fib(i-2);
+                
+                debug(fib(1));
+                debug(fib(6));
+                debug(fib(9));
+                """;
+    
+    // Act
+    var (returnValue, debug) = Execute(input);
+    
+    // Assert
+    returnValue.Should().Be(new IntFactor(55));
+    debug.Should().BeEquivalentTo([
+        new IntFactor(1),
+        new IntFactor(13),
+        new IntFactor(55),
+    ]);
+}
+```
