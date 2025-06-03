@@ -206,14 +206,22 @@ public class LanguageInterpreter(List<BuildInMethod> buildInMethods)
     private BoolFactor Execute(LogicOrExpression logicOrExpression)
     {
         var left = ParseBool(Execute(logicOrExpression.Lhs), logicOrExpression.Lhs.Position);
+        if (left)
+        {
+            return new BoolFactor(true);
+        }
         var right = ParseBool(Execute(logicOrExpression.Rhs), logicOrExpression.Rhs.Position);
-        return new BoolFactor(left || right);
+        return new BoolFactor(right);
     }
     private BoolFactor Execute(LogicAndExpression logicAndExpression)
     {
         var left = ParseBool(Execute(logicAndExpression.Lhs), logicAndExpression.Lhs.Position);
+        if (!left)
+        {
+            return new BoolFactor(false);
+        }
         var right = ParseBool(Execute(logicAndExpression.Rhs), logicAndExpression.Rhs.Position);
-        return new BoolFactor(left && right);
+        return new BoolFactor(right);
     }
     
     private BoolFactor Execute(CompereEqualsExpression compereEqualsExpression)

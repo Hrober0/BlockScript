@@ -829,6 +829,42 @@ public class InterpreterTests
         // Assert
         result.Should().BeEquivalentTo(new BoolFactor(expected));
     } 
+    
+    [Fact]
+    public void Interpreter_ShouldExecuteLogicAndExpression_AndNotExecuteRightExpression_WhenLeftIsFalse()
+    {
+        // Arrange
+        var output = new List<IFactorValue>();
+        List<IStatement> program =
+        [
+            new LogicAndExpression(ConstFactor(false), AddToOutput(ConstFactor(true))),
+        ];
+
+        // Act
+        var result = ExecuteProgram(program, [new DebugMethod(output)]);
+
+        // Assert
+        result .Should().Be(new BoolFactor(false));
+        output.Should().BeEmpty();
+    }
+    
+    [Fact]
+    public void Interpreter_ShouldExecuteLogicOrExpression_AndNotExecuteRightExpression_WhenLeftIsTrue()
+    {
+        // Arrange
+        var output = new List<IFactorValue>();
+        List<IStatement> program =
+        [
+            new LogicOrExpression(ConstFactor(true), AddToOutput(ConstFactor(false))),
+        ];
+
+        // Act
+        var result = ExecuteProgram(program, [new DebugMethod(output)]);
+
+        // Assert
+        result .Should().Be(new BoolFactor(true));
+        output.Should().BeEmpty();
+    }
 
     [Theory]
     [InlineData(0, true, false)]
