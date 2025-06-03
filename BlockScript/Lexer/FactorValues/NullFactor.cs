@@ -2,6 +2,6 @@
 {
     public record NullFactor : IFactorValue
     {
-        public override string ToString() => $"#Null";
+        public override string ToString() => "Null";
     }
 }
