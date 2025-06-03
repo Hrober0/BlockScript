@@ -71,19 +71,19 @@ b = a ?? 5;		# b assign to 5
 
 c = 2;
 f = () => c = 3;
-print(c);       # prints 2
+print(c);       	# prints 2
 f();
-print(c);       # prints 2, because new c was declared in local context
+print(c);       	# prints 2, because new c was declared in local context
 
 d = 2;
 f = () => d := 3;
-print(d);       # prints 2
+print(d);       	# prints 2
 f();
-print(d);       # prints 3, because c value was overided
+print(d);       	# prints 3, because c value was overided
 
-e := 2;         # error e was not defined
-e ?= 2;         # error e was not defined
-e = 2;          # works
+e := 2;         	# error e was not defined
+e ?= 2;        	 	# error e was not defined
+e = 2;         		# works
 ```
 
 **Type conversion**:
@@ -137,7 +137,7 @@ An important aspect of the language to understand is that a **block** consists o
 
 {
     a=3;
-    b={4};		# the same as b=4;
+    b={4};	# the same as b=4;
     a+b;
 }
 # blok returns: 7
@@ -351,8 +351,9 @@ f = (a) => {
 f(1)(2);
 # prints: 1 1 2
 
-{ (a) => print(a + a) }(2);     # value taht block returns can be called
+{ (a) => print(a + a) }(2);
 # prints: 4
+# value that block returns can be called
 
 { (a) => { () => (b, c) => { print(a); print(b); print(c) } } }(1)()(2,3);
 # { () => (b, c) => { print(1); print(b); print(c) } }()(2,3)
@@ -402,7 +403,8 @@ loop {a := a - 1; print(a); a >= 0} { };
 	a = 0;
 	loop {a := a + 1; a <= 5} { a };
 }
-# returns: 5 – because this is the last value of the block
+# returns: 5
+# 5 is the last value of a, that is last statement of the loop block
 
 {
     a = true;
@@ -493,7 +495,7 @@ getElement = (list, index) => {
 setElement = (list, index, value) => {
     if -isEmpty(list) {
 		if index == 0 {
-			lNode(value, lNext(list))  									# Found element, so set its value
+			lNode(value, lNext(list))  					# Found element, so set its value
 		}
 		else {
 			lNode(lCurrent(list), setElement(lNext(list), index - 1))	# Recursive call for next element, and construct new node
@@ -515,7 +517,7 @@ list = lNode(30, list);
 # the list now looks like: 30 20 10
 
 print(lCurrent(list))  ;		# prints: 30
-print(lCurrent(lNext(list)));  	# wypisze 20
+print(lCurrent(lNext(list)));  		# wypisze 20
 
 print(get(list, 1));			# prints: 20
 
@@ -590,7 +592,7 @@ statement	= assign
 
 assign		= identifier op_asign statement;
 lambda		= "(" args ")" "=>" statement;
-func_call	= identifier "(" args ") { "(" args ")" } | block "(" args ") { "(" args ")" };
+func_call	= identifier "(" args ")" { "(" args ")" } | block "(" args ")" { "(" args ")" };
 condition	= "if" expr statement { "else" "if" expr statement } ["else" statement];
 loop		= "loop" expr statement;
 break		= "break" [ statement ];
@@ -606,18 +608,18 @@ ex_mul		= ex_urn { op_mul ex_urn };
 ex_urn		= factor | "-" factor;
 
 factor		= int
-			| string
-			| bool
-			| null
-			| identifier
-			| func_call
-			| block;
+		| string
+		| bool
+		| null
+		| identifier
+		| func_call
+		| block;
 
 ```
 #### Lexical Part
 ```ebnf
-eos				= ";";
-int				= (no_zero_digit { digit }) | '0';
+eos			= ";";
+int			= (no_zero_digit { digit }) | '0';
 string			= "\"" { symbol } "\"";
 bool			= "false" | "true";
 null			= "null";
@@ -635,7 +637,7 @@ identifier		= letter { letter | digit };
 
 symbol			= digit | letter;
 digit			= #'[0-9]';
-no_zero_digit	= #'[1-9]';
+no_zero_digit		= #'[1-9]';
 letter			= #'[A-Za-z]';
 ```
 
