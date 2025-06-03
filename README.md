@@ -303,31 +303,31 @@ Loops also support blocks as decision conditions. If the expression following th
 **Examples**:
 ```py
 a = 0;
-loop a<2 { a=a+1; print(a) };
+loop a<2 { a:=a+1; print(a) };
 # prints: 1 2
 
-loop {a<2} { a=a+1; print(a) };
+loop {a<2} { a:=a+1; print(a) };
 # prints: 1 2
 
 a = 2;
-loop {a = a - 1; a >= 0} { print(a) };
+loop {a := a - 1; a >= 0} { print(a) };
 # prints: 1 0
 
 a = 2;
-loop {a = a - 1; print(a); a >= 0} { };
+loop {a := a - 1; print(a); a >= 0} { };
 # prints: 1 0
 
 a = -1;
-loop {a = a - 1; a >= 0} { print(a) };
+loop {a := a - 1; a >= 0} { print(a) };
 # prints: null
 
 a = -1;
-loop {a = a - 1; print(a); a >= 0} { };
+loop {a := a - 1; print(a); a >= 0} { };
 # prints: -2
 
 {
 	a = 0;
-	loop {a = a + 1; a <= 5} { a };
+	loop {a := a + 1; a <= 5} { a };
 }
 # returns: 5 – because this is the last value of the block
 ```
