@@ -295,6 +295,22 @@ f = (n) => {
 };
 f(3);
 # prints: 3 2 1
+
+f = (a) => {
+    print(a);
+    ff = (b) => print(a, b);
+};
+f(1)(2);
+# prints: 1 1 2
+
+{ (a) => print(a + a) }(2);     # value taht block returns can be called
+# prints: 4
+
+{ (a) => { () => (b, c) => { print(a); print(b); print(c) } } }(1)()(2,3);
+# { () => (b, c) => { print(1); print(b); print(c) } }()(2,3)
+# { (b, c) => { print(1); print(b); print(c) } }(2,3)
+# { print(1); print(2); print(3) }
+# prints: 1 2 3
 ```
 
 ### Loops
@@ -475,7 +491,7 @@ statement	= assign
 
 assign		= identifier op_asign statement;
 lambda		= "(" args ")" "=>" statement;
-func_call	= identifier "(" args ")";
+func_call	= identifier "(" args ") { "(" args ")" } | block "(" args ") { "(" args ")" };
 condition	= "if" expr statement { "else" "if" expr statement } ["else" statement];
 loop		= "loop" expr statement;
 
